@@ -4,16 +4,32 @@ version: "1"
 
 nodes:
   - id: apply-transforms
-    name: Apply AST Transformations
+    name: Apply Solid 1.x to 2 local-safe transformations
     type: automatic
     steps:
-      - name: "Scan matching typescript files and apply fixes"
+      - name: "Rewrite Solid source imports and local-safe JSX patterns"
         js-ast-grep:
           js_file: scripts/codemod.ts
           base_path: "."
-          language: "typescript"
+          language: "tsx"
           include:
-            - "**/*.{ts,tsx,mts,cts}"
+            - "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"
+
+      - name: "Update Solid JSX config and package dependency entries"
+        js-ast-grep:
+          js_file: scripts/json-config.ts
+          base_path: "."
+          language: "json"
+          include:
+            - "**/package.json"
+            - "**/tsconfig.json"
+            - "**/tsconfig.*.json"
+            - "**/jsconfig.json"
+            - "**/jsconfig.*.json"
           exclude:
             - "**/node_modules/**"
             - "**/dist/**"

@@ -1,6 +1,6 @@
 ---
 name: "solid-codemod"
-description: "Transform legacy code patterns"
+description: "Migrate local-safe Solid 1.x patterns to Solid 2"
 allowed-tools:
   - Bash(codemod *)
 ---
@@ -10,7 +10,7 @@ allowed-tools:
 codemod-compatibility: skill-package-v1
 codemod-skill-version: 0.1.0
 
-Use `references/index.md` as the primary instruction index for this package.
+Use `references/index.md` as the primary instruction index for this Solid 1.x to 2 migration package.
 
 ## Execution Contract
 

@@ -4,12 +4,6 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 type SourceLanguage = TSX;
 type SourceNode = SgNode<SourceLanguage>;
 
-interface ImportedRename {
-  from: string;
-  to: string;
-  binding: SourceNode;
-}
-
 interface JsxComponentRename {
   localName: string;
   replacementName: string;
@@ -68,7 +62,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
   const rootNode = root.root();
   const edits: Edit[] = [];
   const editRanges = new Set<string>();
-  const importedRenames: ImportedRename[] = [];
+  const usageRenames = new Map<string, string>();
   const jsxComponentRenames: JsxComponentRename[] = [];
   const semanticReviewNames = new Set<string>();
   const contextNames = new Set<string>();
@@ -81,6 +75,12 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     editRanges.add(key);
     edits.push(edit);
   };
+
+  const replaceNode = (node: SourceNode, insertedText: string): Edit => ({
+    startPos: node.range().start.index,
+    endPos: node.range().end.index,
+    insertedText,
+  });
 
   const moduleNameFromString = (node: SourceNode): string | null => {
     const text = node.text();
@@ -111,30 +111,11 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     return raw;
   };
 
-  const rewriteTagName = (node: SourceNode, localName: string, replacementName: string): string => {
+  const insertBeforeJsxTagClose = (node: SourceNode, insertedText: string): Edit => {
     const text = node.text();
-    if (text.startsWith(`</${localName}`)) return text.replace(`</${localName}`, `</${replacementName}`);
-    if (text.startsWith(`<${localName}`)) return text.replace(`<${localName}`, `<${replacementName}`);
-    return text;
-  };
-
-  const transformRevealTag = (node: SourceNode, localName: string, replacementName: string): string => {
-    let text = rewriteTagName(node, localName, replacementName);
-    text = text.replace(/\s+revealOrder\s*=\s*"forwards"/g, "");
-    text = text.replace(/\s+revealOrder\s*=\s*{\s*"forwards"\s*}/g, "");
-    text = text.replace(/\s+revealOrder\s*=\s*"together"/g, ' order="together"');
-    text = text.replace(/\s+revealOrder\s*=\s*{\s*"together"\s*}/g, ' order="together"');
-    text = text.replace(/\s+tail\s*=\s*"collapsed"/g, " collapsed");
-    text = text.replace(/\s+tail\s*=\s*{\s*"collapsed"\s*}/g, " collapsed");
-    return text;
-  };
-
-  const transformIndexTag = (node: SourceNode, localName: string, replacementName: string): string => {
-    let text = rewriteTagName(node, localName, replacementName);
-    if (jsxAttribute(node, "keyed")) return text;
-    if (text.endsWith("/>")) return `${text.slice(0, -2)} keyed={false} />`;
-    if (text.endsWith(">")) return `${text.slice(0, -1)} keyed={false}>`;
-    return text;
+    const offset = text.endsWith("/>") ? 2 : 1;
+    const index = node.range().end.index - offset;
+    return { startPos: index, endPos: index, insertedText };
   };
 
   const specifierText = (specifier: SourceNode, importedName: string, aliasName: string | null, typeOnlyImport: boolean): string => {
@@ -142,6 +123,29 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const typePrefix = !typeOnlyImport && inlineType ? "type " : "";
     if (aliasName) return `${typePrefix}${importedName} as ${aliasName}`;
     return `${typePrefix}${importedName}`;
+  };
+
+  const isBindingIdentifier = (node: SourceNode): boolean => {
+    const parent = node.parent();
+    if (!parent) return false;
+    const parentKind = parent.kind();
+    return (
+      (parentKind === "variable_declarator" && parent.field("name")?.id() === node.id()) ||
+      (parentKind === "function_declaration" && parent.field("name")?.id() === node.id()) ||
+      (parentKind === "function_expression" && parent.field("name")?.id() === node.id()) ||
+      (parentKind === "generator_function_declaration" && parent.field("name")?.id() === node.id()) ||
+      (parentKind === "generator_function" && parent.field("name")?.id() === node.id()) ||
+      (parentKind === "class_declaration" && parent.field("name")?.id() === node.id()) ||
+      (parentKind === "required_parameter" && parent.field("name")?.id() === node.id()) ||
+      (parentKind === "optional_parameter" && parent.field("name")?.id() === node.id())
+    );
+  };
+
+  const isInsideJsxTag = (node: SourceNode): boolean => {
+    return node.ancestors().some((ancestor) => {
+      const kind = ancestor.kind();
+      return kind === "jsx_opening_element" || kind === "jsx_closing_element" || kind === "jsx_self_closing_element";
+    });
   };
 
   const importStatements = rootNode.findAll({ rule: { kind: "import_statement" } });
@@ -164,12 +168,12 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
 
     const replacementModuleName = importSourceReplacements.get(originalModuleName) ?? originalModuleName;
     const quote = sourceNode.text()[0] ?? '"';
-    const statementText = importStatement.text();
-    const typeOnlyImport = /^import\s+type\b/.test(statementText);
+    const statementText = importStatement.text().trimStart();
+    const typeOnlyImport = statementText.startsWith("import type");
     const namedImports = importStatement.find({ rule: { kind: "named_imports" } });
 
     if (!namedImports) {
-      if (replacementModuleName !== originalModuleName) addEdit(sourceNode.replace(`${quote}${replacementModuleName}${quote}`));
+      if (replacementModuleName !== originalModuleName) addEdit(replaceNode(sourceNode, `${quote}${replacementModuleName}${quote}`));
       continue;
     }
 
@@ -206,7 +210,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       if (replacementName && (originalModuleName === "solid-js" || originalModuleName === "solid-js/store")) {
         primarySpecifiers.push(specifierText(specifier, replacementName, aliasName, typeOnlyImport));
         changedNamedImport = true;
-        if (!aliasName) importedRenames.push({ from: importedName, to: replacementName, binding: importedNode });
+        if (!aliasName) usageRenames.set(importedName, replacementName);
         if (importedName === "Suspense" || importedName === "SuspenseList" || importedName === "ErrorBoundary" || importedName === "Index") {
           jsxComponentRenames.push({
             localName,
@@ -239,25 +243,25 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       replacement = `// TODO(solid-2): Review semantic migration sites in this file: ${Array.from(semanticReviewNames).sort().join(", ")}.\n${replacement}`;
       insertedSemanticReviewMarker = true;
     }
-    addEdit(importStatement.replace(replacement));
+    addEdit(replaceNode(importStatement, replacement));
   }
 
   if (!insertedSemanticReviewMarker && semanticReviewNames.size > 0 && importStatements[0]) {
     const firstImport = importStatements[0];
     const replacement = `// TODO(solid-2): Review semantic migration sites in this file: ${Array.from(semanticReviewNames).sort().join(", ")}.\n${firstImport.text()}`;
-    addEdit(firstImport.replace(replacement));
+    addEdit(replaceNode(firstImport, replacement));
     insertedSemanticReviewMarker = true;
   }
 
-  for (const importedRename of importedRenames) {
-    const references = importedRename.binding.references();
-    for (const fileReferences of references) {
-      if (fileReferences.root.filename() !== root.filename()) continue;
-      for (const reference of fileReferences.nodes) {
-        if (reference.text() !== importedRename.from) continue;
-        if (reference.ancestors().some((ancestor) => ancestor.kind() === "import_statement")) continue;
-        addEdit(reference.replace(importedRename.to));
-      }
+  if (usageRenames.size > 0) {
+    const identifiers = rootNode.findAll({ rule: { kind: "identifier" } });
+    for (const identifier of identifiers) {
+      const replacement = usageRenames.get(identifier.text());
+      if (!replacement) continue;
+      if (identifier.ancestors().some((ancestor) => ancestor.kind() === "import_statement")) continue;
+      if (isInsideJsxTag(identifier)) continue;
+      if (isBindingIdentifier(identifier)) continue;
+      addEdit(replaceNode(identifier, replacement));
     }
   }
 
@@ -287,7 +291,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
 
     if (name.kind() === "member_expression" && name.text().endsWith(".Provider")) {
       const contextName = name.text().slice(0, -".Provider".length);
-      if (contextNames.has(contextName)) addEdit(name.replace(contextName));
+      if (contextNames.has(contextName)) addEdit(replaceNode(name, contextName));
       continue;
     }
 
@@ -297,16 +301,28 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     if (!componentRename) continue;
 
     if (componentRename.addKeyedFalse && (tag.kind() === "jsx_opening_element" || tag.kind() === "jsx_self_closing_element")) {
-      addEdit(tag.replace(transformIndexTag(tag, localName, componentRename.replacementName)));
+      if (componentRename.replacementName !== localName) addEdit(replaceNode(name, componentRename.replacementName));
+      if (!jsxAttribute(tag, "keyed")) addEdit(insertBeforeJsxTagClose(tag, " keyed={false}"));
       continue;
     }
 
     if (componentRename.rewriteRevealProps && (tag.kind() === "jsx_opening_element" || tag.kind() === "jsx_self_closing_element")) {
-      addEdit(tag.replace(transformRevealTag(tag, localName, componentRename.replacementName)));
+      if (componentRename.replacementName !== localName) addEdit(replaceNode(name, componentRename.replacementName));
+      const revealOrder = jsxAttribute(tag, "revealOrder");
+      if (revealOrder) {
+        const value = jsxAttributeValue(revealOrder, "revealOrder");
+        if (value === '"forwards"' || value === "'forwards'") addEdit(replaceNode(revealOrder, ""));
+        if (value === '"together"' || value === "'together'") addEdit(replaceNode(revealOrder, 'order="together"'));
+      }
+      const tail = jsxAttribute(tag, "tail");
+      if (tail) {
+        const value = jsxAttributeValue(tail, "tail");
+        if (value === '"collapsed"' || value === "'collapsed'") addEdit(replaceNode(tail, "collapsed"));
+      }
       continue;
     }
 
-    if (componentRename.replacementName !== localName) addEdit(name.replace(componentRename.replacementName));
+    if (componentRename.replacementName !== localName) addEdit(replaceNode(name, componentRename.replacementName));
   }
 
   const jsxOpenTags = rootNode.findAll({
@@ -320,13 +336,13 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const classAttribute = jsxAttribute(tag, "class");
 
     if (!classAttribute) {
-      addEdit(classListAttribute.replace(`class={${jsxAttributeValue(classListAttribute, "classList")}}`));
+      addEdit(replaceNode(classListAttribute, `class={${jsxAttributeValue(classListAttribute, "classList")}}`));
       continue;
     }
 
     const nextClassAttribute = `class={[${jsxAttributeValue(classAttribute, "class")}, ${jsxAttributeValue(classListAttribute, "classList")}]}`;
-    const nextTag = tag.text().replace(classAttribute.text(), nextClassAttribute).replace(classListAttribute.text(), "").replace(/\s+([/>])/g, "$1");
-    addEdit(tag.replace(nextTag));
+    addEdit(replaceNode(classAttribute, nextClassAttribute));
+    addEdit(replaceNode(classListAttribute, ""));
   }
 
   return edits.length > 0 ? rootNode.commitEdits(edits) : null;

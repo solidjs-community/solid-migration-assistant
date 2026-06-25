@@ -15,6 +15,12 @@ const codemod: Codemod<JSON> = async (root) => {
     edits.push(edit);
   };
 
+  const replaceNode = (node: JsonNode, insertedText: string): Edit => ({
+    startPos: node.range().start.index,
+    endPos: node.range().end.index,
+    insertedText,
+  });
+
   const stringValue = (node: JsonNode): string | null => {
     const text = node.text();
     if (text.length < 2) return null;
@@ -37,7 +43,7 @@ const codemod: Codemod<JSON> = async (root) => {
     const value = pair.field("value");
     if (!key || !value) continue;
     if (stringValue(key) === "jsxImportSource" && stringValue(value) === "solid-js") {
-      addEdit(value.replace('"@solidjs/web"'));
+      addEdit(replaceNode(value, '"@solidjs/web"'));
     }
   }
 

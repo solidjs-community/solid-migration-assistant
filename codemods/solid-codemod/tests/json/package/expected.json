@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "solid-js": "next",
+    "@solidjs/web": "next"
+  },
+  "devDependencies": {
+    "vite-plugin-solid": "next"
+  }
+}
