@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Solid Codemod Needed Fixes</title>
+    <style>
+      body { font-family: system-ui, sans-serif; line-height: 1.45; margin: 2rem; color: #172033; }
+      h1, h2 { line-height: 1.15; }
+      table { border-collapse: collapse; width: 100%; margin: 1rem 0 2rem; }
+      th, td { border: 1px solid #d8deea; padding: .6rem .7rem; vertical-align: top; }
+      th { background: #f4f7fb; text-align: left; }
+      code { background: #f4f7fb; padding: .1rem .25rem; border-radius: .25rem; }
+      .ok { color: #0f7b3b; font-weight: 700; }
+      .warn { color: #9a5b00; font-weight: 700; }
+    </style>
+    <link rel="stylesheet" href="./report-theme.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="meta">
+          <span class="pill">Report: codemod follow-ups</span>
+          <span class="pill">Fixture: <code>.repos/test</code></span>
+          <span class="pill">Source changes: none</span>
+        </div>
+        <h1>Solid Codemod Needed Fixes</h1>
+        <p class="subtitle">Codemod changes discovered while migrating and browser-testing the fixture app.</p>
+        <div class="status-row">
+          <span class="badge ok">Fixture builds and passes headless Chrome smoke test after manual fixes</span>
+        </div>
+      </header>
+
+      <section>
+        <h2>Required Codemod Fixes</h2>
+        <table>
+          <thead>
+            <tr><th>Priority</th><th>Issue</th><th>Needed Fix</th><th>Why</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>P0</td>
+              <td>Duplicate named imports after renames</td>
+              <td>De-dupe final import specifiers after mappings like <code>Index -&gt; For</code>.</td>
+              <td><code>import { For, Index }</code> currently becomes duplicate <code>For</code>.</td>
+            </tr>
+            <tr>
+              <td>P0</td>
+              <td>Namespace member renames are missed</td>
+              <td>Track namespace imports from <code>solid-js</code>/<code>solid-js/store</code>/<code>solid-js/web</code> and rewrite safe members like <code>Solid.mergeProps -&gt; Solid.merge</code>, <code>Solid.unwrap -&gt; Solid.snapshot</code>, and JSX tags like <code>&lt;Solid.Index&gt;</code>.</td>
+              <td>The fixture left <code>Solid.mergeProps</code> invalid after migration.</td>
+            </tr>
+            <tr>
+              <td>P0</td>
+              <td>Context provider aliases are missed</td>
+              <td>Detect contexts created via aliased <code>createContext</code> and namespace calls like <code>Solid.createContext</code>, then rewrite <code>&lt;AliasContext.Provider&gt;</code> and <code>&lt;NamespaceContext.Provider&gt;</code>.</td>
+              <td>Solid 2 contexts are provider components; remaining <code>.Provider</code> tags fail typecheck.</td>
+            </tr>
+            <tr>
+              <td>P0</td>
+              <td><code>ErrorBoundary -&gt; Errored</code> fallback API changed</td>
+              <td>Add a review marker for <code>ErrorBoundary</code> fallback callbacks, or add a narrow TSX rewrite for callback parameter reads like <code>error.message -&gt; (error() as Error).message</code>.</td>
+              <td>Solid 2 <code>Errored</code> receives an error accessor, not the error value.</td>
+            </tr>
+            <tr>
+              <td>P0</td>
+              <td>Review-only removed imports can still become invalid imports</td>
+              <td>For removed APIs, either keep the migration as explicit review-only with clear compile-breaking markers, or split imports so safe symbols migrate while removed symbols are isolated/commented for manual migration.</td>
+              <td>Examples: <code>splitProps</code>, resource types, scheduler helpers, old web internals.</td>
+            </tr>
+            <tr>
+              <td>P1</td>
+              <td><code>createDynamic</code> is not a simple rename</td>
+              <td>Keep it manual unless the call has a proven safe one-argument shape. Add stronger review text for <code>createDynamic(source, props)</code> because Solid 2 <code>dynamic(source)</code> returns a component.</td>
+              <td>The old two-argument helper needs manual JSX/component extraction.</td>
+            </tr>
+            <tr>
+              <td>P1</td>
+              <td>Effect and memo signature changes need markers</td>
+              <td>Flag old single-phase or legacy signatures: <code>createEffect(fn)</code>, <code>createRenderEffect(fn, seed)</code>, <code>createMemo(fn, seed, options)</code>, and <code>on(...)</code> wrappers.</td>
+              <td>Solid 2 separates compute/effect phases and removed the old seed overloads.</td>
+            </tr>
+            <tr>
+              <td>P1</td>
+              <td>Async reads outside <code>&lt;Loading&gt;</code></td>
+              <td>Flag obvious async computations, especially <code>createMemo(async ...)</code>, when rendered outside a local <code>Loading</code> boundary.</td>
+              <td>Browser smoke test surfaced Solid 2 dev warnings for async reads outside loading boundaries.</td>
+            </tr>
+            <tr>
+              <td>P1</td>
+              <td><code>solid-js/web</code> internals need per-symbol handling</td>
+              <td>Add web-runtime review markers and optional safe renames such as <code>addEventListener -&gt; addEvent</code>. Removed internals like <code>Aliases</code>, <code>Properties</code>, <code>classList</code>, <code>clearDelegatedEvents</code>, <code>getPropAlias</code>, <code>setBoolAttribute</code>, <code>ssrSpread</code>, and <code>use</code> should be manual.</td>
+              <td>Import path migration alone leaves invalid Solid 2 web imports.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Tests To Add</h2>
+        <table>
+          <thead>
+            <tr><th>Fixture</th><th>Expected Coverage</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Named import collision</td><td><code>import { For, Index }</code> outputs one <code>For</code>.</td></tr>
+            <tr><td>Namespace APIs</td><td><code>Solid.mergeProps</code>, <code>&lt;Solid.Index&gt;</code>, and <code>&lt;Solid.SuspenseList&gt;</code> migrate or receive correct markers.</td></tr>
+            <tr><td>Context aliases</td><td>Aliased and namespace-created contexts rewrite <code>.Provider</code> tags.</td></tr>
+            <tr><td>Error fallback</td><td><code>ErrorBoundary</code> fallback callback gets a review marker or accessor rewrite.</td></tr>
+            <tr><td>Removed web internals</td><td><code>solid-js/web</code> removed helper imports get review markers.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="good">
+        <h2>Already Validated</h2>
+        <p>Package range fixes for <code>solid-js</code>, <code>@solidjs/web</code>, and <code>vite-plugin-solid</code> are working well enough for the fixture app to install, build, and run after semantic source fixes.</p>
+      </section>
+    </main>
+  </body>
+</html>

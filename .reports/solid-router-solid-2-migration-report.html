@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid Router Solid 2 Migration Status</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --ink: #151922;
+      --muted: #5f6878;
+      --line: #dfe4ec;
+      --green: #0f7a4f;
+      --green-soft: #e7f6ef;
+      --amber: #9a5b00;
+      --amber-soft: #fff3dc;
+      --blue: #2357c6;
+      --blue-soft: #e9efff;
+      --red: #a5362f;
+      --red-soft: #fdeceb;
+      --shadow: 0 18px 50px rgba(20, 27, 43, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(35, 87, 198, 0.12), transparent 34rem),
+        linear-gradient(180deg, #fbfcff 0%, var(--bg) 22rem);
+      color: var(--ink);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0 56px;
+    }
+
+    header {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.15;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(32px, 5vw, 58px);
+      letter-spacing: -0.055em;
+      max-width: 880px;
+    }
+
+    h2 {
+      font-size: 24px;
+      letter-spacing: -0.025em;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    code {
+      background: #f1f4f8;
+      border: 1px solid #e3e8f0;
+      border-radius: 6px;
+      color: #172033;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+      padding: 1px 5px;
+    }
+
+    .hero {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(223, 228, 236, 0.9);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      padding: clamp(22px, 4vw, 38px);
+    }
+
+    .hero-copy {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 780px;
+      margin-top: 12px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .badge {
+      align-items: center;
+      border-radius: 999px;
+      display: inline-flex;
+      font-size: 13px;
+      font-weight: 720;
+      gap: 7px;
+      padding: 7px 11px;
+      white-space: nowrap;
+    }
+
+    .badge::before {
+      border-radius: 50%;
+      content: "";
+      height: 8px;
+      width: 8px;
+    }
+
+    .ok {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .ok::before {
+      background: var(--green);
+    }
+
+    .watch {
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .watch::before {
+      background: var(--amber);
+    }
+
+    .info {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .info::before {
+      background: var(--blue);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .metrics {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin: 20px 0 26px;
+    }
+
+    .metric, section, .callout {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(20, 27, 43, 0.05);
+    }
+
+    .metric {
+      padding: 18px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 820;
+      letter-spacing: -0.035em;
+      margin-top: 5px;
+    }
+
+    .metric-note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 3px;
+    }
+
+    .layout {
+      align-items: start;
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+
+    section {
+      padding: 22px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 0;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 19px;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    .finding {
+      border-left: 4px solid var(--green);
+      padding-left: 13px;
+    }
+
+    .finding + .finding {
+      margin-top: 16px;
+    }
+
+    .finding.watch-border {
+      border-left-color: var(--amber);
+    }
+
+    .finding.info-border {
+      border-left-color: var(--blue);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .callout {
+      border-left: 5px solid var(--amber);
+      margin: 18px 0 0;
+      padding: 16px 18px;
+    }
+
+    .callout strong {
+      color: var(--amber);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .command {
+      background: #101828;
+      border-radius: 16px;
+      color: #edf3ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      overflow: auto;
+      padding: 14px 16px;
+      white-space: pre-wrap;
+    }
+
+    .small {
+      font-size: 13px;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .metrics, .layout {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        width: min(100% - 22px, 760px);
+        padding-top: 18px;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="./report-theme.css">
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <div class="eyebrow">Solid 2 Migration Investigation</div>
+        <h1>Solid Router is migrated and green on Solid 2 beta.7, with a few final-release alignment checks.</h1>
+        <p class="hero-copy">Scope inspected: <code>.repos/solid-router</code> on branch <code>next</code>. The package has explicit Solid 2 beta dependencies, migration changesets, passing tests, and a passing production build. Remaining items are mostly JSX ownership/tooling alignment and documentation cleanup, not current runtime blockers.</p>
+        <div class="status-row">
+          <span class="badge ok">Tests passed</span>
+          <span class="badge ok">Build passed</span>
+          <span class="badge ok">No legacy Solid 1 import paths in source</span>
+          <span class="badge watch">JSX ownership needs final-beta check</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid metrics">
+      <div class="metric">
+        <div class="metric-label">Package</div>
+        <div class="metric-value">0.17.0-next.3</div>
+        <div class="metric-note"><code>@solidjs/router</code></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Solid Runtime</div>
+        <div class="metric-value">2.0.0-beta.7</div>
+        <div class="metric-note"><code>solid-js</code> and <code>@solidjs/web</code></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Verification</div>
+        <div class="metric-value">226 / 226</div>
+        <div class="metric-note">Vitest tests passed, then typecheck passed</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Worktree</div>
+        <div class="metric-value">Clean</div>
+        <div class="metric-note">Only ignored <code>node_modules/</code> and <code>dist/</code> were produced</div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="stack">
+        <section>
+          <h2>Executive Summary</h2>
+          <div class="finding">
+            <h3>Status: migrated for the current Solid 2 beta branch</h3>
+            <p class="muted">The router is already on <code>solid-js@2.0.0-beta.7</code>, <code>@solidjs/web@2.0.0-beta.7</code>, <code>babel-preset-solid@2.0.0-beta.7</code>, and <code>vite-plugin-solid@3.0.0-next.4</code>. Peer dependencies require <code>&gt;=2.0.0-beta.7 &lt;2.0.0-experimental.0</code>.</p>
+          </div>
+          <div class="finding">
+            <h3>Status: behavior and types verified</h3>
+            <p class="muted"><code>pnpm test</code> passed all 10 test files and 226 tests, then ran <code>tsc --project tsconfig.test.json</code>. <code>pnpm build</code> also passed with <code>tsc</code> and Rollup.</p>
+          </div>
+          <div class="finding watch-border">
+            <h3>Status: final-release follow-up still warranted</h3>
+            <p class="muted">The current beta still has JSX types coming from <code>solid-js</code>, while this repository's codemod describes moving renderer-owned JSX types and JSX config toward <code>@solidjs/web</code>. Do not blindly apply that part until the final Solid 2 package exports are confirmed.</p>
+          </div>
+        </section>
+
+        <section>
+          <h2>Migration Evidence</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Branch and git state</td>
+                <td><code>next...origin/next</code>, clean tracked worktree before and after verification.</td>
+              </tr>
+              <tr>
+                <td>Package metadata</td>
+                <td><code>package.json</code> lists <code>@solidjs/router@0.17.0-next.3</code> with Solid 2 beta dependencies and peers.</td>
+              </tr>
+              <tr>
+                <td>Changesets</td>
+                <td><code>.changeset/solid-2-beta-router-migration.md</code> says the router was updated for the Solid 2 beta runtime and new async/action model. <code>.changeset/update-solid-beta-7.md</code> records beta.7-specific work.</td>
+              </tr>
+              <tr>
+                <td>Changelog</td>
+                <td><code>CHANGELOG.md</code> includes <code>0.17.0-next.0</code> for the Solid 2 beta migration and <code>0.17.0-next.2</code> for beta.7 updates.</td>
+              </tr>
+              <tr>
+                <td>Runtime split</td>
+                <td>Runtime renderer imports use <code>@solidjs/web</code>; no source imports remain from <code>solid-js/web</code>, <code>solid-js/store</code>, <code>solid-js/html</code>, <code>solid-js/h</code>, or Solid JSX runtime subpaths.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>Completed Migration Signals</h2>
+          <ul>
+            <li>Solid 2 action model is in use: <code>src/data/action.ts</code> imports <code>action as createSolidAction</code> and implements <code>onSubmit</code>/<code>onSettled</code> lifecycle hooks.</li>
+            <li>Signal writes have moved to <code>ownedWrite</code> in source paths such as <code>src/routing.ts:463</code>, <code>src/routing.ts:467</code>, <code>src/routing.ts:479</code>, <code>src/routers/createRouter.ts:16</code>, and <code>src/data/query.ts:143</code>.</li>
+            <li>Observer naming is updated: <code>src/data/query.ts:3</code> imports <code>getObserver</code>, with no active <code>getListener</code> source usage found.</li>
+            <li>Safe rename leftovers were not found in active source for <code>mergeProps</code>, <code>unwrap</code>, <code>onMount</code>, <code>pureWrite</code>, <code>equalFn</code>, <code>Suspense</code>, <code>SuspenseList</code>, or <code>ErrorBoundary</code>.</li>
+            <li><code>createMemo</code> initial-value usage appears removed in source; a targeted scan for three-argument <code>createMemo(..., ..., ...)</code> calls returned no hits.</li>
+            <li>Solid 2 class object syntax is documented in the README examples for <code>useIsRouting</code> and <code>useMatch</code>.</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section>
+          <h2>Verification Run</h2>
+          <div class="command">CI=true pnpm install --frozen-lockfile --ignore-workspace
+pnpm test
+pnpm build</div>
+          <table>
+            <tbody>
+              <tr>
+                <td><code>pnpm test</code></td>
+                <td><span class="badge ok">Passed</span></td>
+              </tr>
+              <tr>
+                <td>Vitest</td>
+                <td>10 files passed, 226 tests passed.</td>
+              </tr>
+              <tr>
+                <td>Typecheck</td>
+                <td><code>tsc --project tsconfig.test.json</code> completed after Vitest.</td>
+              </tr>
+              <tr>
+                <td><code>pnpm build</code></td>
+                <td><span class="badge ok">Passed</span> <code>tsc</code> plus Rollup created ignored <code>dist/index.js</code>.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            <strong>Install note</strong>
+            <p class="small">The nested repo had to be installed with <code>--ignore-workspace</code> because the parent codemod workspace otherwise intercepted pnpm and left <code>.repos/solid-router</code> without its own <code>node_modules</code>. This is a workspace setup detail, not a router migration failure.</p>
+          </div>
+        </section>
+
+        <section>
+          <h2>Remaining Follow-Ups</h2>
+          <div class="finding watch-border">
+            <h3>1. JSX package ownership</h3>
+            <p class="muted">Current files still use <code>jsxImportSource: "solid-js"</code> and import <code>JSX</code> types from <code>solid-js</code>. Locations include <code>tsconfig.json:9</code>, <code>src/types.ts:1</code>, <code>src/components.tsx:2</code>, <code>src/routing.ts:1</code>, <code>src/routers/components.tsx:3</code>, <code>src/data/action.ts:1</code>, and router component files.</p>
+          </div>
+          <div class="finding watch-border">
+            <h3>2. JSX module augmentation</h3>
+            <p class="muted"><code>src/components.tsx:16</code> augments <code>declare module "solid-js"</code> for anchor attributes. If final Solid 2 moves JSX ownership, this augmentation target should be retested with final package types.</p>
+          </div>
+          <div class="finding info-border">
+            <h3>3. Documentation polish</h3>
+            <p class="muted"><code>src/routing.ts:126</code> and <code>src/routing.ts:159</code> still show <code>classList</code> inside comments. <code>README.md:845</code> still demonstrates <code>createResource</code> in the <code>useParams</code> section, while the later migration section says <code>createAsync</code>/<code>createAsyncStore</code> are gone and recommends Solid 2 primitives.</p>
+          </div>
+        </section>
+
+        <section>
+          <h2>Codemod Fit</h2>
+          <p class="muted">The local <code>solid-codemod</code> package is useful for checking old Solid 1 import paths and safe renames. Static scans show those local-safe source migrations are already done in <code>solid-router</code>.</p>
+          <div class="callout">
+            <strong>Tooling caution</strong>
+            <p class="small">A full Codemod CLI dry run was attempted but timed out while downloading the CLI package. Separately, the installed <code>@solidjs/web@2.0.0-beta.7</code> type entry imports <code>JSX</code> from <code>solid-js</code> and does not visibly re-export it. That means the codemod's JSX type move should be revalidated before applying to this router branch.</p>
+          </div>
+        </section>
+
+        <section>
+          <h2>Recommendation</h2>
+          <ul>
+            <li>Treat <code>.repos/solid-router</code> as migrated and healthy for the current Solid 2 beta.7 target.</li>
+            <li>Before final release, install the final Solid 2 packages and retest the JSX import/config ownership question.</li>
+            <li>Update stale comments and README examples so public docs consistently model Solid 2 patterns.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <footer>
+      Generated from local investigation on Wed Jun 24 2026. Report file: <code>solid-router-solid-2-migration-report.html</code>.
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kobalte Solid 2 Migration Status</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #5d667a;
+      --line: #dfe4ee;
+      --good: #137a45;
+      --warn: #a16107;
+      --bad: #b42318;
+      --info: #2563eb;
+      --soft-good: #e9f7ef;
+      --soft-warn: #fff4de;
+      --soft-bad: #fff1f0;
+      --soft-info: #edf4ff;
+      --shadow: 0 16px 48px rgba(23, 32, 51, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 30rem),
+        linear-gradient(180deg, #fbfcff 0%, var(--bg) 22rem);
+      color: var(--ink);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 36px 0 56px;
+    }
+
+    header {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 4.1rem);
+      line-height: 0.96;
+      letter-spacing: -0.055em;
+      max-width: 920px;
+    }
+
+    h2 {
+      font-size: 1.08rem;
+      letter-spacing: -0.01em;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 0.98rem;
+      margin-bottom: 8px;
+    }
+
+    a { color: inherit; }
+
+    code {
+      background: #f1f4f9;
+      border: 1px solid #e3e8f1;
+      border-radius: 6px;
+      color: #1e293b;
+      padding: 0.12rem 0.32rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.88em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 900px;
+      font-size: 1.02rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(223, 228, 238, 0.95);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .verdict {
+      min-height: 100%;
+      border-color: rgba(180, 35, 24, 0.18);
+      background: linear-gradient(160deg, #fff 0%, var(--soft-bad) 100%);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 12px;
+      color: var(--bad);
+      background: var(--soft-bad);
+      border: 1px solid rgba(180, 35, 24, 0.24);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      padding: 8px 11px;
+      margin-bottom: 14px;
+    }
+
+    .status::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--bad);
+      box-shadow: 0 0 0 5px rgba(180, 35, 24, 0.1);
+    }
+
+    .big-number-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.8rem;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list li {
+      display: grid;
+      gap: 4px;
+      border-left: 4px solid var(--line);
+      padding: 2px 0 2px 12px;
+    }
+
+    .list .good { border-left-color: var(--good); }
+    .list .warn { border-left-color: var(--warn); }
+    .list .bad { border-left-color: var(--bad); }
+    .list .info { border-left-color: var(--info); }
+
+    .list strong { font-weight: 700; }
+    .list span, .note { color: var(--muted); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      background: #f5f7fb;
+      color: #334155;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .badge {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pass { background: var(--soft-good); color: var(--good); }
+    .fail { background: var(--soft-bad); color: var(--bad); }
+    .blocked { background: var(--soft-warn); color: var(--warn); }
+    .unknown { background: var(--soft-info); color: var(--info); }
+
+    .callout {
+      border: 1px solid rgba(161, 97, 7, 0.28);
+      background: var(--soft-warn);
+      border-radius: 16px;
+      padding: 14px;
+      color: #603a05;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 11px;
+      counter-reset: step;
+    }
+
+    .step {
+      counter-increment: step;
+      position: relative;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .step::before {
+      content: counter(step);
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: #172033;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    .step div {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    .files {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .file {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    footer {
+      color: var(--muted);
+      margin-top: 18px;
+      text-align: center;
+      font-size: 0.86rem;
+    }
+
+    @media (max-width: 900px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      .span-4, .span-5, .span-6, .span-7, .span-8, .span-12 { grid-column: auto; }
+      .big-number-grid { grid-template-columns: 1fr; }
+      th, td { padding: 10px; }
+    }
+  </style>
+  <link rel="stylesheet" href="./report-theme.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="meta">
+        <span class="pill">Generated: 2026-06-24</span>
+        <span class="pill">Repo: <code>.repos/kobalte</code></span>
+        <span class="pill">Branch: <code>v2/basic-migration</code></span>
+        <span class="pill">HEAD: <code>661f6f65</code></span>
+      </div>
+      <h1>Kobalte Solid 2 Migration Status</h1>
+      <p class="subtitle">Investigation of the nested Kobalte checkout after installing dependencies and running targeted build, typecheck, test, and docs checks.</p>
+    </header>
+
+    <section class="hero">
+      <article class="card verdict">
+        <div class="status">Not migration-ready</div>
+        <h2>Executive Summary</h2>
+        <p>Kobalte has substantial Solid 2 migration work in place, but the current checkout is not buildable or testable end-to-end. The library source has many Solid 2 imports and package peer ranges, yet the build pipeline still emits <code>solid-js/web</code>, docs remain partly on Solid 1-era tooling, and local Solid Primitives links point at a missing sibling repo.</p>
+        <p class="note" style="margin-top: 12px;">Best read: the branch is a meaningful in-progress migration, not a release candidate.</p>
+      </article>
+
+      <aside class="card">
+        <h2>Scan Metrics</h2>
+        <div class="big-number-grid">
+          <div class="metric"><strong>9</strong><span>remaining <code>solid-js/web</code> or Solid-1 JSX-source occurrences in source/config/docs</span></div>
+          <div class="metric"><strong>27</strong><span>legacy helper import declarations from <code>solid-js</code></span></div>
+          <div class="metric"><strong>23</strong><span>camelCase native JSX attrs or <code>classList</code> occurrences</span></div>
+          <div class="metric"><strong>58</strong><span>generated <code>dist</code> JS files importing <code>solid-js/web</code></span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="grid">
+      <article class="card span-6">
+        <h2>What Is Already Migrated</h2>
+        <ul class="list">
+          <li class="good"><strong>Branch intent is explicit.</strong><span>Current branch is <code>v2/basic-migration</code>. Recent commits include <code>Bump to Solid2 Beta 15 and remove Portal patch</code>.</span></li>
+          <li class="good"><strong>Root deps target Solid 2 beta.</strong><span>Root <code>package.json</code> pins <code>solid-js</code>, <code>@solidjs/web</code>, and <code>babel-preset-solid</code> to <code>2.0.0-beta.15</code>.</span></li>
+          <li class="good"><strong>Package peers target Solid 2 beta.</strong><span><code>@kobalte/core</code> and <code>@kobalte/utils</code> peer deps require <code>solid-js</code> and <code>@solidjs/web</code> <code>^2.0.0-beta.14</code>.</span></li>
+          <li class="good"><strong>Type import migration is well underway.</strong><span>Many core files import <code>JSX</code>, <code>ValidComponent</code>, and <code>ComponentProps</code> from <code>@solidjs/web</code>.</span></li>
+          <li class="good"><strong>Project guidance exists.</strong><span><code>MIGRATION.md</code> documents import-path, lowercase attribute, helper rename, effect, context, store, and signal-write changes.</span></li>
+          <li class="good"><strong>Storybook has migration shims.</strong><span><code>.storybook/main.ts</code> aliases <code>solid-js/web</code> to <code>@solidjs/web</code> and adds temporary shims for removed Solid APIs.</span></li>
+        </ul>
+      </article>
+
+      <article class="card span-6">
+        <h2>Main Blockers</h2>
+        <ul class="list">
+          <li class="bad"><strong>Broken Solid Primitives links.</strong><span>Installed links point to <code>../../../../../solid-primitives/packages/*</code>, but this workspace only has <code>.repos/kobalte</code>, <code>.repos/solid</code>, and <code>.repos/test</code>.</span></li>
+          <li class="bad"><strong>Build output imports removed path.</strong><span><code>@kobalte/core</code> JS output still imports <code>solid-js/web</code> in 58 generated files.</span></li>
+          <li class="bad"><strong>Docs are not on the Solid 2 stack.</strong><span><code>apps/docs/package.json</code> still pins <code>solid-js</code> <code>1.8.15</code>, <code>@solidjs/start</code> <code>0.6.1</code>, <code>@solidjs/router</code> <code>0.12.4</code>, and <code>@solidjs/meta</code> <code>0.29.3</code>.</span></li>
+          <li class="bad"><strong>Legacy APIs remain in source.</strong><span>Scans still find imports for <code>splitProps</code>, <code>mergeProps</code>, <code>createComputed</code>, <code>onMount</code>, <code>onCleanup</code>, <code>on</code>, and <code>Index</code>.</span></li>
+          <li class="bad"><strong>Native JSX props are partially unmigrated.</strong><span>Production code still uses Solid 1 style props such as <code>autoComplete</code>, <code>autoCorrect</code>, <code>spellCheck</code>, <code>readOnly</code>, <code>contentEditable</code>, <code>inputMode</code>, and <code>tabIndex</code>.</span></li>
+          <li class="warn"><strong><code>packages/dates</code> is orphaned.</strong><span>It has source files but no package manifest, is outside workspaces, and calendar/date-picker exports are commented out from core.</span></li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card span-12">
+        <h2>Verification Results</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Status</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>pnpm install --frozen-lockfile</code></td>
+              <td><span class="badge pass">Pass</span></td>
+              <td>Installed 1540 packages with the current lockfile. No lockfile update was required.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm typecheck</code></td>
+              <td><span class="badge fail">Fail</span></td>
+              <td>Fails in <code>@kobalte/utils</code>: cannot find <code>@solid-primitives/keyed</code>, <code>@solid-primitives/map</code>, and <code>@solid-primitives/props</code>.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm -F @kobalte/tests typecheck</code></td>
+              <td><span class="badge pass">Pass</span></td>
+              <td>The helper test package typechecks independently.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm -F @kobalte/utils build</code></td>
+              <td><span class="badge fail">Fail</span></td>
+              <td>ESM/CJS output is emitted, but DTS build fails on missing Solid Primitives types.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm -F @kobalte/core typecheck</code></td>
+              <td><span class="badge fail">Fail</span></td>
+              <td>Large cascade from missing <code>@kobalte/utils</code>, missing Solid Primitives modules, and direct Solid 2 type errors such as <code>classList</code> no longer existing on native element props.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm -F @kobalte/core build</code></td>
+              <td><span class="badge fail">Fail</span></td>
+              <td>JS output is emitted, but DTS build fails on <code>@solid-primitives/i18n</code> resolution.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm turbo run test --filter=@kobalte/core</code></td>
+              <td><span class="badge blocked">Blocked</span></td>
+              <td>Turbo runs dependency builds first and stops at the failing <code>@kobalte/utils</code> DTS build. Core tests do not execute.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm -F @kobalte/docs build</code></td>
+              <td><span class="badge fail">Fail</span></td>
+              <td>Before core JS output existed, docs could not resolve <code>@kobalte/core/tabs</code>. After core JS output existed, docs failed with <code>Missing "./web" specifier in "solid-js" package</code>.</td>
+            </tr>
+            <tr>
+              <td><code>pnpm -F @kobalte/vanilla-extract typecheck</code> and <code>pnpm -F @kobalte/tailwindcss typecheck</code></td>
+              <td><span class="badge unknown">Not applicable</span></td>
+              <td>Neither selected package has a <code>typecheck</code> script.</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card span-7">
+        <h2>Evidence Highlights</h2>
+        <h3>Dependency and package state</h3>
+        <div class="files">
+          <div class="file"><code>package.json:51</code> <span><code>@solidjs/web</code> is <code>2.0.0-beta.15</code>.</span></div>
+          <div class="file"><code>package.json:71</code> <span><code>solid-js</code> is <code>2.0.0-beta.15</code>.</span></div>
+          <div class="file"><code>package.json:85-96</code> <span>Root overrides point at absolute <code>/Users/ddibiase/Projects/solid-primitives</code> links.</span></div>
+          <div class="file"><code>packages/core/package.json:77-89</code> <span>Core depends on relative <code>link:../../../solid-primitives/packages/*</code> packages.</span></div>
+          <div class="file"><code>apps/docs/package.json:39-45</code> <span>Docs still pins Solid Start-era packages and <code>solid-js</code> <code>1.8.15</code>.</span></div>
+        </div>
+
+        <h3 style="margin-top: 18px;">Source/config leftovers</h3>
+        <div class="files">
+          <div class="file"><code>apps/docs/app.config.ts:130</code>, <code>:156</code> <span>MDX config uses <code>jsxImportSource: "solid-js"</code>.</span></div>
+          <div class="file"><code>apps/docs/src/app.tsx:9</code> <span>Imports <code>Portal</code> and <code>isServer</code> from <code>solid-js/web</code>.</span></div>
+          <div class="file"><code>packages/core/dev/index.tsx:3</code> <span>Imports <code>render</code> from <code>solid-js/web</code>.</span></div>
+          <div class="file"><code>packages/dates/calendar/calendar-root.tsx:44</code> <span>Imports <code>isServer</code> from <code>solid-js/web</code>.</span></div>
+          <div class="file"><code>packages/dates/date-picker/date-picker-portal.tsx:2</code> <span>Imports <code>Portal</code> from <code>solid-js/web</code>.</span></div>
+        </div>
+
+        <h3 style="margin-top: 18px;">Attribute examples</h3>
+        <div class="files">
+          <div class="file"><code>packages/core/src/combobox/combobox-input.tsx:293-295</code> <span>Uses <code>autoComplete</code>, <code>autoCorrect</code>, and <code>spellCheck</code>.</span></div>
+          <div class="file"><code>packages/core/src/time-field/time-field-segment.tsx:525-529</code> <span>Uses <code>readOnly</code>, <code>contentEditable</code>, <code>inputMode</code>, and <code>autoCapitalize</code>.</span></div>
+          <div class="file"><code>packages/dates/date-picker/date-picker-segment.tsx:534-544</code> <span>Uses <code>tabIndex</code>, <code>readOnly</code>, <code>contentEditable</code>, and <code>inputMode</code>.</span></div>
+          <div class="file"><code>packages/core/src/primitives/create-toggle-state/stories/create-toggle-state.stories.tsx:35</code> <span>Uses removed <code>classList</code> in story code.</span></div>
+        </div>
+      </article>
+
+      <article class="card span-5">
+        <h2>Recommended Order</h2>
+        <div class="timeline">
+          <div class="step"><div><strong>Restore reproducible Solid Primitives inputs.</strong><p class="note">Either add the expected sibling <code>solid-primitives</code> checkout, replace local <code>link:</code> deps with published Solid 2-compatible versions, or vendor a workspace package. This unblocks type/build/test signal.</p></div></div>
+          <div class="step"><div><strong>Fix library build runtime imports.</strong><p class="note">Update <code>packages/core/tsup.config.ts</code> so the non-JSX build emits imports from <code>@solidjs/web</code>, matching the Vite config.</p></div></div>
+          <div class="step"><div><strong>Finish source API migration.</strong><p class="note">Apply helper renames, lowercase native attributes, remove <code>classList</code>, and migrate effects/context/store patterns where needed.</p></div></div>
+          <div class="step"><div><strong>Decide the fate of <code>packages/dates</code>.</strong><p class="note">Either make it a real workspace/export again and migrate it, or exclude/remove it from migration tracking.</p></div></div>
+          <div class="step"><div><strong>Move docs to the same runtime story.</strong><p class="note">Upgrade or isolate docs dependencies, switch MDX JSX source to Solid 2, and remove direct <code>solid-js/web</code> imports.</p></div></div>
+          <div class="step"><div><strong>Re-run gates in order.</strong><p class="note">Use <code>pnpm typecheck</code>, <code>pnpm -F @kobalte/core build</code>, <code>pnpm turbo run test --filter=@kobalte/core</code>, then <code>pnpm -F @kobalte/docs build</code>.</p></div></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card span-12">
+        <h2>Readiness Assessment</h2>
+        <div class="callout">
+          <strong>Current state: migration branch is useful for continuing work, but not ready for release validation.</strong>
+          The highest leverage fixes are dependency reproducibility and build output import paths. Until those are fixed, typecheck and tests are dominated by infrastructure failures and cannot reliably measure the remaining source-level migration defects.
+        </div>
+      </article>
+    </section>
+
+    <footer>Report written by OpenCode from local workspace evidence. Nested Kobalte git worktree remained clean after investigation.</footer>
+  </main>
+</body>
+</html>
