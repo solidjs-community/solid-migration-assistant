@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "solid-js": "^1.9.0"
+  },
+  "devDependencies": {
+    "vite-plugin-solid": "latest"
+  },
+  "peerDependencies": {
+    "solid-js": ">=1.8.0",
+    "@solidjs/web": "2.0.0-beta.1"
+  },
+  "optionalDependencies": {
+    "solid-js": "next",
+    "vite-plugin-solid": "next"
+  }
+}

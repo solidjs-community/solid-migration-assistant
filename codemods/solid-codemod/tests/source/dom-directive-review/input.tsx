@@ -1,0 +1,1 @@
+export const view = <button use:focus attr:title="Save" bool:disabled={isDisabled()} on:click={handleClick} oncapture:click={handleCapture} class:active={active()} style:color="red">{/*@once*/ label()}</button>;

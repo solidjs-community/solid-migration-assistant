@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "vite-plugin-solid": "^3.0.0-next.0"
+  }
+}

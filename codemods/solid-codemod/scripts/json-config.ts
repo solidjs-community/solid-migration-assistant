@@ -5,6 +5,10 @@ type JsonNode = SgNode<JSON>;
 
 const SOLID_2_VERSION_RANGE = '">=2.0.0-beta.15 <2.0.0-experimental.0"';
 const VITE_PLUGIN_SOLID_3_VERSION_RANGE = '"^3.0.0-next.0"';
+const jsxImportSourceReplacements = new Map<string, string>([
+  ["solid-js", "@solidjs/web"],
+  ["solid-js/h", "@solidjs/h"],
+]);
 
 const codemod: Codemod<JSON> = async (root) => {
   const rootNode = root.root();
@@ -45,8 +49,9 @@ const codemod: Codemod<JSON> = async (root) => {
     const key = pair.field("key");
     const value = pair.field("value");
     if (!key || !value) continue;
-    if (stringValue(key) === "jsxImportSource" && stringValue(value) === "solid-js") {
-      addEdit(replaceNode(value, '"@solidjs/web"'));
+    if (stringValue(key) === "jsxImportSource") {
+      const replacement = jsxImportSourceReplacements.get(stringValue(value) ?? "");
+      if (replacement) addEdit(replaceNode(value, `"${replacement}"`));
     }
   }
 
@@ -66,14 +71,17 @@ const codemod: Codemod<JSON> = async (root) => {
         addEdit(replaceNode(vitePluginSolidVersion, VITE_PLUGIN_SOLID_3_VERSION_RANGE));
       }
 
-      if (!solidPair || !solidVersion) continue;
-
-      addEdit(replaceNode(solidVersion, SOLID_2_VERSION_RANGE));
-
       const webPair = objectPair(value, "@solidjs/web");
       const webVersion = webPair?.field("value");
       if (webVersion) {
         addEdit(replaceNode(webVersion, SOLID_2_VERSION_RANGE));
+      }
+
+      if (!solidPair || !solidVersion) continue;
+
+      addEdit(replaceNode(solidVersion, SOLID_2_VERSION_RANGE));
+
+      if (webVersion) {
         continue;
       }
 
