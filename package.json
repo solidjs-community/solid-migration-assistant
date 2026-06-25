@@ -1,0 +1,5 @@
+{
+  "name": "solid-codemod-workspace",
+  "private": true,
+  "description": "Monorepo workspace for codemods"
+}

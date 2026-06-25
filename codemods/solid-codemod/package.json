@@ -1,0 +1,17 @@
+{
+  "name": "solid-codemod",
+  "version": "0.1.0",
+  "description": "Migrate local-safe Solid 1.x patterns to Solid 2",
+  "packageManager": "pnpm@10.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "pnpm test:source && pnpm test:json",
+    "test:source": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/codemod.ts ./tests/source --strictness ast",
+    "test:json": "pnpm dlx codemod@latest jssg test -l json ./scripts/json-config.ts ./tests/json --strictness ast",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "latest",
+    "typescript": "latest"
+  }
+}
