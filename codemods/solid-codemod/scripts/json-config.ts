@@ -3,7 +3,8 @@ import type JSON from "codemod:ast-grep/langs/json";
 
 type JsonNode = SgNode<JSON>;
 
-const SOLID_2_VERSION_RANGE = '"^2.0.0-experimental.0"';
+const SOLID_2_VERSION_RANGE = '">=2.0.0-beta.15 <2.0.0-experimental.0"';
+const VITE_PLUGIN_SOLID_3_VERSION_RANGE = '"^3.0.0-next.0"';
 
 const codemod: Codemod<JSON> = async (root) => {
   const rootNode = root.root();
@@ -58,6 +59,13 @@ const codemod: Codemod<JSON> = async (root) => {
       if (stringValue(key) !== dependencyObjectKey) continue;
       const solidPair = objectPair(value, "solid-js");
       const solidVersion = solidPair?.field("value");
+      const vitePluginSolidPair = objectPair(value, "vite-plugin-solid");
+      const vitePluginSolidVersion = vitePluginSolidPair?.field("value");
+
+      if (vitePluginSolidVersion) {
+        addEdit(replaceNode(vitePluginSolidVersion, VITE_PLUGIN_SOLID_3_VERSION_RANGE));
+      }
+
       if (!solidPair || !solidVersion) continue;
 
       addEdit(replaceNode(solidVersion, SOLID_2_VERSION_RANGE));
