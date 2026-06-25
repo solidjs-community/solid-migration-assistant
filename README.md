@@ -1,61 +1,48 @@
-# # Organization Codemods
+# Solid Codemod
 
-Official codemods for your organization to help users adopt new features and handle breaking changes with less manual work.
+Safe, review-friendly codemods for moving Solid 1.x projects toward Solid 2.
 
-Community contributions are welcome. Use this repository to create, validate, and publish codemods from a shared monorepo.
+This repository currently ships `solid-codemod`, a Codemod package that applies local-safe migrations and leaves behavior-sensitive changes as `TODO(solid-2)` review markers. It is designed to reduce upgrade toil without pretending that semantic Solid 2 changes can always be automated.
 
-## One-time setup
+## What It Handles
 
-1. Create this codemod repository in your organization.
-2. Sign in to [Codemod](https://app.codemod.com) with your GitHub account.
-3. Install the Codemod GitHub app for this repository so publishes can be associated with your organization.
-4. Configure a [trusted publisher](https://docs.codemod.com) in Codemod so GitHub Actions can publish with OIDC.
-5. Reserve an organization scope in Codemod before publishing so your packages stay grouped in the Codemod Registry.
+- Solid package and import path moves, including renderer packages such as `@solidjs/web`.
+- Safe API renames such as `Suspense` to `Loading`, `ErrorBoundary` to `Errored`, and `mergeProps` to `merge`.
+- Local JSX shape updates for supported `Index`, `SuspenseList`, `ErrorBoundary`, context provider, and `classList` cases.
+- `package.json` and JSX config updates for Solid 2-compatible package ranges and import sources.
+- Review markers for migrations that need application intent, tests, or runtime diagnostics.
 
-Use [Codemod MCP](https://docs.codemod.com/model-context-protocol) and `npx codemod init` to create new codemods from this monorepo.
+See [`codemods/solid-codemod/README.md`](codemods/solid-codemod/README.md) for the detailed rule list and limits.
 
-## Repository layout
+## Run Locally
 
-Each codemod lives under `codemods/<slug>/`.
+```bash
+pnpm install
+cd codemods/solid-codemod
+pnpm test
+pnpm check-types
+codemod run -w workflow.yaml --dry-run --target /path/to/solid-app
+codemod run -w workflow.yaml --target /path/to/solid-app
+```
+
+Always run codemods on a clean Git worktree so you can inspect the diff and revert safely if needed.
+
+## Repository Layout
 
 ```text
-codemods/<slug>/
-  workflow.yaml
-  codemod.yaml
-  scripts/
-  tests/
+codemods/solid-codemod/   Solid 1.x to 2 codemod package
+CONTEXT.md                Project terminology and migration language
+.reports/                 Research notes and migration reports
+.repos/                   Local research fixtures and upstream references
 ```
 
-Keep each codemod self-contained so maintainers can validate and publish packages independently.
-
-## Creating codemods
-
-- Scaffold new codemods with `npx codemod init`.
-- Use Codemod MCP when creating or refining codemods, especially when symbol definitions or cross-file references matter.
-- Validate package workflows with `npx codemod workflow validate codemods/<slug>/workflow.yaml`.
-- Run package tests from the codemod directory before publishing.
-
-## Running codemods
-
-> [!CAUTION]
-> Codemods modify code. Run them only on Git-tracked files, and commit or stash changes first.
-
-### From the registry
+## Development
 
 ```bash
-npx codemod <codemod-name>
+cd codemods/solid-codemod
+pnpm test
+pnpm check-types
+codemod workflow validate -w workflow.yaml
 ```
 
-### From source
-
-```bash
-npx codemod workflow run -w codemods/<slug>/workflow.yaml
-```
-
-By default, codemods run in the current folder. Add `--target /path/to/repo` to run elsewhere.
-
-## Publishing and contribution guidance
-
-- Use the generated GitHub Actions workflow to publish after review and merge.
-- Add a `CONTRIBUTING.md` in this repository to document review, testing, and release expectations for contributors.
-- See the [Codemod docs](https://go.codemod.com/docs) for CLI and publishing details.
+The goal is a safe mechanical migration first. Anything that requires broader program intent should be surfaced clearly for review instead of rewritten blindly.
