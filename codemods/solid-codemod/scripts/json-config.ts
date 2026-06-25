@@ -3,6 +3,8 @@ import type JSON from "codemod:ast-grep/langs/json";
 
 type JsonNode = SgNode<JSON>;
 
+const SOLID_2_VERSION_RANGE = '"^2.0.0-experimental.0"';
+
 const codemod: Codemod<JSON> = async (root) => {
   const rootNode = root.root();
   const edits: Edit[] = [];
@@ -54,17 +56,24 @@ const codemod: Codemod<JSON> = async (root) => {
       const value = pair.field("value");
       if (!key || !value || value.kind() !== "object") continue;
       if (stringValue(key) !== dependencyObjectKey) continue;
-      if (objectPair(value, "@solidjs/web")) continue;
-
       const solidPair = objectPair(value, "solid-js");
       const solidVersion = solidPair?.field("value");
       if (!solidPair || !solidVersion) continue;
+
+      addEdit(replaceNode(solidVersion, SOLID_2_VERSION_RANGE));
+
+      const webPair = objectPair(value, "@solidjs/web");
+      const webVersion = webPair?.field("value");
+      if (webVersion) {
+        addEdit(replaceNode(webVersion, SOLID_2_VERSION_RANGE));
+        continue;
+      }
 
       const indent = " ".repeat(solidPair.range().start.column);
       addEdit({
         startPos: solidPair.range().end.index,
         endPos: solidPair.range().end.index,
-        insertedText: `,\n${indent}"@solidjs/web": ${solidVersion.text()}`,
+        insertedText: `,\n${indent}"@solidjs/web": ${SOLID_2_VERSION_RANGE}`,
       });
     }
   }

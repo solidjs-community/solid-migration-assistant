@@ -29,7 +29,7 @@ codemod run -w workflow.yaml
 - Renderer-owned JSX types: type-only `JSX` and `ComponentProps` imports move from `solid-js` to `@solidjs/web`.
 - Safe symbol renames: `Suspense` to `Loading`, `SuspenseList` to `Reveal`, `ErrorBoundary` to `Errored`, `Index` to `For`, `mergeProps` to `merge`, `unwrap` to `snapshot`, `onMount` to `onSettled`, `equalFn` to `isEqual`, and `getListener` to `getObserver`.
 - JSX shape changes: `<Index>` becomes `<For keyed={false}>`, `SuspenseList revealOrder="forwards"` is removed because `Reveal` defaults to sequential ordering, `revealOrder="together"` becomes `order="together"`, `tail="collapsed"` becomes `collapsed`, `Context.Provider` becomes the context component when the context is locally created with `createContext(...)`, and simple `classList` attributes become Solid 2 `class` object/array values.
-- JSON config/package changes: `jsxImportSource: "solid-js"` becomes `"@solidjs/web"`; `package.json` dependency groups with `solid-js` also receive `@solidjs/web` using the same version/range if that group does not already contain it.
+- JSON config/package changes: `jsxImportSource: "solid-js"` becomes `"@solidjs/web"`; `package.json` dependency groups with `solid-js` move `solid-js` and `@solidjs/web` to the Solid 2 prerelease range.
 
 ## Manual Review Markers
 

@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "solid-js": "next",
-    "@solidjs/web": "next"
+    "solid-js": "^2.0.0-experimental.0",
+    "@solidjs/web": "^2.0.0-experimental.0"
   }
 }
