@@ -428,13 +428,20 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
   };
 
 
-  const collectDispatchEventStatementsNeedingFlush = (): SourceNode[] => {
+  const collectTestStatementsNeedingFlush = (signalSetterNames: Set<string>): SourceNode[] => {
     const statements = new Map<number, SourceNode>();
+    const timerMethods = new Set(["advanceTimersByTime", "advanceTimersToNextTimer", "runAllTimers", "runOnlyPendingTimers"]);
     for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
       const callee = callFunction(call);
-      if (!callee || callee.kind() !== "member_expression") continue;
-      const { propertyNode } = memberExpressionParts(callee);
-      if (propertyNode?.text() !== "dispatchEvent") continue;
+      let needsFlush = false;
+      if (callee?.kind() === "member_expression") {
+        const { objectNode, propertyNode } = memberExpressionParts(callee);
+        const propertyName = propertyNode?.text();
+        needsFlush = propertyName === "dispatchEvent" || (objectNode?.text() === "vi" && !!propertyName && timerMethods.has(propertyName));
+      } else if (callee?.kind() === "identifier") {
+        needsFlush = signalSetterNames.has(callee.text()) && call.parent()?.kind() === "expression_statement";
+      }
+      if (!needsFlush) continue;
       const statement = call.ancestors().find((ancestor) => ancestor.kind() === "expression_statement") ?? null;
       if (!statement) continue;
       const afterStatement = source.slice(statement.range().end.index, statement.range().end.index + 120);
@@ -708,12 +715,34 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     nonImportBindingNames.add(identifier.text());
   }
 
-  const dispatchEventFlushStatements = isTestLikeFile && !nonImportBindingNames.has("flush") ? collectDispatchEventStatementsNeedingFlush() : [];
-  const needsFlushForDispatchEvents = dispatchEventFlushStatements.length > 0;
-  if (isTestLikeFile && dispatchEventFlushStatements.length === 0 && nonImportBindingNames.has("flush") && /\.dispatchEvent\s*\(/.test(source)) {
-    semanticReviewNames.add("test dispatch flush");
+  const isCreateSignalInitializer = (call: SourceNode): boolean => {
+    const callee = callFunction(call);
+    if (callee?.kind() === "identifier") return createSignalLocalNames.has(callee.text()) && !isLocallyShadowed(callee, callee.text());
+    if (callee?.kind() === "member_expression") {
+      const { objectNode, propertyNode } = memberExpressionParts(callee);
+      return propertyNode?.text() === "createSignal" && namespaceModule(objectNode, namespaceImports) === "solid-js";
+    }
+    return false;
+  };
+
+  const signalSetterNames = new Set<string>();
+  if (isTestLikeFile) {
+    for (const declarator of rootNode.findAll({ rule: { kind: "variable_declarator" } })) {
+      const name = declarator.field("name");
+      const value = declarator.field("value");
+      if (!name || name.kind() !== "array_pattern" || !value || value.kind() !== "call_expression" || !isCreateSignalInitializer(value)) continue;
+      const bindings = name.children().filter((child) => child.kind() === "identifier");
+      const setterName = bindings[1]?.text();
+      if (setterName) signalSetterNames.add(setterName);
+    }
   }
-  for (const statement of dispatchEventFlushStatements) {
+
+  const testFlushStatements = isTestLikeFile && !nonImportBindingNames.has("flush") ? collectTestStatementsNeedingFlush(signalSetterNames) : [];
+  const needsFlushForDispatchEvents = testFlushStatements.length > 0;
+  if (isTestLikeFile && testFlushStatements.length === 0 && nonImportBindingNames.has("flush") && /(?:\.dispatchEvent\s*\(|\bvi\.(?:advanceTimersByTime|advanceTimersToNextTimer|runAllTimers|runOnlyPendingTimers)\s*\()/.test(source)) {
+    semanticReviewNames.add("test flush scheduling");
+  }
+  for (const statement of testFlushStatements) {
     const lineStart = source.lastIndexOf("\n", Math.max(0, statement.range().start.index - 1)) + 1;
     const indentation = source.slice(lineStart, statement.range().start.index).match(/^\s*/)?.[0] ?? "";
     addEdit({ startPos: statement.range().end.index, endPos: statement.range().end.index, insertedText: "\n" + indentation + "flush();" });
@@ -740,6 +769,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const quote = sourceNode.text()[0] ?? '"';
     const statementText = importStatement.text().trimStart();
     const typeOnlyImport = statementText.startsWith("import type");
+    if (originalModuleName === "solid-js" && !typeOnlyImport) sawSolidJsImport = true;
     const namedImports = importStatement.find({ rule: { kind: "named_imports" } });
 
     if (!namedImports) {
@@ -1044,7 +1074,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const argsNode = call.field("arguments") ?? call.children().find((child) => child.kind() === "arguments") ?? null;
     if (!argsNode) return false;
     const args = callArguments(call);
-    if (args.some((arg) => /ownedWrite/.test(arg.text()))) return true;
+    if (args.some((arg) => /\bownedWrite\b/.test(arg.text()))) return true;
     if (args.length < 2) {
       addEdit({ startPos: argsNode.range().end.index - 1, endPos: argsNode.range().end.index - 1, insertedText: ", { ownedWrite: true }" });
       return true;

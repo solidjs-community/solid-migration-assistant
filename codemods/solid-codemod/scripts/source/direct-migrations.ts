@@ -209,7 +209,10 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
 
       const createComputedBinding = imported(localName, "createComputed", solidModules);
       if (createComputedBinding) {
-        if (rewriteDerivedCreateComputed(call, args, rootNode, addEdit, replaceNode)) {
+        if (
+          rewriteCapturedAccessorCreateComputed(call, args, rootNode, addEdit, replaceNode) ||
+          rewriteDerivedCreateComputed(call, args, rootNode, addEdit, replaceNode)
+        ) {
           markImportRemoval(createComputedBinding);
           state.handled.add("createComputed");
         } else {
@@ -574,6 +577,58 @@ function isBindingIdentifier(node: SourceNode): boolean {
     (parentKind === "optional_parameter" && (parent.field("name")?.id() === node.id() || parent.children().some((child) => child.id() === node.id()))) ||
     (parentKind === "arrow_function" && parent.children().find((child) => child.kind() === "identifier")?.id() === node.id())
   );
+}
+
+
+function rewriteCapturedAccessorCreateComputed(
+  call: SourceNode,
+  args: SourceNode[],
+  rootNode: SourceNode,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+): boolean {
+  const callback = args[0];
+  if (!callback || (callback.kind() !== "arrow_function" && callback.kind() !== "function_expression")) return false;
+
+  const assignment = callback.find({ rule: { kind: "assignment_expression" } });
+  if (!assignment) return false;
+  const assignmentChildren = assignment.children().filter((child) => child.isNamed());
+  const target = assignment.field("left") ?? assignmentChildren[0] ?? null;
+  const replacement = assignment.field("right") ?? assignmentChildren[1] ?? null;
+  if (!target || target.kind() !== "identifier" || !replacement || replacement.kind() !== "call_expression") return false;
+  const targetName = target.text();
+  const replacementText = replacement.text();
+  if (!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?\([^)]*\)$/.test(replacementText)) return false;
+
+  const statement = call.ancestors().find((ancestor) => ancestor.kind() === "expression_statement");
+  const block = statement?.ancestors().find((ancestor) => ancestor.kind() === "statement_block" || ancestor.kind() === "program");
+  if (!statement || !block) return false;
+
+  addEdit(replaceNode(statement, "void " + replacementText + ";"));
+
+  // Keep the captured variable declaration in place to avoid whitespace-only deleted lines;
+  // subsequent reads are rewritten to the accessor below.
+
+  const replacedIdentifierIds = new Set<number>();
+  for (const member of block.findAll({ rule: { kind: "member_expression" } })) {
+    if (member.range().start.index <= statement.range().start.index) continue;
+    if (member.ancestors().some((ancestor) => ancestor.id() === statement.id())) continue;
+    const { objectNode, propertyNode } = memberExpressionParts(member);
+    if (!objectNode || objectNode.kind() !== "identifier" || objectNode.text() !== targetName || !propertyNode) continue;
+    replacedIdentifierIds.add(objectNode.id());
+    addEdit(replaceNode(member, "(" + replacementText + " as any)." + propertyNode.text()));
+  }
+
+  for (const identifier of block.findAll({ rule: { kind: "identifier" } })) {
+    if (identifier.range().start.index <= statement.range().start.index) continue;
+    if (replacedIdentifierIds.has(identifier.id())) continue;
+    if (identifier.text() !== targetName) continue;
+    if (identifier.ancestors().some((ancestor) => ancestor.id() === statement.id())) continue;
+    if (isBindingIdentifier(identifier)) continue;
+    addEdit(replaceNode(identifier, replacementText));
+  }
+
+  return true;
 }
 
 function rewriteDerivedCreateComputed(call: SourceNode, args: SourceNode[], rootNode: SourceNode, addEdit: (edit: Edit) => void, replaceNode: (node: SourceNode, text: string) => Edit): boolean {
