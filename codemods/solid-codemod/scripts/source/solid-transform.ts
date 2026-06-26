@@ -1127,7 +1127,8 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const args = callArguments(call);
     if (args.some((arg) => /\bownedWrite\b/.test(arg.text()))) return true;
     if (args.length < 2) {
-      addEdit({ startPos: argsNode.range().end.index - 1, endPos: argsNode.range().end.index - 1, insertedText: ", { ownedWrite: true }" });
+      const insertedText = args.length === 0 ? "undefined, { ownedWrite: true }" : ", { ownedWrite: true }";
+      addEdit({ startPos: argsNode.range().end.index - 1, endPos: argsNode.range().end.index - 1, insertedText });
       return true;
     }
     const options = args[1];
