@@ -7,5 +7,5 @@ Solid.onSettled(() => ready());
 export const view = <>
   <Solid.For each={items()} keyed={false}>{item => <span>{item()}</span>}</Solid.For>
   <Solid.Reveal order="together" collapsed><Solid.Loading fallback="loading">ready</Solid.Loading></Solid.Reveal>
-  <Solid.Errored fallback={err => err().message}><Child /></Solid.Errored>
+  <Solid.Errored fallback={err => (err() as Error).message}><Child /></Solid.Errored>
 </>;

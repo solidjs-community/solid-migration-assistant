@@ -7,8 +7,8 @@ import * as Web from "@solidjs/web";
 Store.produce(state, recipe);
 Solid.flush(() => setCount(1));
 // TODO(solid-2): Review createResource resource cluster.
-const resource = Solid.createResource;
+const resource = (Solid as any).createResource;
 // TODO(solid-2): Review createDynamic namespace usage; direct two-argument calls can use createComponent(dynamic(source), props).
 Web.createDynamic(() => Component);
 
-export const view = <Solid.Errored fallback={err => err().message}><Solid.Loading /></Solid.Errored>;
+export const view = <Solid.Errored fallback={err => (err() as Error).message}><Solid.Loading /></Solid.Errored>;
