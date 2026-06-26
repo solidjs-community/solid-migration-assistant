@@ -262,6 +262,11 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteContextHookShims(rootNode, addEdit, replaceNode);
   rewriteCreateSignalIntersectionAssertions(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteDomDirectives(rootNode, addEdit, replaceNode);
+  if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
+    for (const importInfo of imports) {
+      if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
+    }
+  }
   insertInlineReviewComments(rootNode, importedByLocal, namespaceImports, state, addEdit);
   applyImportEdits(imports, state, addEdit, replaceNode);
 

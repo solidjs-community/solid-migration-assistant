@@ -26,7 +26,7 @@ interface JsxComponentRename {
 const codemod: Codemod<SourceLanguage> = async (root) => {
   const rootNode = root.root();
   const edits: Edit[] = [];
-  const editRanges = new Set<string>();
+  const editsByRange = new Map<string, Edit>();
   const usageRenames = new Map<string, string>();
   const jsxComponentRenames: JsxComponentRename[] = [];
   const semanticReviewNames = new Set<string>();
@@ -44,10 +44,28 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
   }
   let needsClassNameHelper = false;
 
+  const mergeSolidFlushSpecifier = (insertedText: string): string | null => {
+    if (/flush/.test(insertedText)) return null;
+    const pattern = /import\s+\{([^}]*)\}\s+from\s+["']solid-js["'];/;
+    if (!pattern.test(insertedText)) return null;
+    return insertedText.replace(pattern, (match: string, specifiers: string) => {
+      const quote = match.includes("'solid-js'") ? "'" : '"';
+      const nextSpecifiers = specifiers.trim().length > 0 ? `${specifiers.trim()}, flush` : "flush";
+      return `import { ${nextSpecifiers} } from ${quote}solid-js${quote};`;
+    });
+  };
+
   const addEdit = (edit: Edit): void => {
     const key = `${edit.startPos}:${edit.endPos}`;
-    if (editRanges.has(key)) return;
-    editRanges.add(key);
+    const existing = editsByRange.get(key);
+    if (existing) {
+      if (/flush/.test(edit.insertedText)) {
+        const merged = mergeSolidFlushSpecifier(existing.insertedText);
+        if (merged) existing.insertedText = merged;
+      }
+      return;
+    }
+    editsByRange.set(key, edit);
     edits.push(edit);
   };
 
@@ -428,7 +446,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
   };
 
 
-  const collectTestStatementsNeedingFlush = (signalSetterNames: Set<string>): SourceNode[] => {
+  const collectTestStatementsNeedingFlush = (signalSetterNames: Set<string>, eventDispatcherNames: Set<string>): SourceNode[] => {
     const statements = new Map<number, SourceNode>();
     const timerMethods = new Set(["advanceTimersByTime", "advanceTimersToNextTimer", "runAllTimers", "runOnlyPendingTimers"]);
     for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
@@ -437,9 +455,12 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       if (callee?.kind() === "member_expression") {
         const { objectNode, propertyNode } = memberExpressionParts(callee);
         const propertyName = propertyNode?.text();
-        needsFlush = propertyName === "dispatchEvent" || (objectNode?.text() === "vi" && !!propertyName && timerMethods.has(propertyName));
+        needsFlush = ["dispatchEvent", "close"].includes(propertyName ?? "") || (objectNode?.text() === "vi" && !!propertyName && timerMethods.has(propertyName));
       } else if (callee?.kind() === "identifier") {
-        needsFlush = signalSetterNames.has(callee.text()) && call.parent()?.kind() === "expression_statement";
+        const calleeName = callee.text();
+        needsFlush =
+          (signalSetterNames.has(calleeName) && call.parent()?.kind() === "expression_statement") ||
+          eventDispatcherNames.has(calleeName);
       }
       if (!needsFlush) continue;
       const statement = call.ancestors().find((ancestor) => ancestor.kind() === "expression_statement") ?? null;
@@ -726,18 +747,26 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
   };
 
   const signalSetterNames = new Set<string>();
+  const eventDispatcherNames = new Set<string>();
   if (isTestLikeFile) {
     for (const declarator of rootNode.findAll({ rule: { kind: "variable_declarator" } })) {
       const name = declarator.field("name");
       const value = declarator.field("value");
-      if (!name || name.kind() !== "array_pattern" || !value || value.kind() !== "call_expression" || !isCreateSignalInitializer(value)) continue;
-      const bindings = name.children().filter((child) => child.kind() === "identifier");
-      const setterName = bindings[1]?.text();
-      if (setterName) signalSetterNames.add(setterName);
+      if (name?.kind() === "array_pattern" && value?.kind() === "call_expression" && isCreateSignalInitializer(value)) {
+        const bindings = name.children().filter((child) => child.kind() === "identifier");
+        const setterName = bindings[1]?.text();
+        if (setterName) signalSetterNames.add(setterName);
+      }
+      if (name?.kind() === "identifier" && value?.kind() === "call_expression") {
+        const callee = callFunction(value);
+        if (callee?.kind() === "identifier" && callee.text() === "createEventDispatcher" && !isLocallyShadowed(callee, "createEventDispatcher")) {
+          eventDispatcherNames.add(name.text());
+        }
+      }
     }
   }
 
-  const testFlushStatements = isTestLikeFile && !nonImportBindingNames.has("flush") ? collectTestStatementsNeedingFlush(signalSetterNames) : [];
+  const testFlushStatements = isTestLikeFile && !nonImportBindingNames.has("flush") ? collectTestStatementsNeedingFlush(signalSetterNames, eventDispatcherNames) : [];
   const needsFlushForDispatchEvents = testFlushStatements.length > 0;
   if (isTestLikeFile && testFlushStatements.length === 0 && nonImportBindingNames.has("flush") && /(?:\.dispatchEvent\s*\(|\bvi\.(?:advanceTimersByTime|advanceTimersToNextTimer|runAllTimers|runOnlyPendingTimers)\s*\()/.test(source)) {
     semanticReviewNames.add("test flush scheduling");
@@ -771,7 +800,6 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const typeOnlyImport = statementText.startsWith("import type");
     if (originalModuleName === "solid-js" && !typeOnlyImport) sawSolidJsImport = true;
     const namedImports = importStatement.find({ rule: { kind: "named_imports" } });
-
     if (!namedImports) {
       if (replacementModuleName !== originalModuleName) addEdit(replaceNode(sourceNode, `${quote}${replacementModuleName}${quote}`));
       continue;
@@ -1070,6 +1098,29 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     return false;
   };
 
+  const isExternalCallbackHost = (call: SourceNode): boolean => {
+    const callee = callFunction(call);
+    if (callee?.kind() === "identifier") return ["setTimeout", "setInterval", "requestAnimationFrame", "queueMicrotask"].includes(callee.text());
+    if (callee?.kind() !== "member_expression") return false;
+    const { propertyNode } = memberExpressionParts(callee);
+    return propertyNode?.text() === "addEventListener";
+  };
+
+  const hasSetterCallInExternalCallback = (setterName: string, afterIndex: number): boolean => {
+    for (const setterCall of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+      if (setterCall.range().start.index <= afterIndex) continue;
+      const setterCallee = callFunction(setterCall);
+      if (!setterCallee || setterCallee.kind() !== "identifier" || setterCallee.text() !== setterName) continue;
+      if (isBindingIdentifier(setterCallee)) continue;
+      for (const callback of setterCall.ancestors().filter((ancestor) => isFunctionLike(ancestor))) {
+        const args = callback.parent();
+        const hostCall = args?.parent();
+        if (args?.kind() === "arguments" && hostCall?.kind() === "call_expression" && isExternalCallbackHost(hostCall)) return true;
+      }
+    }
+    return false;
+  };
+
   const insertOwnedWriteOption = (call: SourceNode): boolean => {
     const argsNode = call.field("arguments") ?? call.children().find((child) => child.kind() === "arguments") ?? null;
     if (!argsNode) return false;
@@ -1097,8 +1148,10 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const setterName = bindings[1]?.text();
     if (!setterName) continue;
     const ownedScope = declarator.ancestors().find((ancestor) => isKnownOwnedScopeCallback(ancestor));
-    if (!ownedScope) continue;
-    if (!hasSetterCallInScope(ownedScope, setterName, declarator.range().end.index)) continue;
+    const needsOwnedWrite = ownedScope
+      ? hasSetterCallInScope(ownedScope, setterName, declarator.range().end.index)
+      : hasSetterCallInExternalCallback(setterName, declarator.range().end.index);
+    if (!needsOwnedWrite) continue;
     if (!insertOwnedWriteOption(value)) semanticReviewNames.add("ownedWrite signal options");
   }
 

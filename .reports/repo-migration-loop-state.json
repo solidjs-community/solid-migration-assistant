@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-26T19:33:33Z",
-  "last_scheduler_run_at": "2026-06-26T19:33:33Z",
+  "last_run_at": "2026-06-26T20:27:03Z",
+  "last_scheduler_run_at": "2026-06-26T20:27:03Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -139,22 +139,28 @@
     },
     {
       "at": "2026-06-26T17:22:08Z",
-      "target": "solid-primitives",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1720-solid-primitives.md",
       "status": "needs-codemod-fix",
-      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1720-solid-primitives.md"
+      "target": "solid-primitives"
     },
     {
       "at": "2026-06-26T18:46:59Z",
-      "target": "solid-primitives",
-      "status": "needs-codemod-fix",
+      "commit": "pending in committed report; final delivery contains commit hash",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1846-solid-primitives.md",
-      "commit": "pending in committed report; final delivery contains commit hash"
+      "status": "needs-codemod-fix",
+      "target": "solid-primitives"
     },
     {
       "at": "2026-06-26T19:33:33Z",
-      "target": "solid-primitives",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-193333-solid-primitives.md",
       "status": "needs-codemod-fix",
-      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-193333-solid-primitives.md"
+      "target": "solid-primitives"
+    },
+    {
+      "at": "2026-06-26T20:27:03Z",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2027-solid-primitives.md",
+      "status": "needs-broader-verification",
+      "target": "solid-primitives"
     }
   ],
   "targets": {
@@ -295,6 +301,10 @@
       "status": "pending"
     },
     "solid-primitives": {
+      "branches": {
+        "baseline": "main",
+        "manual": "next"
+      },
       "branches_sample": [
         "dev/presence-migration",
         "main",
@@ -317,60 +327,74 @@
         "upstream/next",
         "upstream/on-dispose"
       ],
-      "default_branch": "main",
-      "manual_branch": "next",
-      "mode": "manual-compare",
-      "next_action": "Triage remaining solid-primitives event-dispatcher isServer/client runtime behavior and workspace package build/link verification for keyboard/refs.",
-      "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
-      "priority": 4,
-      "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
-      "status": "needs-codemod-fix",
-      "last_run_at": "2026-06-26T19:33:33Z",
+      "codemod_changes": [
+        "scripts/source/solid-transform.ts: event dispatcher/local callback ownedWrite/close flush scheduling",
+        "scripts/source/direct-migrations.ts: add flush to direct import edits when dispatchEvent tests need it",
+        "tests/source/owned-write-external-listener",
+        "tests/source/test-close-flush",
+        "tests/source/test-event-dispatcher-flush",
+        "tests/source/test-flush-direct-import-collision",
+        "tests/source/test-dispatch-event-flush"
+      ],
       "commands": {
+        "checkout-main": {
+          "exit": 0,
+          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/checkout-main.log",
+          "seconds": 0.6
+        },
+        "clone": {
+          "exit": 0,
+          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/clone.log",
+          "seconds": 0.7
+        },
         "codemod-run": {
           "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-193333-solid-primitives-52f404fb347c/codemod-run.log"
+          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/codemod-run.log",
+          "seconds": 4.8
         },
         "diff-check": {
           "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-193333-solid-primitives-52f404fb347c/diff-check.log"
+          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/diff-check.log",
+          "seconds": 0.6
+        },
+        "focused-tests": {
+          "exit": 0,
+          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/focused-tests.log",
+          "seconds": 1.9
         },
         "install": {
           "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-193333-solid-primitives-52f404fb347c/install.log"
-        },
-        "focused-tests": {
-          "exit": 1,
-          "log": "/tmp/solid-codemod-runs/20260626-193333-solid-primitives-52f404fb347c/focused-tests.log"
+          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/install.log",
+          "seconds": 6.0
         },
         "package-tests": "pnpm test exit 0; pnpm check-types exit 0"
       },
+      "default_branch": "main",
+      "end_of_run_commit": "pending in committed report; final delivery contains actual hash",
+      "findings": [
+        "Focused solid-primitives event-dispatcher, keyboard, refs, and websocket tests pass after the codemod changes.",
+        "External callback setters now receive ownedWrite signal options.",
+        "Test flush insertion now covers createEventDispatcher locals, dispatch-event import collisions, and close() statements."
+      ],
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2027-solid-primitives.md",
+      "last_run_at": "2026-06-26T20:27:03Z",
+      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c",
+      "manual_branch": "next",
+      "mode": "manual-compare",
+      "next_action": "Rerun solid-primitives with broader workspace verification now that focused event-dispatcher/keyboard/refs/websocket tests pass.",
+      "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
+      "priority": 4,
+      "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2027-solid-primitives.md",
+      "stale_lock_cleared": false,
+      "status": "needs-broader-verification",
       "verification": {
         "diff_check": 0,
+        "focused_tests": 0,
         "install": 0,
-        "focused_tests": 1,
-        "package_pnpm_test": 0,
-        "package_check_types": 0
-      },
-      "findings": [
-        "createComputed captured accessor assertions are now rewritten and package fixtures pass",
-        "test scheduling flush now covers direct createSignal setters and Vitest timer advancement; websocket focused tests pass",
-        "remaining event-dispatcher isServer/client behavior failure plus keyboard/refs workspace package resolution failures"
-      ],
-      "codemod_changes": [
-        "scripts/source/direct-migrations.ts",
-        "scripts/source/solid-transform.ts",
-        "tests/source/create-computed-captured-accessor",
-        "tests/source/test-flush-scheduling"
-      ],
-      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-172012-solid-primitives-52f404fb347c",
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1720-solid-primitives.md",
-      "end_of_run_commit": "pending; final delivery records actual hash",
-      "branches": {
-        "baseline": "main",
-        "manual": "next"
-      },
-      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-193333-solid-primitives.md"
+        "package_check_types": 0,
+        "package_pnpm_test": 0
+      }
     },
     "solid-router": {
       "branches_sample": [

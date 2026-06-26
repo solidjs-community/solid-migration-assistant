@@ -8,7 +8,7 @@ const dispatchKeyEvent = (key: string) => {
 };
 
 test("dispatches a keyboard event", () => {
-  const [key, setKey] = createSignal<string | null>(null);
+  const [key, setKey] = createSignal<string | null>(null, { ownedWrite: true });
   window.addEventListener("keydown", event => setKey(event.key));
   dispatchKeyEvent("a");
   expect(key()).toBe("a");
