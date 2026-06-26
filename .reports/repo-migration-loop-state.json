@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-26T15:00:59Z",
-  "last_scheduler_run_at": "2026-06-26T15:00:59Z",
+  "last_run_at": "2026-06-26T15:52:21Z",
+  "last_scheduler_run_at": "2026-06-26T15:52:21Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -114,14 +114,21 @@
     },
     {
       "at": "2026-06-26T14:14:02Z",
-      "target": "solid-router",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1414-solid-router.md",
       "status": "needs-codemod-fix",
-      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1414-solid-router.md"
+      "target": "solid-router"
     },
     {
       "at": "2026-06-26T15:00:19Z",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-145920-solid-router.md",
       "status": "needs-codemod-fix",
+      "target": "solid-router"
+    },
+    {
+      "at": "2026-06-26T15:52:21Z",
+      "commit": "pending in committed report; final delivery contains commit hash",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-155012-solid-router.md",
+      "status": "successful",
       "target": "solid-router"
     }
   ],
@@ -303,99 +310,102 @@
         "origin/solid-v2-beta"
       ],
       "codemod_changes": [
-        "scripts/source/solid-transform.ts",
-        "scripts/source/direct-migrations.ts",
-        "tests/source/solid2-runtime-preserved"
+        "solid-transform.ts createContext null default and createResource error-state stub",
+        "new create-context-default-value fixture",
+        "updated context/createResource fixture expectations"
       ],
       "commands": [
         {
-          "name": "archive-codemod",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/archive-codemod.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/archive-codemod.log",
+          "name": "archive-codemod"
         },
         {
-          "name": "git-init",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/git-init.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/git-init.log",
+          "name": "git-init"
         },
         {
-          "name": "git-add",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/git-add.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/git-add.log",
+          "name": "git-add"
         },
         {
-          "name": "git-commit-baseline",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/git-commit-baseline.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/git-commit-baseline.log",
+          "name": "git-commit-baseline"
         },
         {
-          "name": "codemod-package-test",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/codemod-package-test.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/codemod-package-test.log",
+          "name": "codemod-package-test"
         },
         {
-          "name": "codemod-package-check-types",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/codemod-package-check-types.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/codemod-package-check-types.log",
+          "name": "codemod-package-check-types"
         },
         {
-          "name": "codemod-apply",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/codemod-apply.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/codemod-apply.log",
+          "name": "codemod-apply"
         },
         {
-          "name": "install",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/install.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/install.log",
+          "name": "install"
         },
         {
-          "name": "diff-check",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/diff-check.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/diff-check.log",
+          "name": "diff-check"
         },
         {
-          "name": "diff-stat",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/diff-stat.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/diff-stat.log",
+          "name": "diff-stat"
         },
         {
-          "name": "build",
           "code": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/build.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/build.log",
+          "name": "build"
         },
         {
-          "name": "test",
           "code": 1,
-          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/test.log"
+          "log": "/tmp/solid-codemod-runs/20260626-145920-solid-router-52f404fb347c/test.log",
+          "name": "test"
         }
       ],
       "default_branch": "origin/main",
+      "end_of_run_commit": "pending in committed report; final delivery contains commit hash",
       "findings": [
-        "git diff check exited 0",
-        "solid-router build exited 0 and test exited 1",
-        "Added fixture backed preservation of real Solid 2 createRoot imports while keeping createEffect and createRenderEffect as TODO compatibility stubs after preserving those effects caused build or runtime regressions",
-        "Remaining failures are createResource async error propagation, action rejection handling, and RouterContext default context semantics"
+        "solid-router codemod applied to disposable origin/main worktree and compared with next",
+        "pnpm test passed for codemod package: 74 source and 12 JSON fixtures",
+        "pnpm check-types passed for codemod package",
+        "target pnpm test passed",
+        "target pnpm build passed",
+        "git diff --check passed"
       ],
       "last_post_run_fix_at": "2026-06-26T12:46:42Z",
       "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-145920-solid-router.md",
-      "last_run_at": "2026-06-26T15:00:59Z",
-      "last_run_dir": "/tmp/solid-codemod-runs/20260626-0818-solid-router-job52f2",
+      "last_run_at": "2026-06-26T15:52:21Z",
+      "last_run_dir": "/tmp/solid-codemod-runs/20260626-155012-solid-router-52f404fb347c",
       "last_run_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-0731-solid-router.md",
       "manual_branch": "next",
       "mode": "manual-compare",
-      "next_action": "Continue solid-router runtime triage for createResource async error handling, action rejection handling, and RouterContext context semantics.",
+      "next_action": "Proceed to solid-primitives migration feedback loop.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-router",
       "priority": 3,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-router",
       "run_dir": "/tmp/solid-codemod-runs/20260626-141123-solid-router-52f404fb347c",
       "stale_lock_cleared": null,
-      "status": "needs-codemod-fix",
+      "status": "successful",
       "verification": {
         "build": 0,
-        "test": 1,
-        "diff_check": 0,
+        "codemod_package_check_types": 0,
         "codemod_package_test": 0,
-        "codemod_package_check_types": 0
+        "diff_check": 0,
+        "test": 1
       }
     },
     "test": {

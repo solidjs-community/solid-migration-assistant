@@ -193,7 +193,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
 
     const callablePrevious = "(fn: (previous?: any) => any, value?: any, options?: any) => any";
     const callablePreviousRuntime = "((fn: (previous?: any) => any, value?: any) => fn(value)) as any";
-    const createResourceRuntime = `const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, options?: any): any; (fetcher: (...args: any[]) => any, options?: any): any } = ((source: any, fetcher?: any, options?: any) => { let latest = options?.initialValue; const resource: any = () => latest; Object.defineProperty(resource, "latest", { get: () => latest }); Object.defineProperty(resource, "state", { get: () => latest === undefined ? "unresolved" : "ready" }); const mutate = (value: any) => latest = typeof value === "function" ? value(latest) : value; const refetch = () => { const input = typeof source === "function" ? source() : source; return Promise.resolve(typeof fetcher === "function" ? fetcher(input, { value: latest }) : input).then(mutate); }; void refetch(); return [resource, { mutate, refetch }]; }) as any;`;
+    const createResourceRuntime = `const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, options?: any): any; (fetcher: (...args: any[]) => any, options?: any): any } = ((source: any, fetcher?: any, options?: any) => { let latest = options?.initialValue; let error: any; const resource: any = () => { if (error) throw error; return latest; }; Object.defineProperty(resource, "latest", { get: () => latest }); Object.defineProperty(resource, "error", { get: () => error }); Object.defineProperty(resource, "state", { get: () => error ? "errored" : latest === undefined ? "unresolved" : "ready" }); const mutate = (value: any) => { error = undefined; latest = typeof value === "function" ? value(latest) : value; return latest; }; const fail = (err: any) => { error = err; return undefined; }; const refetch = () => { const input = typeof source === "function" ? source() : source; return Promise.resolve(typeof fetcher === "function" ? fetcher(input, { value: latest }) : input).then(mutate, fail); }; void refetch(); return [resource, { mutate, refetch }]; }) as any;`;
     const valueStubs = new Map<string, string>([
       ["createResource", createResourceRuntime],
       ["createDeferred", "const " + localName + ": (source: any, options?: any) => (() => any) = undefined as any;"],
@@ -922,6 +922,12 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       isCreateContextCall = propertyNode?.text() === "createContext" && namespaceModule(objectNode, namespaceImports) === "solid-js";
     }
     if (!isCreateContextCall) continue;
+
+    const createContextArgs = callArguments(value);
+    if (createContextArgs.length === 0) {
+      addEdit({ startPos: value.range().end.index - 1, endPos: value.range().end.index - 1, insertedText: "null as any" });
+      semanticReviewNames.add("createContext default value");
+    }
 
     const name = declarator.field("name");
     if (name?.kind() === "identifier") {
