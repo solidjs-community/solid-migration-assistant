@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-26T20:27:03Z",
-  "last_scheduler_run_at": "2026-06-26T20:27:03Z",
+  "last_run_at": "2026-06-26T21:07:27Z",
+  "last_scheduler_run_at": "2026-06-26T21:07:27Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -161,6 +161,13 @@
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2027-solid-primitives.md",
       "status": "needs-broader-verification",
       "target": "solid-primitives"
+    },
+    {
+      "at": "2026-06-26T21:07:27Z",
+      "target": "solid-primitives",
+      "status": "needs-codemod-fix",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2107-solid-primitives.md",
+      "commit": "7f8b9c3"
     }
   ],
   "targets": {
@@ -327,73 +334,116 @@
         "upstream/next",
         "upstream/on-dispose"
       ],
-      "codemod_changes": [
-        "scripts/source/solid-transform.ts: event dispatcher/local callback ownedWrite/close flush scheduling",
-        "scripts/source/direct-migrations.ts: add flush to direct import edits when dispatchEvent tests need it",
-        "tests/source/owned-write-external-listener",
-        "tests/source/test-close-flush",
-        "tests/source/test-event-dispatcher-flush",
-        "tests/source/test-flush-direct-import-collision",
-        "tests/source/test-dispatch-event-flush"
-      ],
+      "codemod_changes": [],
       "commands": {
-        "checkout-main": {
+        "clone-codemod": {
           "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/checkout-main.log",
-          "seconds": 0.6
+          "seconds": 1.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/clone-codemod.log",
+          "tail": ""
         },
-        "clone": {
+        "checkout-codemod": {
           "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/clone.log",
-          "seconds": 0.7
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/checkout-codemod.log",
+          "tail": ""
+        },
+        "clone-manual": {
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/clone-manual.log",
+          "tail": ""
+        },
+        "checkout-manual": {
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/checkout-manual.log",
+          "tail": ""
         },
         "codemod-run": {
           "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/codemod-run.log",
-          "seconds": 4.8
-        },
-        "diff-check": {
-          "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/diff-check.log",
-          "seconds": 0.6
-        },
-        "focused-tests": {
-          "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/focused-tests.log",
-          "seconds": 1.9
+          "seconds": 5.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/codemod-run.log",
+          "tail": "(node:806872) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.\n(Use `node --trace-deprecation ...` to show where the warning was created)\nWorkflow started 631b1e1a-3f4e-4502-954c-79724dac92c2\n\u23fa Rewrite Solid source imports and local-safe JSX patterns\n\u23fa Update Solid JSX config and package dependency entries\n\u23fa Install package skill\nWorkflow completed in 3.0s"
         },
         "install": {
           "exit": 0,
-          "log": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c/install.log",
-          "seconds": 6.0
+          "seconds": 6.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/install.log",
+          "tail": "site\n\u251c\u2500\u252c vite 8.0.8\n\u2502 \u2514\u2500\u2500 \u2715 unmet peer esbuild@\"^0.27.0 || ^0.28.0\": found 0.25.5\n\u251c\u2500\u252c @tanstack/solid-router 1.168.16\n\u2502 \u251c\u2500\u2500 \u2715 unmet peer solid-js@^1.9.10: found 2.0.0-beta.15\n\u2502 \u2514\u2500\u252c @solid-devtools/logger 0.9.11\n\u2502   \u251c\u2500\u2500 \u2715 unmet peer solid-js@^1.9.0: found 2.0.0-beta.15\n\u2502   \u251c\u2500\u252c @solid-primitives/utils 6.4.0\n\u2502   \u2502 \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u251c\u2500\u252c @solid-devtools/shared 0.20.0\n\u2502   \u2502 \u251c\u2500\u2500 \u2715 unmet peer solid-js@^1.9.0: found 2.0.0-beta.15\n\u2502   \u2502 \u251c\u2500\u252c @solid-primitives/event-listener 2.4.5\n\u2502   \u2502 \u2502 \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u2502 \u251c\u2500\u252c @solid-primitives/media 2.3.5\n\u2502   \u2502 \u2502 \u251c\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u2502 \u2502 \u251c\u2500\u252c @solid-primitives/rootless 1.5.3\n\u2502   \u2502 \u2502 \u2502 \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u2502 \u2502 \u2514\u2500\u252c @solid-primitives/static-store 0.1.3\n\u2502   \u2502 \u2502   \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u2502 \u251c\u2500\u252c @solid-primitives/refs 1.1.3\n\u2502   \u2502 \u2502 \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u2502 \u251c\u2500\u252c @solid-primitives/scheduled 1.5.3\n\u2502   \u2502 \u2502 \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u2502 \u2514\u2500\u252c @solid-primitives/styles 0.1.3\n\u2502   \u2502   \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502   \u2514\u2500\u252c @solid-devtools/debugger 0.28.1\n\u2502     \u251c\u2500\u2500 \u2715 unmet peer solid-js@^1.9.0: found 2.0.0-beta.15\n\u2502     \u251c\u2500\u252c @solid-primitives/bounds 0.1.5\n\u2502     \u2502 \u251c\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502     \u2502 \u2514\u2500\u252c @solid-primitives/resize-observer 2.1.5\n\u2502     \u2502   \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u2502     \u2514\u2500\u252c @solid-primitives/keyboard 1.3.5\n\u2502       \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.6.12: found 2.0.0-beta.15\n\u251c\u2500\u252c @tanstack/solid-start 1.167.28\n\u2502 \u251c\u2500\u252c @tanstack/solid-start-server 1.166.33\n\u2502 \u2502 \u2514\u2500\u2500 \u2715 unmet peer solid-js@^1.0.0: found 2.0.0-beta.15\n\u2502 \u2514\u2500\u252c @tanstack/start-plugin-core 1.167.27\n\u2502   \u2514\u2500\u252c @tanstack/router-plugin 1.167.16\n\u2502     \u2514\u2500\u2500 \u2715 unmet peer vite-plugin-solid@^2.11.10: found 3.0.0-next.5\n\u2514\u2500\u252c solid-dismiss 1.8.2\n  \u2514\u2500\u2500 \u2715 unmet peer solid-js@1: found 2.0.0-beta.15\n\ndevDependencies:\n+ @changesets/cli 2.29.4\n+ @nothing-but/node-resolve-ts 1.0.1\n+ @solidjs/start 1.1.4\n+ @solidjs/web 2.0.0-beta.15 (2.0.0-experimental.0 is available)\n+ @types/jsdom 21.1.7\n+ @types/node 22.15.31\n+ @typescript-eslint/eslint-plugin 8.34.0\n+ @typescript-eslint/parser 8.34.0\n+ esbuild 0.25.5\n+ esbuild-plugin-solid 0.6.0\n+ eslint 9.28.0\n+ eslint-plugin-eslint-comments 3.2.0\n+ eslint-plugin-no-only-tests 3.3.0\n+ jsdom 25.0.1\n+ json-to-markdown-table 1.0.0\n+ prettier 3.5.3\n+ prettier-plugin-tailwindcss 0.6.12\n+ rehype-autolink-headings 7.1.0\n+ rehype-highlight 7.0.2\n+ rehype-slug 6.0.0\n+ remark-gfm 4.0.1\n+ solid-js 2.0.0-beta.15\n+ typescript 5.8.3 (6.0.3 is available)\n+ vinxi 0.5.7\n+ vite 6.3.5\n+ vite-plugin-solid 3.0.0-next.5\n+ vitest 2.1.9\n\n\u256d Warning \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\n\u2502                                                                              \u2502\n\u2502   Ignored build scripts: @parcel/watcher.                                    \u2502\n\u2502   Run \"pnpm approve-builds\" to pick which dependencies should be allowed     \u2502\n\u2502   to run scripts.                                                            \u2502\n\u2502                                                                              \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\nDone in 5.5s using pnpm v10.12.1"
         },
-        "package-tests": "pnpm test exit 0; pnpm check-types exit 0"
+        "test": {
+          "exit": 1,
+          "seconds": 46.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/test.log",
+          "tail": "\u23af\u23af\u23af\u23af\u23af Uncaught Exception \u23af\u23af\u23af\u23af\u23af\nError: [REACTIVE_WRITE_IN_OWNED_SCOPE] Writing to reactive state inside an owned scope (component, computation) is not allowed. Move the write outside or set the `ownedWrite` option if this is intentional.\n \u276f setSignal node_modules/.pnpm/@solidjs+signals@2.0.0-beta.15/node_modules/@solidjs/signals/dist/dev.js:2161:11\n \u276f callTheUserObjectsOperation node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30\n \u276f innerInvokeEventListeners node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:350:25\n \u276f invokeEventListeners node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:286:3\n \u276f EventTargetImpl._dispatch node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:233:9\n \u276f EventTargetImpl.dispatchEvent node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:104:17\n \u276f dispatchEvent node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/generated/EventTarget.js:241:34\n \u276f Module.setOnline packages/connectivity/test/setup.ts:6:10\n      4| export const setOnline = (value: boolean) => {\n      5|   online = value;\n      6|   window.dispatchEvent(new Event(value ? \"online\" : \"offline\"));\n       |          ^\n      7|   flush();\n      8| };\n \u276f packages/connectivity/test/index.test.ts:26:7\n \u276f node_modules/.pnpm/@solidjs+signals@2.0.0-beta.15/node_modules/@solidjs/signals/dist/dev.js:1059:36\n\nThis error originated in \"packages/connectivity/test/index.test.ts\" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.\nThe latest test that might've caused the error is \"works\". It might mean one of the following:\n- The error was thrown, while Vitest was running this test.\n- If the error occurred after the test had been completed, this was the last documented test before it was thrown.\n\n\u23af\u23af\u23af\u23af\u23af Uncaught Exception \u23af\u23af\u23af\u23af\u23af\nTypeError: fn is not a function\n \u276f storeSetter node_modules/.pnpm/@solidjs+signals@2.0.0-beta.15/node_modules/@solidjs/signals/dist/dev.js:3709:19\n \u276f node_modules/.pnpm/@solidjs+signals@2.0.0-beta.15/node_modules/@solidjs/signals/dist/dev.js:3738:15\n \u276f orientationEvent packages/devices/src/index.ts:142:5\n    140|       throttled = false;\n    141|     }, interval);\n    142|     setOrientation({\n       |     ^\n    143|       alpha: e.alpha ? e.alpha : 0,\n    144|       beta: e.beta ? e.beta : 0,\n \u276f callTheUserObjectsOperation node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30\n \u276f innerInvokeEventListeners node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:350:25\n \u276f invokeEventListeners node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:286:3\n \u276f EventTargetImpl._dispatch node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:233:9\n \u276f EventTargetImpl.dispatchEvent node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:104:17\n \u276f dispatchEvent node_modules/.pnpm/jsdom@25.0.1/node_modules/jsdom/lib/jsdom/living/generated/EventTarget.js:241:34\n \u276f turnDevice packages/devices/test/index.test.ts:187:13\n\nThis error originated in \"packages/devices/test/index.test.ts\" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.\nThe latest test that might've caused the error is \"reads the gyroscope\". It might mean one of the following:\n- The error was thrown, while Vitest was running this test.\n- If the error occurred after the test had been completed, this was the last documented test before it was thrown.\n\n\u23af\u23af\u23af\u23af Unhandled Rejection \u23af\u23af\u23af\u23af\u23af\nTypeError: splitProps is not a function or its return value is not iterable\n \u276f Module.createScriptLoader packages/script-loader/src/index.ts:43:38\n     41|   const eventKeys: string[] = Object.keys(props).filter(p => p.startsW\u2026\n     42|   // TODO(solid-2): Review splitProps selected-prop usage; only rest-o\u2026\n     43| const [local, events, scriptProps] = splitProps(\n       |                                      ^\n     44|     props,\n     45|     OMITTED_PROPS,\n \u276f packages/script-loader/test/index.test.ts:110:24\n \u276f node_modules/.pnpm/@solidjs+signals@2.0.0-beta.15/node_modules/@solidjs/signals/dist/dev.js:1059:36\n \u276f runWithOwner node_modules/.pnpm/@solidjs+signals@2.0.0-beta.15/node_modules/@solidjs/signals/dist/dev.js:2244:12\n \u276f Module.createRoot node_modules/.pnpm/@solidjs+signals@2.0.0-beta.15/node_modules/@solidjs/signals/dist/dev.js:1059:10\n \u276f packages/script-loader/test/index.test.ts:108:7\n \u276f packages/script-loader/test/index.test.ts:107:11\n \u276f node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14\n \u276f node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11\n\nThis error originated in \"packages/script-loader/test/index.test.ts\" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.\nThe latest test that might've caused the error is \"will update the url from an accessor\". It might mean one of the following:\n- The error was thrown, while Vitest was running this test.\n- If the error occurred after the test had been completed, this was the last documented test before it was thrown.\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\n\n Test Files  81 failed | 30 passed | 2 skipped (113)\n      Tests  379 failed | 433 passed | 3 skipped | 3 todo (818)\n     Errors  19 errors\n   Start at  16:07:41\n   Duration  43.51s (transform 14.30s, setup 0ms, collect 25.25s, tests 92.49s, environment 21.48s, prepare 2.69s)\n\n\u2009ELIFECYCLE\u2009 Command failed with exit code 1.\n\u2009ELIFECYCLE\u2009 Test failed. See above for more details."
+        },
+        "build": {
+          "exit": 1,
+          "seconds": 7.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/build.log",
+          "tail": "packages/refs/src/index.ts(11,59): error TS2307: Cannot find module 'solid-js/types/reactive/signal.js' or its corresponding type declarations.\npackages/refs/src/index.ts(120,79): error TS2344: Type 'Element' does not satisfy the constraint 'object'.\n  Type 'undefined' is not assignable to type 'object'.\npackages/refs/src/index.ts(135,26): error TS2344: Type 'Element' does not satisfy the constraint 'object'.\n  Type 'undefined' is not assignable to type 'object'.\npackages/refs/src/index.ts(137,16): error TS2352: Conversion of type 'SourceAccessor<object | object[] | null>' to type 'ResolveChildrenReturn<Element>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Type 'SourceAccessor<object | object[] | null>' is not comparable to type '{ toArray: () => Element[]; }'.\npackages/refs/src/index.ts(138,37): error TS2345: Argument of type '(item: Element) => item is Element' is not assignable to parameter of type '(item: object | Element) => item is object'.\n  Type predicate 'item is Element' is not assignable to 'item is object'.\n    Type 'Element' is not assignable to type 'object'.\n      Type 'undefined' is not assignable to type 'object'.\npackages/refs/src/index.ts(139,30): error TS2344: Type 'Element' does not satisfy the constraint 'object'.\n  Type 'undefined' is not assignable to type 'object'.\npackages/refs/src/index.ts(210,53): error TS2345: Argument of type '(item: Element) => item is Element' is not assignable to parameter of type '(item: object | Element) => item is object'.\n  Type predicate 'item is Element' is not assignable to 'item is object'.\n    Type 'Element' is not assignable to type 'object'.\n      Type 'undefined' is not assignable to type 'object'.\npackages/script-loader/src/index.ts(48,55): error TS2554: Expected 2-3 arguments, but got 4.\npackages/script-loader/src/index.ts(52,7): error TS2345: Argument of type '([name, handler]: [string, JSX.EventHandlerUnion<HTMLScriptElement, Event>]) => void' is not assignable to parameter of type '(value: [string, unknown], index: number, array: [string, unknown][]) => void'.\n  Types of parameters '__0' and 'value' are incompatible.\n    Type '[string, unknown]' is not assignable to type '[string, EventHandlerUnion<HTMLScriptElement, Event, EventHandler<HTMLScriptElement, Event>>]'.\n      Type at position 1 in source is not compatible with type at position 1 in target.\n        Type 'unknown' is not assignable to type 'EventHandlerUnion<HTMLScriptElement, Event, EventHandler<HTMLScriptElement, Event>>'.\npackages/scroll/src/index.ts(84,29): error TS2769: No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '() => () => Position' is not assignable to parameter of type 'Position | ((prev: Position) => Position)'.\n      Type '() => () => Position' is not assignable to type '(prev: Position) => Position'.\n        Type '() => Position' is not assignable to type 'Position'.\npackages/scroll/src/index.ts(85,42): error TS2349: This expression is not callable.\n  Type 'Position' has no call signatures.\npackages/scroll/src/index.ts(89,38): error TS2345: Argument of type '() => Position' is not assignable to parameter of type '() => void | (() => void)'.\n  Type 'Position' is not assignable to type 'void | (() => void)'.\npackages/scroll/src/index.ts(93,3): error TS2739: Type '{}' is missing the following properties from type 'Readonly<Position>': x, y\npackages/spring/src/index.ts(87,44): error TS2769: No overload matches this call.\n  Overload 1 of 4, '(value: Exclude<T, Function>, options?: SignalOptions<T> | undefined): Signal<T>', gave the following error.\n    Argument of type 'T' is not assignable to parameter of type 'Exclude<T, Function>'.\n      Type 'SpringTarget' is not assignable to type 'Exclude<T, Function>'.\n        Type 'number' is not assignable to type 'Exclude<T, Function>'.\n  Overload 2 of 4, '(fn: ComputeFunction<unknown, unknown>, options?: HydrationSignalOptions<unknown> | undefined): Signal<unknown>', gave the following error.\n    Argument of type 'SpringTarget' is not assignable to parameter of type 'ComputeFunction<unknown, unknown>'.\n      Type 'number' is not assignable to type 'ComputeFunction<unknown, unknown>'.\npackages/sse/src/sse.ts(211,55): error TS2769: No overload matches this call.\n  Overload 1 of 4, '(value: Exclude<T, Function> | undefined, options?: SignalOptions<T | undefined> | undefined): Signal<T | undefined>', gave the following error.\n    Argument of type 'T | undefined' is not assignable to parameter of type 'Exclude<T, Function> | undefined'.\n      Type 'T' is not assignable to type 'Exclude<T, Function> | undefined'.\n  Overload 2 of 4, '(fn: ComputeFunction<NoInfer<T | undefined> | undefined, T | undefined>, options?: HydrationSignalOptions<T | undefined> | undefined): Signal<...>', gave the following error.\n    Argument of type 'T | undefined' is not assignable to parameter of type 'ComputeFunction<NoInfer<T | undefined> | undefined, T | undefined>'.\n      Type 'undefined' is not assignable to type 'ComputeFunction<NoInfer<T | undefined> | undefined, T | undefined>'.\npackages/state-machine/src/index.ts(172,29): error TS2769: No overload matches this call.\n  Overload 1 of 4, '(value: { type: any; }, options?: SignalOptions<{ type: any; }> | undefined): Signal<{ type: any; }>', gave the following error.\n    Object literal may only specify known properties, and 'value' does not exist in type '{ type: any; }'.\n  Overload 2 of 4, '(fn: ComputeFunction<{ type: any; } | undefined, { type: any; }>, options: HydrationClientSignalOptions<{ type: any; }>): Signal<{ ...; } | undefined>', gave the following error.\n    Object literal may only specify known properties, and 'type' does not exist in type 'ComputeFunction<{ type: any; } | undefined, { type: any; }>'.\n  Overload 3 of 4, '(fn: ComputeFunction<{ type: any; } | undefined, { type: any; }>, options?: HydrationSignalOptions<{ type: any; }> | undefined): Signal<{ type: any; }>', gave the following error.\n    Object literal may only specify known properties, and 'type' does not exist in type 'ComputeFunction<{ type: any; } | undefined, { type: any; }>'.\npackages/state-machine/src/index.ts(185,10): error TS2339: Property 'value' does not exist on type '{ type: any; }'.\npackages/state-machine/src/index.ts(185,32): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'MachineStates<T>'.\npackages/state-machine/src/index.ts(185,55): error TS2339: Property 'value' does not exist on type '{ type: any; }'.\npackages/storage/src/persisted.ts(5,15): error TS2305: Module '\"solid-js\"' has no exported member 'SetStoreFunction'.\npackages/storage/src/persisted.ts(148,32): error TS2554: Expected 2 arguments, but got 1.\npackages/storage/src/persisted.ts(189,35): error TS2345: Argument of type 'Readonly<any> | (() => any)' is not assignable to parameter of type 'T'.\n  'T' could be instantiated with an arbitrary type which could be unrelated to 'Readonly<any> | (() => any)'.\npackages/transition-group/src/index.ts(249,3): error TS2322: Type 'SourceAccessor<T[] | undefined>' is not assignable to type 'Accessor<T[]>'.\n  Type 'T[] | undefined' is not assignable to type 'T[]'.\n    Type 'undefined' is not assignable to type 'T[]'.\npackages/transition-group/src/index.ts(261,22): error TS18048: 'prev' is possibly 'undefined'.\npackages/transition-group/src/index.ts(280,29): error TS18048: 'prev' is possibly 'undefined'.\npackages/transition-group/src/index.ts(281,22): error TS18048: 'prev' is possibly 'undefined'.\npackages/upload/src/createDropzone.ts(1,24): error TS2305: Module '\"solid-js\"' has no exported member 'JSX'.\npackages/upload/src/createDropzone.ts(51,55): error TS7006: Parameter 'event' implicitly has an 'any' type.\npackages/upload/src/createDropzone.ts(55,53): error TS7006: Parameter 'event' implicitly has an 'any' type.\npackages/upload/src/createDropzone.ts(60,55): error TS7006: Parameter 'event' implicitly has an 'any' type.\npackages/upload/src/createDropzone.ts(63,55): error TS7006: Parameter 'event' implicitly has an 'any' type.\npackages/upload/src/createDropzone.ts(66,54): error TS7006: Parameter 'event' implicitly has an 'any' type.\npackages/upload/src/createDropzone.ts(70,50): error TS7006: Parameter 'event' implicitly has an 'any' type.\npackages/upload/src/createDropzone.ts(74,50): error TS7006: Parameter 'event' implicitly has an 'any' type.\npackages/upload/src/index.ts(1,10): error TS2305: Module '\"solid-js\"' has no exported member 'JSX'.\npackages/upload/src/index.ts(21,71): error TS7006: Parameter 'event' implicitly has an 'any' type.\n\u001b[31mtsc step failed.\u001b[0m\n\u2009ELIFECYCLE\u2009 Command failed with exit code 1."
+        },
+        "diff-check": {
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/diff-check.log",
+          "tail": ""
+        },
+        "diff-stat": {
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/diff-stat.log",
+          "tail": " packages/signal-builders/src/array.ts              |    1 +\n packages/signal-builders/src/convert.ts            |    1 +\n packages/signal-builders/src/number.ts             |    1 +\n packages/signal-builders/src/object.ts             |    1 +\n packages/signal-builders/src/string.ts             |    6 +-\n packages/signal-builders/src/update.ts             |    1 +\n packages/signal-builders/test/index.test.ts        |   12 +-\n packages/spring/package.json                       |    6 +-\n packages/spring/src/index.ts                       |   11 +-\n packages/spring/test/index.test.ts                 |   13 +-\n packages/sse/dev/index.tsx                         |    2 +-\n packages/sse/package.json                          |    6 +-\n packages/sse/src/sse.ts                            |   11 +-\n packages/sse/test/index.test.ts                    |   41 +-\n packages/sse/test/server.test.ts                   |    4 +-\n packages/sse/test/setup.ts                         |    5 +\n packages/sse/test/worker.test.ts                   |   14 +-\n packages/state-machine/dev/index.tsx               |    9 +-\n packages/state-machine/package.json                |    6 +-\n packages/state-machine/src/index.ts                |    1 +\n packages/state-machine/test/index.test.ts          |    1 +\n packages/state-machine/test/server.test.ts         |    1 +\n packages/static-store/package.json                 |    6 +-\n packages/static-store/src/index.ts                 |   37 +-\n packages/static-store/test/index.test.ts           |   17 +-\n packages/storage/package.json                      |    6 +-\n packages/storage/src/cookies.ts                    |    2 +-\n packages/storage/src/persisted.ts                  |   12 +-\n packages/storage/tauri-storage/package-lock.json   |    5 +-\n packages/storage/tauri-storage/package.json        |    7 +-\n packages/storage/tauri-storage/src/App.tsx         |    2 +-\n packages/storage/tauri-storage/src/index.tsx       |    2 +-\n packages/storage/tauri-storage/tsconfig.json       |    2 +-\n packages/storage/test/persisted.test.ts            |    7 +-\n packages/stream/demo/index.tsx                     |   23 +-\n packages/stream/dev/index.tsx                      |    7 +-\n packages/stream/package.json                       |    6 +-\n packages/stream/src/index.ts                       |   33 +-\n packages/stream/test/index.test.ts                 |   12 +-\n packages/styles/package.json                       |    6 +-\n packages/styles/src/index.ts                       |    2 +-\n packages/timer/dev/index.tsx                       |    9 +-\n packages/timer/package.json                        |    6 +-\n packages/timer/src/index.ts                        |   24 +-\n packages/timer/test/index.test.ts                  |   31 +-\n packages/transition-group/dev/list-page.tsx        |   26 +-\n packages/transition-group/dev/switch-page.tsx      |   33 +-\n packages/transition-group/package.json             |    6 +-\n packages/transition-group/src/index.ts             |   32 +-\n .../transition-group/test/list-transition.test.ts  |   20 +-\n .../test/switch-transition.test.ts                 |   20 +-\n packages/trigger/package.json                      |    6 +-\n packages/trigger/src/index.ts                      |   10 +-\n packages/trigger/test/index.test.ts                |   33 +-\n packages/tween/package.json                        |    6 +-\n packages/tween/src/index.ts                        |   12 +-\n packages/tween/test/index.test.ts                  |    8 +-\n packages/upload/package.json                       |    6 +-\n packages/upload/src/createDropzone.ts              |   10 +-\n packages/upload/src/createFileUploader.ts          |    5 +-\n packages/upload/src/index.ts                       |   10 +-\n packages/upload/test/index.test.tsx                |    1 +\n packages/utils/package.json                        |    6 +-\n packages/utils/src/index.ts                        |   29 +-\n packages/virtual/dev/index.tsx                     |    6 +-\n packages/virtual/package.json                      |    6 +-\n packages/virtual/src/index.tsx                     |   11 +-\n packages/virtual/test/index.test.tsx               |   12 +-\n packages/virtual/test/server.test.tsx              |    2 +-\n packages/websocket/dev/index.tsx                   |    6 +-\n packages/websocket/package.json                    |    6 +-\n packages/websocket/src/index.ts                    |    2 +-\n packages/websocket/test/index.test.ts              |   18 +-\n packages/websocket/test/setup.ts                   |    3 +\n packages/workers/dev/index.tsx                     |    4 +-\n packages/workers/package.json                      |    6 +-\n packages/workers/src/index.ts                      |   12 +-\n pnpm-lock.yaml                                     | 1022 +++++++++++++-------\n tsconfig.json                                      |    2 +-\n 396 files changed, 4056 insertions(+), 2275 deletions(-)"
+        }
       },
       "default_branch": "main",
-      "end_of_run_commit": "pending in committed report; final delivery contains actual hash",
+      "end_of_run_commit": "7f8b9c3",
       "findings": [
-        "Focused solid-primitives event-dispatcher, keyboard, refs, and websocket tests pass after the codemod changes.",
-        "External callback setters now receive ownedWrite signal options.",
-        "Test flush insertion now covers createEventDispatcher locals, dispatch-event import collisions, and close() statements."
+        "Broader solid-primitives `pnpm test` failed after codemod output: 81 failed files, 379 failed tests, and 19 errors in the full workspace test run.",
+        "Representative runtime failures are Solid 2 owned-write errors from event callbacks outside the focused package set (`page-visibility`, `connectivity`), an invalid cleanup return from `lifecycle/createIsMounted`, a store setter error in `devices`, and an unsafe `splitProps` selected-prop case in `script-loader`.",
+        "Broader `pnpm build` failed with many Solid 2 API/type migration gaps, including removed types (`MergeProps`, `SetStoreFunction`, `JSX` from solid-js), missing private internals (`solid-js/types/reactive/signal.js`, `$RAW`, `Dev.registerGraph`), and createSignal/createMemo overload changes.",
+        "git diff --check passed, so the current failures are semantic/type migration gaps rather than whitespace corruption.",
+        "No codemod implementation change was made in this bounded iteration; the next loop should target one minimal high-value fixture/fix such as page-visibility/connectivity ownedWrite wrapping or script-loader selected-prop `splitProps` review behavior."
       ],
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2027-solid-primitives.md",
-      "last_run_at": "2026-06-26T20:27:03Z",
-      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-202901-solid-primitives-rerun-52f404fb347c",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2107-solid-primitives.md",
+      "last_run_at": "2026-06-26T21:07:27Z",
+      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c",
       "manual_branch": "next",
       "mode": "manual-compare",
-      "next_action": "Rerun solid-primitives with broader workspace verification now that focused event-dispatcher/keyboard/refs/websocket tests pass.",
+      "next_action": "Triage one broad solid-primitives failure into a minimal fixture/fix; recommended next target is ownedWrite wrapping for makeEventListener-style callbacks or script-loader selected-prop splitProps review behavior.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "priority": 4,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-2027-solid-primitives.md",
       "stale_lock_cleared": false,
-      "status": "needs-broader-verification",
+      "status": "needs-codemod-fix",
       "verification": {
-        "diff_check": 0,
-        "focused_tests": 0,
-        "install": 0,
-        "package_check_types": 0,
-        "package_pnpm_test": 0
+        "codemod-run": {
+          "exit": 0,
+          "seconds": 5.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/codemod-run.log"
+        },
+        "install": {
+          "exit": 0,
+          "seconds": 6.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/install.log"
+        },
+        "test": {
+          "exit": 1,
+          "seconds": 46.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/test.log"
+        },
+        "build": {
+          "exit": 1,
+          "seconds": 7.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/build.log"
+        },
+        "diff-check": {
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260626-210727-solid-primitives-broader-52f404fb347c/diff-check.log"
+        }
       }
     },
     "solid-router": {
