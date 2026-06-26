@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-26T15:52:21Z",
-  "last_scheduler_run_at": "2026-06-26T15:52:21Z",
+  "last_run_at": "2026-06-26T16:38:00Z",
+  "last_scheduler_run_at": "2026-06-26T16:38:00Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -130,6 +130,12 @@
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-155012-solid-router.md",
       "status": "successful",
       "target": "solid-router"
+    },
+    {
+      "at": "2026-06-26T16:38:00Z",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1638-solid-primitives.md",
+      "status": "needs-codemod-fix",
+      "target": "solid-primitives"
     }
   ],
   "targets": {
@@ -295,11 +301,40 @@
       "default_branch": "main",
       "manual_branch": "next",
       "mode": "manual-compare",
-      "next_action": "run migration feedback loop",
+      "next_action": "rerun solid-primitives focused triage; inspect owned-write/runtime failures and compare manual next branch package-by-package",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "priority": 4,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
-      "status": "pending"
+      "status": "needs-codemod-fix",
+      "last_run_at": "2026-06-26T16:38:00Z",
+      "commands": {
+        "codemod": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target <temp> --no-interactive",
+        "install": "pnpm install --no-frozen-lockfile",
+        "verification": "pnpm run test",
+        "package_verification": "pnpm test && pnpm check-types"
+      },
+      "verification": {
+        "codemod_exit": 0,
+        "diff_check_exit": 0,
+        "install_exit": 0,
+        "verify_script": "test",
+        "verify_exit": 134,
+        "package_tests_and_typecheck_exit": 0
+      },
+      "findings": [
+        "Fixed multiline classList removal trailing whitespace found by solid-primitives git diff --check.",
+        "Fixed mergeProps -> merge local binding collision that caused combineProps runtime ReferenceError.",
+        "Remaining solid-primitives test run fails with broad Solid 2 semantic/runtime failures and eventual Node OOM; next run should triage a focused subset."
+      ],
+      "codemod_changes": [
+        "scripts/source/solid-transform.ts: remove whole whitespace-only JSX attribute lines when deleting classList.",
+        "scripts/source/solid-transform.ts: alias safe-renamed imports when replacement names collide with non-import bindings.",
+        "tests/source/classlist-multiline-remove",
+        "tests/source/mergeprops-local-collision"
+      ],
+      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-163404-solid-primitives",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1638-solid-primitives.md",
+      "end_of_run_commit": "eac2a3a"
     },
     "solid-router": {
       "branches_sample": [

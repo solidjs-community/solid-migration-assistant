@@ -89,6 +89,34 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     return { startPos: index, endPos: index, insertedText };
   };
 
+  const removeJsxAttribute = (node: SourceNode): Edit => {
+    const range = node.range();
+    const start = range.start.index;
+    const end = range.end.index;
+    const lineStart = source.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+    const nextNewline = source.indexOf("\n", end);
+    const lineEnd = nextNewline === -1 ? source.length : nextNewline;
+    const beforeOnLine = source.slice(lineStart, start);
+    const afterOnLine = source.slice(end, lineEnd);
+
+    if (/^\s*$/.test(beforeOnLine) && /^\s*$/.test(afterOnLine)) {
+      return {
+        startPos: lineStart,
+        endPos: nextNewline === -1 ? lineEnd : nextNewline + 1,
+        insertedText: "",
+      };
+    }
+
+    let startPos = start;
+    let endPos = end;
+    if (startPos > 0 && /[ 	]/.test(source[startPos - 1] ?? "")) {
+      startPos -= 1;
+    } else if (endPos < source.length && /[ 	]/.test(source[endPos] ?? "")) {
+      endPos += 1;
+    }
+    return { startPos, endPos, insertedText: "" };
+  };
+
   const specifierText = (specifier: SourceNode, importedName: string, aliasName: string | null, typeOnlyImport: boolean): string => {
     const inlineType = specifier.text().trim().startsWith("type ");
     const typePrefix = !typeOnlyImport && inlineType ? "type " : "";
@@ -641,6 +669,13 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     semanticReviewNames.delete(handledReviewName);
   }
 
+  const nonImportBindingNames = new Set<string>();
+  for (const identifier of rootNode.findAll({ rule: { kind: "identifier" } })) {
+    if (!isBindingIdentifier(identifier)) continue;
+    if (identifier.ancestors().some((ancestor) => ancestor.kind() === "import_statement")) continue;
+    nonImportBindingNames.add(identifier.text());
+  }
+
   const typeUsageRenames = new Map<string, string>();
   const emittedNamedImportBindings = new Set<string>();
   const reviewStubDeclarations: string[] = [];
@@ -787,13 +822,15 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
 
       const replacementName = safeImportRenames.get(importedName);
       if (replacementName && (originalModuleName === "solid-js" || originalModuleName === "solid-js/store")) {
-        addPrimarySpecifier(specifierText(specifier, replacementName, aliasName, typeOnlyImport), replacementName, aliasName, isTypeOnlySpecifier);
+        const replacementAliasName = aliasName ?? (nonImportBindingNames.has(replacementName) ? localName : null);
+        const replacementLocalName = replacementAliasName ?? replacementName;
+        addPrimarySpecifier(specifierText(specifier, replacementName, replacementAliasName, typeOnlyImport), replacementName, replacementAliasName, isTypeOnlySpecifier);
         changedNamedImport = true;
-        if (!aliasName) usageRenames.set(importedName, replacementName);
+        if (!aliasName && !replacementAliasName) usageRenames.set(importedName, replacementName);
         if (importedName === "Suspense" || importedName === "SuspenseList" || importedName === "ErrorBoundary" || importedName === "Index") {
           jsxComponentRenames.push({
             localName,
-            replacementName: aliasName ?? replacementName,
+            replacementName: replacementLocalName,
             addKeyedFalse: importedName === "Index",
             rewriteRevealProps: importedName === "SuspenseList",
             rewriteErrorFallback: importedName === "ErrorBoundary",
@@ -1116,7 +1153,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
 
       const nextClassAttribute = `class={${classNameCall(`[${jsxAttributeValue(classAttribute, "class")}, ${jsxAttributeValue(classListAttribute, "classList")}]`)}}`;
       addEdit(replaceNode(classAttribute, nextClassAttribute));
-      addEdit(replaceNode(classListAttribute, ""));
+      addEdit(removeJsxAttribute(classListAttribute));
       continue;
     }
 
