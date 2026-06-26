@@ -1,12 +1,10 @@
 # Solid codemod migration matrix
 
-Last updated: 2026-06-26T17:22:08Z
-
-| Priority | Repo | Mode | Status | Default | Manual | Next action |
-|---:|---|---|---|---|---|---|
-| 1 | test | synthetic | successful | master | None | run migration feedback loop for powerchat |
-| 2 | powerchat | direct-migrate | blocked-manual-dependency-remediation | origin/main | None | manual dependency remediation needed for @solidjs/start and Solid 1-era ecosystem packages; proceed to solid-router for codemod feedback unless these dependencies publish Solid 2-compatible releases. |
-| 3 | solid-router | manual-compare | successful | origin/main | next | Proceed to solid-primitives migration feedback loop. |
-| 4 | solid-primitives | manual-compare | needs-codemod-fix | main | next | triage remaining focused solid-primitives semantic scheduling failures after ownedWrite runtime errors were eliminated; compare manual next changes for event-dispatcher, refs, keyboard, and websocket beyond ownedWrite. |
-| 5 | kobalte | manual-compare | pending | origin/main | origin/solid2 | run migration feedback loop |
-| 100 | solid | manual-compare | pending | origin/main | next | run migration feedback loop |
+| Priority | Target | Mode | Status | Last run | Next action |
+|---:|---|---|---|---|---|
+| 1 | test | synthetic | successful | 2026-06-25T21:30:59-0500 | run migration feedback loop for powerchat |
+| 2 | powerchat | direct-migrate | blocked-manual-dependency-remediation | 2026-06-26T05:00:36Z | manual dependency remediation needed for @solidjs/start and Solid 1-era ecosystem packages; proceed to solid-router for codemod feedback unless these dependencies publish Solid 2-compatible releases. |
+| 3 | solid-router | manual-compare | successful | 2026-06-26T15:52:21Z | Proceed to solid-primitives migration feedback loop. |
+| 4 | solid-primitives | manual-compare | needs-codemod-fix | 2026-06-26T18:46:59Z | Triage remaining focused solid-primitives failures after dispatchEvent flush automation: createComputed stubs still do not rerun for keyboard/event-dispatcher, refs/websocket need additional flush/scheduling handling. |
+| 5 | kobalte | manual-compare | pending |  | run migration feedback loop |
+| 6 | solid | manual-compare | pending |  | run migration feedback loop |

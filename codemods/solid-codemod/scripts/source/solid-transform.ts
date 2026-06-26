@@ -33,6 +33,10 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
   const contextNames = new Set<string>();
   const contextDeclaratorIds = new Set<number>();
   const source = root.source();
+  const fileName = root.relativeFilename();
+  const isTestLikeFile =
+    /(?:^|[\/])(?:test|tests|__tests__)(?:[\/]|$)|(?:\.test|\.spec)\.[cm]?[jt]sx?$/.test(fileName) ||
+    /\bfrom\s+["']vitest["']/.test(source);
   let insertedSemanticReviewMarker = source.includes("TODO(solid-2): Review semantic migration sites");
   let classNameHelperName = "__solid2ClassName";
   for (let i = 2; new RegExp(`\b${classNameHelperName}\b`).test(source); i += 1) {
@@ -423,6 +427,23 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     return call.field("function") ?? call.children().find((child) => child.kind() === "identifier" || child.kind() === "member_expression") ?? null;
   };
 
+
+  const collectDispatchEventStatementsNeedingFlush = (): SourceNode[] => {
+    const statements = new Map<number, SourceNode>();
+    for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+      const callee = callFunction(call);
+      if (!callee || callee.kind() !== "member_expression") continue;
+      const { propertyNode } = memberExpressionParts(callee);
+      if (propertyNode?.text() !== "dispatchEvent") continue;
+      const statement = call.ancestors().find((ancestor) => ancestor.kind() === "expression_statement") ?? null;
+      if (!statement) continue;
+      const afterStatement = source.slice(statement.range().end.index, statement.range().end.index + 120);
+      if (/^\s*flush\s*\(/.test(afterStatement)) continue;
+      statements.set(statement.id(), statement);
+    }
+    return Array.from(statements.values());
+  };
+
   const callArguments = (call: SourceNode): SourceNode[] => {
     const args = call.field("arguments") ?? call.children().find((child) => child.kind() === "arguments") ?? null;
     if (!args) return [];
@@ -687,8 +708,20 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     nonImportBindingNames.add(identifier.text());
   }
 
+  const dispatchEventFlushStatements = isTestLikeFile && !nonImportBindingNames.has("flush") ? collectDispatchEventStatementsNeedingFlush() : [];
+  const needsFlushForDispatchEvents = dispatchEventFlushStatements.length > 0;
+  if (isTestLikeFile && dispatchEventFlushStatements.length === 0 && nonImportBindingNames.has("flush") && /\.dispatchEvent\s*\(/.test(source)) {
+    semanticReviewNames.add("test dispatch flush");
+  }
+  for (const statement of dispatchEventFlushStatements) {
+    const lineStart = source.lastIndexOf("\n", Math.max(0, statement.range().start.index - 1)) + 1;
+    const indentation = source.slice(lineStart, statement.range().start.index).match(/^\s*/)?.[0] ?? "";
+    addEdit({ startPos: statement.range().end.index, endPos: statement.range().end.index, insertedText: "\n" + indentation + "flush();" });
+  }
+
   const typeUsageRenames = new Map<string, string>();
   const emittedNamedImportBindings = new Set<string>();
+  let sawSolidJsImport = false;
   const reviewStubDeclarations: string[] = [];
   const emittedReviewStubs = new Set<string>();
   const addReviewStub = (localName: string, importedName: string, typeOnlySpecifier: boolean): void => {
@@ -853,6 +886,11 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       addPrimarySpecifier(specifierText(specifier, importedName, aliasName, typeOnlyImport), importedName, aliasName, isTypeOnlySpecifier);
     }
 
+    if (needsFlushForDispatchEvents && originalModuleName === "solid-js" && !typeOnlyImport) {
+      addPrimarySpecifier("flush", "flush", null, false);
+      changedNamedImport = true;
+    }
+
     if (!changedNamedImport && replacementModuleName === originalModuleName) continue;
 
     const importLines: string[] = [];
@@ -874,6 +912,13 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
 
     const replacement = importLines.join("\n");
     addEdit(replaceNode(importStatement, replacement));
+  }
+
+  if (needsFlushForDispatchEvents && !sawSolidJsImport) {
+    const firstImport = importStatements[0];
+    const insertion = "import { flush } from \"solid-js\";\n";
+    if (firstImport) addEdit({ startPos: firstImport.range().start.index, endPos: firstImport.range().start.index, insertedText: insertion });
+    else addEdit({ startPos: 0, endPos: 0, insertedText: insertion });
   }
 
   if (reviewStubDeclarations.length > 0) {
