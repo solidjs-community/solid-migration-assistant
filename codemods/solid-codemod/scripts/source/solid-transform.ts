@@ -567,6 +567,8 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
   const namespaceImports = new Map<string, string>();
   const createContextLocalNames = new Set<string>();
   const createMemoLocalNames = new Set<string>();
+  const createSignalLocalNames = new Set<string>();
+  const ownedScopeLocalNames = new Set<string>();
   const sharedConfigLocalNames = new Set<string>();
   const onMountLocalNames = new Set<string>();
   const onCleanupLocalNames = new Set<string>();
@@ -575,7 +577,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const sourceNode = importStatement.field("source");
     if (!sourceNode) continue;
     const originalModuleName = moduleNameFromString(sourceNode);
-    if (originalModuleName !== "solid-js" && originalModuleName !== "solid-js/store" && originalModuleName !== "solid-js/web" && originalModuleName !== "@solidjs/web") continue;
+    if (originalModuleName !== "solid-js" && originalModuleName !== "solid-js/store" && originalModuleName !== "solid-js/web" && originalModuleName !== "@solidjs/web" && originalModuleName !== "@solid-primitives/rootless") continue;
     const statementText = importStatement.text().trimStart();
     const typeOnlyImport = statementText.startsWith("import type");
     const namespaceImport = importStatement.find({ rule: { kind: "namespace_import" } });
@@ -596,8 +598,17 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       if (originalModuleName === "solid-js" && importedName === "createContext") {
         createContextLocalNames.add(specifier.field("alias")?.text() ?? importedName);
       }
+      if (originalModuleName === "solid-js" && importedName === "createSignal") {
+        createSignalLocalNames.add(specifier.field("alias")?.text() ?? importedName);
+      }
       if (originalModuleName === "solid-js" && importedName === "createMemo") {
         createMemoLocalNames.add(specifier.field("alias")?.text() ?? importedName);
+      }
+      if (
+        ((originalModuleName === "solid-js" && importedName && ["createRoot", "createEffect", "createRenderEffect", "createComputed", "createMemo", "onMount"].includes(importedName)) ||
+          (originalModuleName === "@solid-primitives/rootless" && importedName === "createSingletonRoot"))
+      ) {
+        ownedScopeLocalNames.add(specifier.field("alias")?.text() ?? importedName);
       }
       if (originalModuleName === "solid-js" && importedName === "sharedConfig") {
         sharedConfigLocalNames.add(specifier.field("alias")?.text() ?? importedName);
@@ -940,6 +951,80 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       addEdit(replaceNode(objectNode, `(${objectNode.text()} as any)`));
       semanticReviewNames.add("sharedConfig.context");
     }
+  }
+
+  const isCreateSignalCall = (call: SourceNode): boolean => {
+    const callee = callFunction(call);
+    if (callee?.kind() === "identifier") {
+      return createSignalLocalNames.has(callee.text()) && !isLocallyShadowed(callee, callee.text());
+    }
+    if (callee?.kind() === "member_expression") {
+      const { objectNode, propertyNode } = memberExpressionParts(callee);
+      return propertyNode?.text() === "createSignal" && namespaceModule(objectNode, namespaceImports) === "solid-js";
+    }
+    return false;
+  };
+
+  const isKnownOwnedScopeCallback = (node: SourceNode): boolean => {
+    if (!isFunctionLike(node)) return false;
+    const args = node.parent();
+    const call = args?.parent();
+    if (!args || args.kind() !== "arguments" || !call || call.kind() !== "call_expression") return false;
+    if (!args.children().filter((child) => child.isNamed()).some((child) => child.id() === node.id())) return false;
+    const callee = callFunction(call);
+    if (callee?.kind() === "identifier") {
+      return ownedScopeLocalNames.has(callee.text()) && !isLocallyShadowed(callee, callee.text());
+    }
+    if (callee?.kind() === "member_expression") {
+      const { objectNode, propertyNode } = memberExpressionParts(callee);
+      return Boolean(propertyNode?.text() && ["createRoot", "createEffect", "createRenderEffect", "createComputed", "createMemo", "onMount"].includes(propertyNode.text()) && namespaceModule(objectNode, namespaceImports) === "solid-js");
+    }
+    return false;
+  };
+
+  const hasSetterCallInScope = (scope: SourceNode, setterName: string, afterIndex: number): boolean => {
+    for (const setterCall of scope.findAll({ rule: { kind: "call_expression" } })) {
+      if (setterCall.range().start.index <= afterIndex) continue;
+      const setterCallee = callFunction(setterCall);
+      if (!setterCallee || setterCallee.kind() !== "identifier" || setterCallee.text() !== setterName) continue;
+      if (isBindingIdentifier(setterCallee)) continue;
+      const shadowingFunction = setterCallee.ancestors().find((ancestor) => ancestor.id() !== scope.id() && isFunctionLike(ancestor) && functionParametersShadowName(ancestor, setterName));
+      if (shadowingFunction) continue;
+      return true;
+    }
+    return false;
+  };
+
+  const insertOwnedWriteOption = (call: SourceNode): boolean => {
+    const argsNode = call.field("arguments") ?? call.children().find((child) => child.kind() === "arguments") ?? null;
+    if (!argsNode) return false;
+    const args = callArguments(call);
+    if (args.some((arg) => /ownedWrite/.test(arg.text()))) return true;
+    if (args.length < 2) {
+      addEdit({ startPos: argsNode.range().end.index - 1, endPos: argsNode.range().end.index - 1, insertedText: ", { ownedWrite: true }" });
+      return true;
+    }
+    const options = args[1];
+    if (options?.kind() !== "object") return false;
+    const optionText = options.text();
+    let insertPos = options.range().end.index - 1;
+    while (insertPos > options.range().start.index && /\s/.test(source[insertPos - 1] ?? "")) insertPos -= 1;
+    const insertion = optionText.trim() === "{}" ? " ownedWrite: true " : (optionText.trim().endsWith(",") ? " ownedWrite: true" : ", ownedWrite: true");
+    addEdit({ startPos: insertPos, endPos: insertPos, insertedText: insertion });
+    return true;
+  };
+
+  for (const declarator of rootNode.findAll({ rule: { kind: "variable_declarator" } })) {
+    const name = declarator.field("name");
+    const value = declarator.field("value");
+    if (!name || name.kind() !== "array_pattern" || !value || value.kind() !== "call_expression" || !isCreateSignalCall(value)) continue;
+    const bindings = name.children().filter((child) => child.kind() === "identifier");
+    const setterName = bindings[1]?.text();
+    if (!setterName) continue;
+    const ownedScope = declarator.ancestors().find((ancestor) => isKnownOwnedScopeCallback(ancestor));
+    if (!ownedScope) continue;
+    if (!hasSetterCallInScope(ownedScope, setterName, declarator.range().end.index)) continue;
+    if (!insertOwnedWriteOption(value)) semanticReviewNames.add("ownedWrite signal options");
   }
 
   const createContextDeclarators = rootNode.findAll({

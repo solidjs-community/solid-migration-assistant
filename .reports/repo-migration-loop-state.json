@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-26T16:38:00Z",
-  "last_scheduler_run_at": "2026-06-26T16:38:00Z",
+  "last_run_at": "2026-06-26T17:22:08Z",
+  "last_scheduler_run_at": "2026-06-26T17:22:08Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -136,6 +136,12 @@
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1638-solid-primitives.md",
       "status": "needs-codemod-fix",
       "target": "solid-primitives"
+    },
+    {
+      "at": "2026-06-26T17:22:08Z",
+      "target": "solid-primitives",
+      "status": "needs-codemod-fix",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1720-solid-primitives.md"
     }
   ],
   "targets": {
@@ -301,40 +307,37 @@
       "default_branch": "main",
       "manual_branch": "next",
       "mode": "manual-compare",
-      "next_action": "rerun solid-primitives focused triage; inspect owned-write/runtime failures and compare manual next branch package-by-package",
+      "next_action": "triage remaining focused solid-primitives semantic scheduling failures after ownedWrite runtime errors were eliminated; compare manual next changes for event-dispatcher, refs, keyboard, and websocket beyond ownedWrite.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "priority": 4,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "status": "needs-codemod-fix",
-      "last_run_at": "2026-06-26T16:38:00Z",
+      "last_run_at": "2026-06-26T17:22:08Z",
       "commands": {
-        "codemod": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target <temp> --no-interactive",
+        "codemod": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target /tmp/solid-codemod-runs/20260626-172012-solid-primitives-52f404fb347c/codemod --no-interactive",
         "install": "pnpm install --no-frozen-lockfile",
-        "verification": "pnpm run test",
+        "verification": "pnpm exec vitest run -c ./configs/vitest.config.ts packages/event-dispatcher/test/index.test.ts packages/refs/test/index.test.ts packages/keyboard/test/index.test.ts packages/websocket/test/index.test.ts",
         "package_verification": "pnpm test && pnpm check-types"
       },
       "verification": {
         "codemod_exit": 0,
         "diff_check_exit": 0,
         "install_exit": 0,
-        "verify_script": "test",
-        "verify_exit": 134,
+        "focused_ownedwrite_exit": 1,
         "package_tests_and_typecheck_exit": 0
       },
       "findings": [
-        "Fixed multiline classList removal trailing whitespace found by solid-primitives git diff --check.",
-        "Fixed mergeProps -> merge local binding collision that caused combineProps runtime ReferenceError.",
-        "Remaining solid-primitives test run fails with broad Solid 2 semantic/runtime failures and eventual Node OOM; next run should triage a focused subset."
+        "Added AST-backed ownedWrite option insertion for createSignal declarations inside known owned-scope callbacks when their setters are called in that scope.",
+        "Covered Solid createRoot/createEffect/createRenderEffect/createComputed/createMemo/onMount callbacks and @solid-primitives/rootless createSingletonRoot callbacks.",
+        "Focused solid-primitives run no longer reports REACTIVE_WRITE_IN_OWNED_SCOPE errors for the selected ownedWrite cases; remaining failures are semantic scheduling/value propagation assertions in event-dispatcher, refs, keyboard, and websocket."
       ],
       "codemod_changes": [
-        "scripts/source/solid-transform.ts: remove whole whitespace-only JSX attribute lines when deleting classList.",
-        "scripts/source/solid-transform.ts: alias safe-renamed imports when replacement names collide with non-import bindings.",
-        "tests/source/classlist-multiline-remove",
-        "tests/source/mergeprops-local-collision"
+        "scripts/source/solid-transform.ts: detect createSignal calls in owned-scope callbacks and add ownedWrite options.",
+        "tests/source/owned-write-signal-scope: new fixture covering createRoot and createSingletonRoot owned-write signals."
       ],
-      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-163404-solid-primitives",
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1638-solid-primitives.md",
-      "end_of_run_commit": "eac2a3a"
+      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-172012-solid-primitives-52f404fb347c",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260626-1720-solid-primitives.md",
+      "end_of_run_commit": "pending until end-of-run commit is created"
     },
     "solid-router": {
       "branches_sample": [
