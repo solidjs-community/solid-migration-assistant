@@ -392,7 +392,7 @@
       "target": "kobalte",
       "status": "needs-codemod-fix",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-2216-kobalte.md",
-      "commit": "pending"
+      "commit": "da1a4d09d591d8aa3ada809a4622fdd296866ed9"
     }
   ],
   "targets": {
@@ -442,7 +442,7 @@
           "rc": 0
         }
       },
-      "commit": "pending",
+      "commit": "da1a4d09d591d8aa3ada809a4622fdd296866ed9",
       "default_branch": "origin/main",
       "end_of_run_commit": "640981c49f443faf7338084df87125333ea9c44a",
       "findings": [
