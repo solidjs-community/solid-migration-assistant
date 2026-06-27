@@ -244,8 +244,10 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
     const callablePrevious = "(fn: (previous?: any) => any, value?: any, options?: any) => any";
     const callablePreviousRuntime = "((fn: (previous?: any) => any, value?: any) => fn(value)) as any";
     const createEffectImportName = localName === "createEffect" ? "__solid2CreateEffect" : `__solid2CreateEffect_${localName}`;
+    const createEffectIsServerName = localName === "createEffect" ? "__solid2IsServer" : `__solid2IsServer_${localName}`;
     const createEffectRuntime = `import { createEffect as ${createEffectImportName} } from "solid-js";
-const ${localName}: ${callablePrevious} = ((fn: (previous?: any) => any, value?: any, options?: any) => { let previous = value; return ${createEffectImportName}(() => fn(previous), (next: any) => { previous = next; }, options); }) as any;`;
+import { isServer as ${createEffectIsServerName} } from "@solidjs/web";
+const ${localName}: ${callablePrevious} = ((fn: (previous?: any) => any, value?: any, options?: any) => { if (${createEffectIsServerName}) return undefined as any; let previous = value; return ${createEffectImportName}(() => fn(previous), (next: any) => { previous = next; }, options); }) as any;`;
     const createResourceEffectName = localName === "createResource" ? "__solid2CreateResourceEffect" : `__solid2CreateResourceEffect_${localName}`;
     const createResourceSignalName = localName === "createResource" ? "__solid2CreateResourceSignal" : `__solid2CreateResourceSignal_${localName}`;
     const createResourceRuntime = `import { createEffect as ${createResourceEffectName}, createSignal as ${createResourceSignalName} } from "solid-js";
@@ -1344,6 +1346,15 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
     }
 
     if (componentRename.replacementName !== localName) addEdit(replaceNode(name, componentRename.replacementName));
+  }
+
+  for (const member of rootNode.findAll({ rule: { kind: "member_expression" } })) {
+    if (member.parent()?.kind().startsWith("jsx_")) continue;
+    const { objectNode, propertyNode } = memberExpressionParts(member);
+    const contextName = objectNode?.kind() === "identifier" ? objectNode.text() : null;
+    if (!contextName || propertyNode?.text() !== "Provider") continue;
+    if (!contextNames.has(contextName) || isContextNameShadowed(objectNode as SourceNode, contextName)) continue;
+    addEdit(replaceNode(member, contextName));
   }
 
   const jsxOpenTags = rootNode.findAll({

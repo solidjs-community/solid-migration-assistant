@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T05:11:25Z",
-  "last_scheduler_run_at": "2026-06-27T05:11:25Z",
+  "last_run_at": "2026-06-27T06:15:00Z",
+  "last_scheduler_run_at": "2026-06-27T06:15:00Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -225,6 +225,16 @@
       "status": "needs-codemod-fix",
       "summary": "Fixed createMemo initial-value rewrite for nested-arrow callbacks; package tests pass; pagination previous-value SSR failures fixed.",
       "target": "solid-primitives"
+    },
+    {
+      "at": "2026-06-27T06:15:00Z",
+      "commit": "final delivery records the amended commit hash",
+      "mode": "manual-compare",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0615-solid-primitives.md",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-0615-solid-primitives-52f404fb347c",
+      "status": "needs-codemod-fix",
+      "summary": "Fixed presence SSR createEffect server guard and context Provider member expression; focused SSR now only fails createInfiniteScroll timeout.",
+      "target": "solid-primitives"
     }
   ],
   "targets": {
@@ -397,8 +407,9 @@
         "upstream/solidbase-implementation"
       ],
       "codemod_changes": [
-        "direct-migrations.ts createMemo parameter detection",
-        "create-memo-array-initial fixture"
+        "solid-transform.ts createEffect stub now imports isServer and no-ops on SSR.",
+        "solid-transform.ts rewrites same-file createContext member expressions like Ctx.Provider outside JSX tag names.",
+        "Added create-effect-server-guard and context-provider-member-expression source fixtures; updated createEffect expected fixtures."
       ],
       "commands": [
         {
@@ -427,19 +438,20 @@
         }
       ],
       "default_branch": "main",
-      "end_of_run_commit": "pending at report write time; final delivery records commit hash",
+      "end_of_run_commit": "final delivery records the amended commit hash",
       "findings": [
-        "Nested arrow formal_parameters caused createMemo initial-value rewrite to skip outer single-identifier callbacks.",
-        "Direct parameter lookup fixed pagination previous-value SSR failures."
+        "Generated createEffect compatibility stubs ran on the server and triggered document access in presence SSR tests; adding an isServer guard fixed presence server failures.",
+        "Same-file Solid createContext providers used as value-position member expressions were not rewritten; replacing Ctx.Provider with Ctx fixed the context MultiProvider SSR failure.",
+        "Remaining focused SSR failure is createInfiniteScroll timeout; manual next replaces the createResource/createComputed cluster with explicit client-only fetch/createEffect flow, which is semantic and should remain next triage."
       ],
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0423-solid-primitives.md",
-      "last_run_at": "2026-06-27T05:11:25Z",
-      "last_run_dir": "/tmp/solid-codemod-runs/20260627-042339-solid-primitives-broad-52f404fb347c",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0615-solid-primitives.md",
+      "last_run_at": "2026-06-27T06:15:00Z",
+      "last_run_dir": "/tmp/solid-codemod-runs/20260627-0615-solid-primitives-52f404fb347c",
       "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-025446-solid-primitives-reactive-resource-52f404fb347c",
       "latest_run_dir": "/tmp/solid-codemod-runs/20260627-025446-solid-primitives-reactive-resource-52f404fb347c",
       "manual_branch": "next",
       "mode": "manual-compare",
-      "next_action": "Continue solid-primitives triage for createInfiniteScroll/createEffect server behavior, presence document server guard or TODO marker, and context Provider undefined behavior.",
+      "next_action": "continue solid-primitives pagination triage; createInfiniteScroll timeout likely needs conservative manual or TODO treatment for the createResource/createComputed cluster.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "priority": 4,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
@@ -447,14 +459,41 @@
       "stale_lock": "no",
       "stale_lock_cleared": "no",
       "status": "needs-codemod-fix",
-      "verification": {
-        "codemod_package_check_types": "passed",
-        "codemod_package_test": "passed",
-        "target_codemod_run": "passed",
-        "target_diff_check": "passed",
-        "target_install": "passed",
-        "target_ssr": "failed remaining SSR tests after createPagination fix"
-      }
+      "verification": [
+        {
+          "cmd": "codemod search solid",
+          "exit_code": 0,
+          "name": "codemod registry search",
+          "summary": "No packages found."
+        },
+        {
+          "cmd": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target temp worktree --no-interactive",
+          "exit_code": 0,
+          "name": "codemod workflow"
+        },
+        {
+          "cmd": "pnpm install --no-frozen-lockfile",
+          "exit_code": 0,
+          "name": "target install",
+          "summary": "Installed 87 workspace projects; peer warnings remain."
+        },
+        {
+          "exit_code": 0,
+          "name": "git diff --check"
+        },
+        {
+          "cmd": "pnpm exec vitest -c configs/vitest.config.ts --mode ssr presence pagination context server tests",
+          "exit_code": 1,
+          "name": "focused SSR known failures",
+          "summary": "presence and context SSR tests now pass; createInfiniteScroll server test still times out."
+        },
+        {
+          "cmd": "pnpm test && pnpm check-types",
+          "exit_code": 0,
+          "name": "codemod package",
+          "summary": "93 source fixtures and 12 JSON fixtures passed; tsc passed."
+        }
+      ]
     },
     "solid-router": {
       "branches_sample": [
