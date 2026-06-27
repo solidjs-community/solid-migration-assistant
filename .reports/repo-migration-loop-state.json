@@ -450,9 +450,9 @@
           "rc": 0
         }
       ],
-      "commit": "f24084b996a405bd0dde03f087e089f5c02b9262",
+      "commit": "640981c49f443faf7338084df87125333ea9c44a",
       "default_branch": "origin/main",
-      "end_of_run_commit": "f24084b996a405bd0dde03f087e089f5c02b9262",
+      "end_of_run_commit": "640981c49f443faf7338084df87125333ea9c44a",
       "findings": [
         "Previous splitProps any compatibility stub caused Kobalte selected props to become any, producing implicit-any callbacks and an unused ts-expect-error.",
         "Changed splitProps review stub to overloads that preserve selected prop groups and rest types for up to five key groups; package fixtures/typecheck pass.",
