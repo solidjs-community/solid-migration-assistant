@@ -272,6 +272,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteSetStringIteratorValueNarrowing(rootNode, addEdit, replaceNode);
   rewriteTestingLibraryRenderQueryDestructuring(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteHotkeyEveryStringCallbacks(rootNode, addEdit, replaceNode);
+  rewriteSolidFocusEventHandlerUnions(rootNode, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
       if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
@@ -1278,6 +1279,18 @@ function rewriteSetStringIteratorValueNarrowing(
   }
 }
 
+
+function rewriteSolidFocusEventHandlerUnions(
+  rootNode: SourceNode,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+): void {
+  for (const genericType of rootNode.findAll({ rule: { kind: "generic_type" } })) {
+    const qualifiedName = genericType.children().find((child) => child.kind() === "nested_type_identifier");
+    if (!qualifiedName || qualifiedName.text() !== "JSX.FocusEventHandlerUnion") continue;
+    addEdit(replaceNode(qualifiedName, "JSX.EventHandlerUnion"));
+  }
+}
 
 function rewriteHotkeyEveryStringCallbacks(
   rootNode: SourceNode,

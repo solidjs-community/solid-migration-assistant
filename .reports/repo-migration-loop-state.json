@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T21:31:10Z",
-  "last_scheduler_run_at": "2026-06-27T21:31:10Z",
+  "last_run_at": "2026-06-27T22:16:05Z",
+  "last_scheduler_run_at": "2026-06-27T22:16:05Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -386,6 +386,13 @@
       "status": "needs-codemod-fix",
       "target": "kobalte",
       "commit": "d696cbafcc3ab5956843446ea3d68c218d31724d"
+    },
+    {
+      "at": "2026-06-27T22:16:05Z",
+      "target": "kobalte",
+      "status": "needs-codemod-fix",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-2216-kobalte.md",
+      "commit": "pending"
     }
   ],
   "targets": {
@@ -410,69 +417,47 @@
       ],
       "codemod_changes": [
         "codemods/solid-codemod/scripts/source/direct-migrations.ts",
-        "codemods/solid-codemod/tests/source/hotkey-every-string-callback/input.tsx",
-        "codemods/solid-codemod/tests/source/hotkey-every-string-callback/expected.tsx"
+        "codemods/solid-codemod/tests/source/focus-event-handler-union-types/input.tsx",
+        "codemods/solid-codemod/tests/source/focus-event-handler-union-types/expected.tsx"
       ],
-      "commands": [
-        {
-          "cmd": "codemod search solid 2 / npx codemod search solid 2",
-          "note": "no packages found",
+      "commands": {
+        "package_verify": {
+          "cmd": "cd codemods/solid-codemod && pnpm test && pnpm check-types",
           "rc": 0
         },
-        {
-          "cmd": "git worktree add --detach <run>/codemod origin/main && git worktree add --detach <run>/manual origin/v2/basic-migration",
+        "apply": {
+          "cmd": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target <temp>/codemod --no-interactive",
           "rc": 0
         },
-        {
-          "cmd": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target <run>/codemod --no-interactive",
-          "rc": 0
-        },
-        {
+        "install": {
           "cmd": "pnpm install --no-frozen-lockfile",
           "rc": 0
         },
-        {
+        "verify": {
           "cmd": "pnpm --filter @kobalte/utils build && pnpm --filter @kobalte/tests build && pnpm --filter @kobalte/core typecheck",
-          "note": "initial 10 diagnostics",
           "rc": 2
         },
-        {
-          "cmd": "pnpm test && pnpm check-types",
-          "cwd": "codemods/solid-codemod",
-          "rc": 0
-        },
-        {
-          "cmd": "git reset --hard && git clean -fd packages/core/src packages/tests/src packages/utils/src; rerun codemod",
-          "note": "temp worktree only",
-          "rc": 0
-        },
-        {
-          "cmd": "pnpm --filter @kobalte/utils build && pnpm --filter @kobalte/tests build && pnpm --filter @kobalte/core typecheck",
-          "note": "post-splitProps-overload rerun",
-          "rc": 2
-        },
-        {
+        "diffcheck": {
           "cmd": "git diff --check && git diff --stat",
           "rc": 0
         }
-      ],
-      "commit": "d696cbafcc3ab5956843446ea3d68c218d31724d",
+      },
+      "commit": "pending",
       "default_branch": "origin/main",
       "end_of_run_commit": "640981c49f443faf7338084df87125333ea9c44a",
       "findings": [
-        "Added narrow hotkey.every callback parameter annotation.",
-        "Fresh Kobalte target verification no longer reports toast-list key implicit-any.",
-        "Kobalte still fails on strict Solid 2 JSX ref, event handler, RemoveAttribute, portal children, and style false diagnostics."
+        "Rewriting JSX.FocusEventHandlerUnion to JSX.EventHandlerUnion removed the previous checkbox/color-field focus-handler diagnostics from Kobalte typecheck output.",
+        "Remaining Kobalte failures are ChangeEventHandlerUnion/local handler forwarding, RemoveAttribute false unions, Ref<T> mergeRefs incompatibility, Polymorphic HTMLElement handler widening, NavigationMenuPortal children/ref shape, and style false incompatibility."
       ],
       "last_commit": "4fa33af15dd761cfb99051f91995b4ae8db9e1f6",
       "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-2044-kobalte.md",
-      "last_run_at": "2026-06-27T21:31:10Z",
+      "last_run_at": "2026-06-27T22:16:05Z",
       "last_run_dir": "/tmp/solid-codemod-runs/20260627-195411-kobalte-render-query-52f404fb347c",
-      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-203112-kobalte-52f404fb347c",
+      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-221429-kobalte-focus-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
       "manual_sha": "901386b8727dbc2ec098084f7fb633e6c8b8be74",
       "mode": "manual-compare",
-      "next_action": "Continue Kobalte triage on strict Solid 2 JSX ref/event-handler/RemoveAttribute diagnostics, likely starting with repeated hidden input ref/event handler patterns.",
+      "next_action": "Continue Kobalte triage on ChangeEventHandlerUnion/local handler forwarding, RemoveAttribute false unions in form/aria props, Ref<T> undefined/array mergeRefs incompatibility, Polymorphic HTMLElement handler widening, NavigationMenuPortal children/ref shape, and style false incompatibility.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
@@ -481,15 +466,10 @@
       "stale_lock": "none",
       "status": "needs-codemod-fix",
       "verification": {
-        "codemod_search_rc": 0,
-        "package_test_rc": 0,
-        "package_check_types_rc": 0,
-        "apply_rc": 0,
-        "install_rc": 0,
-        "target_verify_rc": 2,
-        "diff_check_rc": 0,
-        "toast_hotkey_key_diagnostic_present": false
-      }
+        "target_verify_tail": "src/color-area/color-area-hidden-input-base.tsx(96,4): error TS2322: Type '{ name: string | false; form?: string | RemoveAttribute; slot?: string | RemoveAttribute; title?: string | RemoveAttribute; ... 297 more ...; onChange: ChangeEventHandler<...>; }' is not assignable to type 'InputHTMLAttributes<HTMLInputElement> & Properties<HTMLInputElement>'.\n  Type '{ name: string | false; form?: string | RemoveAttribute; slot?: string | RemoveAttribute; title?: string | RemoveAttribute; ... 297 more ...; onChange: ChangeEventHandler<...>; }' is not assignable to type 'InputHTMLAttributes<HTMLInputElement>'.\n    Types of property '\"aria-disabled\"' are incompatible.\n      Type 'boolean | \"true\" | \"false\" | undefined' is not assignable to type 'RemoveAttribute | EnumeratedPseudoBoolean'.\n        Type 'true' is not assignable to type 'RemoveAttribute | EnumeratedPseudoBoolean'.\nsrc/color-wheel/color-wheel-input.tsx(50,48): error TS2345: Argument of type 'Pick<OverrideProps<ColorWheelInputProps, { id: string; }>, \"id\" | \"aria-label\" | \"aria-labelledby\" | \"aria-describedby\">' is not assignable to parameter of type 'CreateFormControlFieldProps'.\n  Types of property '\"aria-label\"' are incompatible.\n    Type 'string | RemoveAttribute' is not assignable to type 'MaybeAccessor<string | undefined>'.\n      Type 'false' is not assignable to type 'MaybeAccessor<string | undefined>'.\nsrc/color-wheel/color-wheel-input.tsx(55,18): error TS2345: Argument of type 'ChangeEventHandlerUnion<HTMLInputElement, Event> | undefined' is not assignable to parameter of type 'EventHandlerUnion<HTMLInputElement, Event, EventHandler<HTMLInputElement, Event>> | undefined'.\n  Type 'ChangeEventHandler<HTMLInputElement, Event>' is not assignable to type 'EventHandlerUnion<HTMLInputElement, Event, EventHandler<HTMLInputElement, Event>> | undefined'.\n    Type 'ChangeEventHandler<HTMLInputElement, Event>' is not assignable to type 'EventHandler<HTMLInputElement, Event>'.\n      Types of parameters 'e' and 'e' are incompatible.\n        Type 'Event & { currentTarget: HTMLInputElement; target: Element; }' is not assignable to type 'Event & { currentTarget: HTMLInputElement; target: HTMLInputElement; }'.\n          Type 'Event & { currentTarget: HTMLInputElement; target: Element; }' is not assignable to type '{ currentTarget: HTMLInputElement; target: HTMLInputElement; }'.\n            Types of property 'target' are incompatible.\n              Type 'EventTarget & Element' is missing the following properties from type 'HTMLInputElement': accept, align, alt, autocomplete, and 190 more.\nsrc/color-wheel/color-wheel-input.tsx(70,4): error TS2322: Type '{ name: string | false; form?: string | RemoveAttribute; slot?: string | RemoveAttribute; title?: string | RemoveAttribute; ... 298 more ...; onChange: ChangeEventHandler<...>; }' is not assignable to type 'InputHTMLAttributes<HTMLInputElement> & Properties<HTMLInputElement>'.\n  Type '{ name: string | false; form?: string | RemoveAttribute; slot?: string | RemoveAttribute; title?: string | RemoveAttribute; ... 298 more ...; onChange: ChangeEventHandler<...>; }' is not assignable to type 'InputHTMLAttributes<HTMLInputElement>'.\n    Types of property '\"aria-disabled\"' are incompatible.\n      Type 'boolean | \"true\" | \"false\" | undefined' is not assignable to type 'RemoveAttribute | EnumeratedPseudoBoolean'.\n        Type 'true' is not assignable to type 'RemoveAttribute | EnumeratedPseudoBoolean'.\nsrc/file-field/file-field-hidden-input.tsx(49,44): error TS2345: Argument of type 'Ref<HTMLInputElement> | undefined' is not assignable to parameter of type 'Ref<HTMLInputElement>'.\n  Type 'Ref<HTMLInputElement>[]' is not assignable to type 'Ref<HTMLInputElement>'.\nsrc/navigation-menu/navigation-menu-portal.tsx(28,44): error TS2322: Type '\"ref\"' is not assignable to type 'keyof NavigationMenuPortalProps'.\nsrc/navigation-menu/navigation-menu-portal.tsx(32,5): error TS2322: Type '{ ref: (el: any) => void; mount: HTMLElement | undefined; }' is not assignable to type 'IntrinsicAttributes & MenuPortalProps'.\n  Property 'children' is missing in type '{ ref: (el: any) => void; mount: HTMLElement | undefined; }' but required in type '{ mount?: Element | undefined; children: Element; }'.\nsrc/navigation-menu/navigation-menu-portal.tsx(35,14): error TS2339: Property 'ref' does not exist on type 'Pick<NavigationMenuPortalProps, keyof NavigationMenuPortalProps>'.\nsrc/number-field/number-field-hidden-input.tsx(33,47): error TS2345: Argument of type 'Ref<HTMLInputElement> | undefined' is not assignable to parameter of type 'Ref<HTMLInputElement>'.\n  Type 'Ref<HTMLInputElement>[]' is not assignable to type 'Ref<HTMLInputElement>'.\nsrc/number-field/number-field-hidden-input.tsx(43,21): error TS2345: Argument of type 'ChangeEventHandlerUnion<HTMLInputElement, Event> | undefined' is not assignable to parameter of type 'EventHandlerUnion<HTMLInputElement, Event, EventHandler<HTMLInputElement, Event>> | undefined'.\n  Type 'ChangeEventHandler<HTMLInputElement, Event>' is not assignable to type 'EventHandlerUnion<HTMLInputElement, Event, EventHandler<HTMLInputElement, Event>> | undefined'.\n    Type 'ChangeEventHandler<HTMLInputElement, Event>' is not assignable to type 'EventHandler<HTMLInputElement, Event>'.\n      Types of parameters 'e' and 'e' are incompatible.\n        Type 'Event & { currentTarget: HTMLInputElement; target: Element; }' is not assignable to type 'Event & { currentTarget: HTMLInputElement; target: HTMLInputElement; }'.\n          Type 'Event & { currentTarget: HTMLInputElement; target: Element; }' is not assignable to type '{ currentTarget: HTMLInputElement; target: HTMLInputElement; }'.\n            Types of property 'target' are incompatible.\n              Type 'EventTarget & Element' is missing the following properties from type 'HTMLInputElement': accept, align, alt, autocomplete, and 190 more.\nsrc/pagination/pagination-item.tsx(71,51): error TS2322: Type 'EventHandler<HTMLButtonElement, MouseEvent>' is not assignable to type 'EventHandlerUnion<HTMLElement, any, EventHandler<HTMLElement, any>> | undefined'.\n  Type 'EventHandler<HTMLButtonElement, MouseEvent>' is not assignable to type 'EventHandler<HTMLElement, any>'.\n    Type 'HTMLElement' is missing the following properties from type 'HTMLButtonElement': command, commandForElement, disabled, form, and 17 more.\nsrc/pagination/pagination-previous.tsx(68,51): error TS2322: Type 'EventHandler<HTMLButtonElement, MouseEvent>' is not assignable to type 'EventHandlerUnion<HTMLElement, any, EventHandler<HTMLElement, any>> | undefined'.\n  Type 'EventHandler<HTMLButtonElement, MouseEvent>' is not assignable to type 'EventHandler<HTMLElement, any>'.\n    Type 'HTMLElement' is missing the following properties from type 'HTMLButtonElement': command, commandForElement, disabled, form, and 17 more.\nsrc/select/hidden-select-base.tsx(136,40): error TS2345: Argument of type 'Ref<HTMLSelectElement> | undefined' is not assignable to parameter of type 'Ref<HTMLSelectElement>'.\n  Type 'Ref<HTMLSelectElement>[]' is not assignable to type 'Ref<HTMLSelectElement>'.\n    Type 'Ref<HTMLSelectElement>[]' is missing the following properties from type 'HTMLSelectElement': autocomplete, disabled, form, labels, and 341 more.\nsrc/select/hidden-select-base.tsx(145,21): error TS2345: Argument of type 'ChangeEventHandlerUnion<HTMLSelectElement, Event> | undefined' is not assignable to parameter of type 'EventHandlerUnion<HTMLSelectElement, Event, EventHandler<HTMLSelectElement, Event>> | undefined'.\n  Type 'ChangeEventHandler<HTMLSelectElement, Event>' is not assignable to type 'EventHandlerUnion<HTMLSelectElement, Event, EventHandler<HTMLSelectElement, Event>> | undefined'.\n    Type 'ChangeEventHandler<HTMLSelectElement, Event>' is not assignable to type 'EventHandler<HTMLSelectElement, Event>'.\n      Types of parameters 'e' and 'e' are incompatible.\n        Type 'Event & { currentTarget: HTMLSelectElement; target: Element; }' is not assignable to type 'Event & { currentTarget: HTMLSelectElement; target: HTMLSelectElement; }'.\n          Type 'Event & { currentTarget: HTMLSelectElement; target: Element; }' is not assignable to type '{ currentTarget: HTMLSelectElement; target: HTMLSelectElement; }'.\n            Types of property 'target' are incompatible.\n              Type 'EventTarget & Element' is missing the following properties from type 'HTMLSelectElement': autocomplete, disabled, form, labels, and 156 more.\nsrc/slider/slider-input.tsx(59,48): error TS2345: Argument of type 'Pick<OverrideProps<SliderInputProps, { id: string; }>, \"id\" | \"aria-label\" | \"aria-labelledby\" | \"aria-describedby\">' is not assignable to parameter of type 'CreateFormControlFieldProps'.\n  Types of property '\"aria-label\"' are incompatible.\n    Type 'string | RemoveAttribute' is not assignable to type 'MaybeAccessor<string | undefined>'.\n      Type 'false' is not assignable to type 'MaybeAccessor<string | undefined>'.\nsrc/slider/slider-input.tsx(66,18): error TS2345: Argument of type 'ChangeEventHandlerUnion<HTMLInputElement, Event> | undefined' is not assignable to parameter of type 'EventHandlerUnion<HTMLInputElement, Event, EventHandler<HTMLInputElement, Event>> | undefined'.\n  Type 'ChangeEventHandler<HTMLInputElement, Event>' is not assignable to type 'EventHandlerUnion<HTMLInputElement, Event, EventHandler<HTMLInputElement, Event>> | undefined'.\n    Type 'ChangeEventHandler<HTMLInputElement, Event>' is not assignable to type 'EventHandler<HTMLInputElement, Event>'.\n      Types of parameters 'e' and 'e' are incompatible.\n        Type 'Event & { currentTarget: HTMLInputElement; target: Element; }' is not assignable to type 'Event & { currentTarget: HTMLInputElement; target: HTMLInputElement; }'.\n          Type 'Event & { currentTarget: HTMLInputElement; target: Element; }' is not assignable to type '{ currentTarget: HTMLInputElement; target: HTMLInputElement; }'.\n            Types of property 'target' are incompatible.\n              Type 'EventTarget & Element' is missing the following properties from type 'HTMLInputElement': accept, align, alt, autocomplete, and 190 more.\nsrc/slider/slider-input.tsx(90,4): error TS2322: Type '{ name: string | false; form?: string | RemoveAttribute; slot?: string | RemoveAttribute; title?: string | RemoveAttribute; ... 299 more ...; onChange: ChangeEventHandler<...>; }' is not assignable to type 'InputHTMLAttributes<HTMLInputElement> & Properties<HTMLInputElement>'.\n  Type '{ name: string | false; form?: string | RemoveAttribute; slot?: string | RemoveAttribute; title?: string | RemoveAttribute; ... 299 more ...; onChange: ChangeEventHandler<...>; }' is not assignable to type 'InputHTMLAttributes<HTMLInputElement>'.\n    Types of property '\"aria-disabled\"' are incompatible.\n      Type 'boolean | \"true\" | \"false\" | undefined' is not assignable to type 'RemoveAttribute | EnumeratedPseudoBoolean'.\n        Type 'true' is not assignable to type 'RemoveAttribute | EnumeratedPseudoBoolean'.\nsrc/tabs/tabs-trigger.tsx(183,5): error TS2322: Type 'EventHandler<HTMLButtonElement, MouseEvent>' is not assignable to type 'EventHandlerUnion<HTMLElement, any, EventHandler<HTMLElement, any>> | undefined'.\n  Type 'EventHandler<HTMLButtonElement, MouseEvent>' is not assignable to type 'EventHandler<HTMLElement, any>'.\n    Type 'HTMLElement' is missing the following properties from type 'HTMLButtonElement': command, commandForElement, disabled, form, and 17 more.\nsrc/time-field/time-field-segment.tsx(548,5): error TS2322: Type 'string | false | CSSProperties' is not assignable to type 'string | CSSProperties | undefined'.\n  Type 'false' is not assignable to type 'string | CSSProperties | undefined'.\n/tmp/solid-codemod-runs/20260627-221429-kobalte-focus-52f404fb347c/codemod/packages/core:\n\u2009ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL\u2009 @kobalte/core@0.13.11 typecheck: `tsc --noEmit`\nExit status 2",
+        "diff_tail": " packages/core/src/switch/switch-label.tsx          |   3 +-\n packages/core/src/switch/switch-root.tsx           |  35 +-\n packages/core/src/switch/switch-thumb.tsx          |   2 +-\n packages/core/src/tabs/tabs-content.tsx            |  40 +-\n packages/core/src/tabs/tabs-context.tsx            |   3 +-\n packages/core/src/tabs/tabs-indicator.tsx          |  37 +-\n packages/core/src/tabs/tabs-list.tsx               |  28 +-\n packages/core/src/tabs/tabs-root.tsx               |  36 +-\n packages/core/src/tabs/tabs-trigger.tsx            |  30 +-\n packages/core/src/tabs/tabs.test.tsx               |   3 +\n .../core/src/text-field/text-field-context.tsx     |   6 +-\n packages/core/src/text-field/text-field-input.tsx  |  17 +-\n packages/core/src/text-field/text-field-root.tsx   |  31 +-\n .../core/src/text-field/text-field-text-area.tsx   |  32 +-\n .../core/src/time-field/time-field-context.tsx     |   3 +-\n .../src/time-field/time-field-field-context.tsx    |   3 +-\n packages/core/src/time-field/time-field-field.tsx  |  34 +-\n .../src/time-field/time-field-hidden-input.tsx     |   6 +-\n packages/core/src/time-field/time-field-label.tsx  |   3 +-\n packages/core/src/time-field/time-field-root.tsx   |  36 +-\n .../core/src/time-field/time-field-segment.tsx     |  46 +-\n .../time-field/time-field-value-description.tsx    |  13 +-\n packages/core/src/time-field/utils.ts              |  11 +-\n packages/core/src/toast/toast-close-button.tsx     |  23 +-\n packages/core/src/toast/toast-context.tsx          |   3 +-\n packages/core/src/toast/toast-description.tsx      |  28 +-\n packages/core/src/toast/toast-list.tsx             |  46 +-\n packages/core/src/toast/toast-progress-fill.tsx    |  37 +-\n packages/core/src/toast/toast-progress-track.tsx   |   2 +-\n packages/core/src/toast/toast-region-context.tsx   |   3 +-\n packages/core/src/toast/toast-region.tsx           |  29 +-\n packages/core/src/toast/toast-root.tsx             |  51 +-\n packages/core/src/toast/toast-store.ts             |  25 +-\n packages/core/src/toast/toast-title.tsx            |  28 +-\n packages/core/src/toast/toast.test.tsx             |  10 +\n .../core/src/toggle-button/toggle-button-root.tsx  |  25 +-\n .../core/src/toggle-group/toggle-group-base.tsx    |  28 +-\n .../core/src/toggle-group/toggle-group-context.tsx |   3 +-\n .../core/src/toggle-group/toggle-group-item.tsx    |  24 +-\n .../core/src/toggle-group/toggle-group-root.tsx    |  23 +-\n packages/core/src/tooltip/tooltip-content.tsx      |  32 +-\n packages/core/src/tooltip/tooltip-context.tsx      |   3 +-\n packages/core/src/tooltip/tooltip-portal.tsx       |   5 +-\n packages/core/src/tooltip/tooltip-root.tsx         |  49 +-\n packages/core/src/tooltip/tooltip-trigger.tsx      |  20 +-\n packages/dates/calendar/calendar-body.tsx          |   2 +-\n packages/dates/calendar/calendar-context.tsx       |   3 +-\n .../calendar/calendar-grid-body-cell-context.tsx   |   3 +-\n .../calendar/calendar-grid-body-cell-trigger.tsx   |  24 +-\n .../dates/calendar/calendar-grid-body-cell.tsx     |  21 +-\n packages/dates/calendar/calendar-grid-body-row.tsx |  26 +-\n packages/dates/calendar/calendar-grid-body.tsx     |  26 +-\n packages/dates/calendar/calendar-grid-context.tsx  |   3 +-\n .../dates/calendar/calendar-grid-header-cell.tsx   |   2 +-\n .../dates/calendar/calendar-grid-header-row.tsx    |  20 +-\n packages/dates/calendar/calendar-grid-header.tsx   |   2 +-\n packages/dates/calendar/calendar-grid.tsx          |  26 +-\n packages/dates/calendar/calendar-header.tsx        |   2 +-\n packages/dates/calendar/calendar-heading.tsx       |   4 +-\n packages/dates/calendar/calendar-next-trigger.tsx  |  28 +-\n packages/dates/calendar/calendar-prev-trigger.tsx  |  28 +-\n packages/dates/calendar/calendar-root.tsx          |  59 +-\n packages/dates/date-picker/date-picker-content.tsx |  24 +-\n packages/dates/date-picker/date-picker-context.tsx |   3 +-\n packages/dates/date-picker/date-picker-control.tsx |  17 +-\n .../date-picker/date-picker-input-context.tsx      |   3 +-\n packages/dates/date-picker/date-picker-input.tsx   |  52 +-\n packages/dates/date-picker/date-picker-portal.tsx  |   5 +-\n packages/dates/date-picker/date-picker-root.tsx    |  45 +-\n packages/dates/date-picker/date-picker-segment.tsx |  43 +-\n packages/dates/date-picker/date-picker-trigger.tsx |  30 +-\n packages/dates/date-picker/utils.ts                |  11 +-\n packages/tests/package.json                        |   7 +-\n packages/utils/package.json                        |   3 +-\n packages/utils/src/events.ts                       |   2 +-\n packages/utils/src/props.ts                        |   5 +-\n packages/utils/src/styles.ts                       |   2 +-\n pnpm-lock.yaml                                     | 605 +++++++++++++++------\n tsconfig.json                                      |   8 +-\n 395 files changed, 5085 insertions(+), 2300 deletions(-)"
+      },
+      "last_lock_note": "none; no stale lock encountered or cleared"
     },
     "powerchat": {
       "branches_sample": [
@@ -940,5 +920,5 @@
       }
     }
   },
-  "updated_at": "2026-06-27T20:44:03Z"
+  "updated_at": "2026-06-27T22:16:05Z"
 }
