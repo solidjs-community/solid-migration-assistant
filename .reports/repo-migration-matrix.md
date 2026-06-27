@@ -1,6 +1,6 @@
 # Solid codemod repo migration matrix
 
-Updated: 2026-06-27T10:57:02Z
+Updated: 2026-06-27T11:41:14Z
 
 | Target | Status | Mode | Last run | Next action |
 |---|---|---|---|---|
@@ -8,5 +8,5 @@ Updated: 2026-06-27T10:57:02Z
 | powerchat | blocked-manual-dependency-remediation | direct-migrate | 2026-06-26T05:00:36Z | manual dependency remediation needed for @solidjs/start and Solid 1-era ecosystem packages; proceed to solid-router for codemod feedback unless these dependencies publish Solid 2-compatible releases. |
 | solid-router | successful | manual-compare | 2026-06-26T15:52:21Z | Proceed to solid-primitives migration feedback loop. |
 | solid-primitives | blocked-manual-pagination-migration | manual-compare | 2026-06-27T06:49:41Z | blocked on manual pagination source/test migration; proceed to kobalte for additional codemod feedback unless this exact pagination pattern is selected for narrow automation |
-| kobalte | needs-codemod-fix | manual-compare | 2026-06-27T10:57:02Z | continue kobalte with a narrow fixture for remaining createStore array setter direct-value calls (e.g. setAcceptedFilesState(rejectedFiles)) or callable/render-prop errors; keep @kobalte workspace link module failures manual/out-of-scope. |
+| kobalte | needs-codemod-fix | manual-compare | 2026-06-27T11:39:52Z | continue kobalte callable/render-prop triage; direct createStore setter value calls are now covered, while @kobalte workspace module resolution remains manual/out-of-scope |
 | solid | pending | manual-compare |  | run migration feedback loop |

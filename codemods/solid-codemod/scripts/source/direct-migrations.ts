@@ -257,6 +257,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
 
   rewriteProduceWrappers(rootNode, importedByLocal, addEdit, replaceNode, markImportRemoval, state.handled, state.unhandled);
   rewriteStorePathSetters(rootNode, imports, addEdit, replaceNode, state.handled);
+  rewriteCreateStoreDirectSetters(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteOnMountCleanups(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode, markImportRemoval, markImportRename, state);
   rewriteSimplePropDestructuring(rootNode, addEdit, replaceNode);
   rewriteContextHookShims(rootNode, addEdit, replaceNode);
@@ -729,6 +730,87 @@ function rewriteProduceWrappers(
       unhandled.add("produce");
     }
   }
+}
+
+function rewriteCreateStoreDirectSetters(
+  rootNode: SourceNode,
+  importedByLocal: Map<string, ImportedBinding>,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+  handled: Set<string>,
+): void {
+  const createStoreNames = new Set<string>();
+  for (const binding of importedByLocal.values()) {
+    if (binding.importedName === "createStore" && solidModules.has(binding.moduleName)) createStoreNames.add(binding.localName);
+  }
+  if (createStoreNames.size === 0) return;
+
+  const setterDeclarations = new Map<string, SourceNode>();
+  for (const declarator of rootNode.findAll({ rule: { kind: "variable_declarator" } })) {
+    const pattern = declarator.field("name") ?? declarator.children().find((child) => child.kind() === "array_pattern") ?? null;
+    const value = declarator.field("value") ?? declarator.children().find((child) => child.kind() === "call_expression") ?? null;
+    if (!pattern || pattern.kind() !== "array_pattern" || !value || value.kind() !== "call_expression") continue;
+    const callee = callFunction(value);
+    if (!callee || callee.kind() !== "identifier" || !createStoreNames.has(callee.text()) || isLocallyShadowed(callee, callee.text())) continue;
+    const identifiers = pattern.children().filter((child) => child.kind() === "identifier");
+    const setter = identifiers[1] ?? null;
+    if (setter) setterDeclarations.set(setter.text(), declarator);
+  }
+  if (setterDeclarations.size === 0) return;
+
+  for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+    const callee = callFunction(call);
+    const args = callArguments(call);
+    if (!callee || callee.kind() !== "identifier" || args.length !== 1) continue;
+    const declaration = setterDeclarations.get(callee.text());
+    if (!declaration || call.range().start.index <= declaration.range().end.index) continue;
+    if (isStoreSetterReferenceShadowed(callee, callee.text(), declaration)) continue;
+    const valueArg = args[0];
+    if (!valueArg || isCallbackNode(valueArg) || isProduceCall(valueArg)) continue;
+    addEdit(replaceNode(call, `${callee.text()}(() => ${arrowReturnExpressionText(valueArg)})`));
+    handled.add("createStore direct setter");
+  }
+}
+
+
+function isProduceCall(node: SourceNode): boolean {
+  if (node.kind() !== "call_expression") return false;
+  const callee = callFunction(node);
+  return callee?.kind() === "identifier" && callee.text() === "produce";
+}
+
+function arrowReturnExpressionText(node: SourceNode): string {
+  const text = node.text();
+  return node.kind() === "object" ? `(${text})` : text;
+}
+
+function isStoreSetterReferenceShadowed(identifier: SourceNode, name: string, ignoredDeclaration: SourceNode): boolean {
+  const referenceIndex = identifier.range().start.index;
+  for (const ancestor of identifier.ancestors()) {
+    const kind = ancestor.kind();
+    if (isFunctionLike(ancestor) && functionParametersShadowName(ancestor, name)) return true;
+    if ((kind === "program" || kind === "statement_block") && blockDirectDeclarationShadowsNameExcept(ancestor, name, referenceIndex, ignoredDeclaration)) return true;
+    if (kind === "catch_clause" && catchClauseShadowsName(ancestor, name)) return true;
+  }
+  return false;
+}
+
+function blockDirectDeclarationShadowsNameExcept(node: SourceNode, name: string, referenceIndex: number, ignoredDeclaration: SourceNode): boolean {
+  for (const child of node.children()) {
+    const kind = child.kind();
+    if (["function_declaration", "generator_function_declaration", "class_declaration"].includes(kind)) {
+      if (child.field("name")?.text() === name) return true;
+      continue;
+    }
+    if (child.range().start.index > referenceIndex) continue;
+    if (kind !== "lexical_declaration" && kind !== "variable_declaration") continue;
+    for (const declarator of child.children().filter((declarationChild) => declarationChild.kind() === "variable_declarator")) {
+      if (declarator.id() === ignoredDeclaration.id()) continue;
+      const declarationName = declarator.field("name");
+      if (declarationName && bindingPatternContainsName(declarationName, name)) return true;
+    }
+  }
+  return false;
 }
 
 function rewriteStorePathSetters(
