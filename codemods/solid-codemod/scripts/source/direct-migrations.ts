@@ -262,6 +262,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteContextHookShims(rootNode, addEdit, replaceNode);
   rewriteCreateSignalIntersectionAssertions(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteDomDirectives(rootNode, addEdit, replaceNode);
+  rewriteIntrinsicTabIndexAttributes(rootNode, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
       if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
@@ -876,6 +877,28 @@ function rewriteDomDirectives(rootNode: SourceNode, addEdit: (edit: Edit) => voi
     else if (prefix === "class") addEdit(replaceNode(attribute, `class={{ ${name}: ${stripExpressionBraces(value)} }}`));
     else if (prefix === "style") addEdit(replaceNode(attribute, `style={{ ${name}: ${value} }}`));
   }
+}
+
+
+function rewriteIntrinsicTabIndexAttributes(rootNode: SourceNode, addEdit: (edit: Edit) => void, replaceNode: (node: SourceNode, text: string) => Edit): void {
+  for (const attribute of rootNode.findAll({ rule: { kind: "jsx_attribute" } })) {
+    const attributeName = attribute.children().find((child) => child.kind() === "property_identifier");
+    if (attributeName?.text() !== "tabIndex") continue;
+
+    const element = attribute.parent();
+    if (!element || (element.kind() !== "jsx_opening_element" && element.kind() !== "jsx_self_closing_element")) continue;
+
+    const tagName = jsxElementTagName(element);
+    if (!tagName || !/^[a-z]/.test(tagName)) continue;
+
+    addEdit(replaceNode(attributeName, "tabindex"));
+  }
+}
+
+function jsxElementTagName(element: SourceNode): string | null {
+  const firstNamedChild = element.children().find((child) => child.isNamed());
+  if (!firstNamedChild || firstNamedChild.kind() !== "identifier") return null;
+  return firstNamedChild.text();
 }
 
 function attributeValue(attribute: SourceNode, name: string): string {
