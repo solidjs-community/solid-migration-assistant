@@ -270,6 +270,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteSnapshotReadonlyArrayProps(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode);
   rewriteReadonlyStoreArrayInterfaceProperties(rootNode, addEdit, replaceNode);
   rewriteSetStringIteratorValueNarrowing(rootNode, addEdit, replaceNode);
+  rewriteTestingLibraryRenderQueryDestructuring(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
       if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
@@ -287,6 +288,45 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   return { handledReviewNames };
 }
 
+
+
+function rewriteTestingLibraryRenderQueryDestructuring(
+  rootNode: SourceNode,
+  importedByLocal: Map<string, ImportedBinding>,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+  handled: Set<string>,
+): void {
+  const renderLocals = new Set<string>();
+  for (const binding of importedByLocal.values()) {
+    if (binding.importedName === "render" && binding.moduleName === "@solidjs/testing-library") {
+      renderLocals.add(binding.localName);
+    }
+  }
+  if (renderLocals.size === 0) return;
+
+  for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+    const callee = callFunction(call);
+    if (!callee || callee.kind() !== "identifier" || !renderLocals.has(callee.text())) continue;
+    if (isLocallyShadowed(callee, callee.text())) continue;
+
+    const statement = call.ancestors().find((ancestor) => ancestor.kind() === "expression_statement") ?? null;
+    if (!statement) continue;
+    if (statement.text().trim() !== call.text() + ";") continue;
+
+    const scope = statement.ancestors().find((ancestor) => ["statement_block", "program"].includes(ancestor.kind())) ?? null;
+    if (!scope) continue;
+    const relativeStatementEnd = statement.range().end.index - scope.range().start.index;
+    const afterStatement = scope.text().slice(relativeStatementEnd);
+    if (!/\bgetByRole\s*\(/.test(afterStatement)) continue;
+
+    const beforeStatement = scope.text().slice(0, statement.range().start.index - scope.range().start.index);
+    if (/\b(?:const|let|var)\s+[^;]*\bgetByRole\b/.test(beforeStatement)) continue;
+
+    addEdit(replaceNode(statement, "const { getByRole } = " + call.text() + ";"));
+    handled.add("testing-library render query destructuring");
+  }
+}
 
 function rewriteGenericCreateSignalOptionalInitializers(
   rootNode: SourceNode,
