@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T17:26:38Z",
-  "last_scheduler_run_at": "2026-06-27T17:26:38Z",
+  "last_run_at": "2026-06-27T18:15:37Z",
+  "last_scheduler_run_at": "2026-06-27T18:15:37Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -356,6 +356,13 @@
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1726-kobalte.md",
       "status": "needs-codemod-fix",
       "target": "kobalte"
+    },
+    {
+      "at": "2026-06-27T18:15:37Z",
+      "target": "kobalte",
+      "status": "needs-codemod-fix",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1815-kobalte.md",
+      "commit": "pending-final-commit"
     }
   ],
   "targets": {
@@ -379,24 +386,21 @@
         "origin/v2/basic-migration"
       ],
       "codemod_changes": [
-        "codemods/solid-codemod/scripts/source/direct-migrations.ts",
-        "codemods/solid-codemod/tests/source/set-string-iterator-value"
+        "scripts/source/direct-migrations.ts: added rewriteReadonlyStoreArrayInterfaceProperties",
+        "tests/source/readonly-store-array-context: added fixture"
       ],
       "commands": [
         {
-          "cmd": "codemod search solid",
+          "cmd": "pnpm dlx codemod@latest search solid",
+          "rc": "503",
+          "note": "registry returned 503"
+        },
+        {
+          "cmd": "git worktree add --detach <run>/codemod origin/main && git worktree add --detach <run>/manual origin/v2/basic-migration",
           "rc": 0
         },
         {
-          "cmd": "git worktree add origin/main",
-          "rc": 0
-        },
-        {
-          "cmd": "git worktree add origin/v2/basic-migration",
-          "rc": 0
-        },
-        {
-          "cmd": "codemod workflow run",
+          "cmd": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target <run>/codemod --no-interactive",
           "rc": 0
         },
         {
@@ -404,32 +408,38 @@
           "rc": 0
         },
         {
-          "cmd": "pnpm filter utils/tests build and core typecheck",
+          "cmd": "pnpm --filter @kobalte/utils build && pnpm --filter @kobalte/tests build && pnpm --filter @kobalte/core typecheck",
           "rc": 2
         },
         {
-          "cmd": "git diff --check",
+          "cmd": "git diff --check && git diff --stat",
           "rc": 0
         },
         {
-          "cmd": "codemod package pnpm test && pnpm check-types",
+          "cmd": "grep acceptedFiles/rejectedFiles file-field-context.tsx",
+          "rc": 0
+        },
+        {
+          "cmd": "pnpm test && pnpm check-types",
           "rc": 0
         }
       ],
       "commit": "pending-final-commit",
       "default_branch": "origin/main",
-      "end_of_run_commit": "pending-final-commit",
+      "end_of_run_commit": "pending-final-commit; final delivery records the created commit hash",
       "findings": [
-        "List-state Set<string> iterator value narrowing now matches manual migration and removed create-single-select-list-state from kobalte diagnostics.",
-        "Kobalte still fails on combobox/select implicit-any callbacks, getByRole scope errors, file-field readonly context arrays, createSignal generic initializer overload, unused ts-expect-error, time-field indexing, and toast/dismissable-layer implicit-any callbacks."
+        "Added a conservative AST-bounded transform for interface property signatures named acceptedFiles/rejectedFiles whose array type is followed by a // store marker.",
+        "Transformed kobalte packages/core/src/file-field/file-field-context.tsx now has `acceptedFiles: readonly File[]; // store` and `rejectedFiles: readonly FileRejection[]; // store`.",
+        "The previous file-field-root.tsx TS4104 readonly assignment diagnostics disappeared from the kobalte typecheck output.",
+        "Kobalte still fails typecheck on combobox/select implicit-any callbacks, combobox test getByRole scope, createSignal initializer overload, unused search ts-expect-error, time-field indexing, dismissable-layer callback typing, and toast callback typing."
       ],
       "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1726-kobalte.md",
-      "last_run_at": "2026-06-27T17:26:38Z",
+      "last_run_at": "2026-06-27T18:15:37Z",
       "last_run_dir": "/tmp/solid-codemod-runs/20260627-1736-kobalte-set-string-iterator-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
       "manual_sha": "661f6f65a226fcb1759dc3764e2c81b38f53d1c6",
       "mode": "manual-compare",
-      "next_action": "triage remaining kobalte categories: file-field readonly context arrays, createSignal initializer overloads, combobox/select implicit-any callbacks, combobox test getByRole scope, or toast/dismissable-layer callback typing",
+      "next_action": "Continue kobalte triage on remaining diagnostics: combobox/select implicit-any callbacks, combobox test getByRole scope, createSignal initializer overload, search ts-expect-error, time-field indexing, dismissable-layer/toast callback typing.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
@@ -437,15 +447,7 @@
       "run_dir": "/tmp/solid-codemod-runs/20260627-1736-kobalte-set-string-iterator-52f404fb347c",
       "stale_lock": "none",
       "status": "needs-codemod-fix",
-      "verification": {
-        "codemod_apply_rc": 0,
-        "install_rc": 0,
-        "verify_cmd": "pnpm filter utils/tests build and core typecheck",
-        "verify_rc": 2,
-        "diff_check_rc": 0,
-        "codemod_package_test_rc": 0,
-        "codemod_package_check_types_rc": 0
-      }
+      "verification": "- Codemod package `pnpm test && pnpm check-types`: rc 0 (109 source fixtures, 14 JSON fixtures, tsc passed).\n- Codemod registry discovery `pnpm dlx codemod@latest search solid`: attempted but registry returned 503 Service Temporarily Unavailable.\n- Disposable kobalte worktrees created from origin/main and origin/v2/basic-migration.\n- Codemod workflow apply: rc 0.\n- `pnpm install --no-frozen-lockfile` in disposable codemod worktree: rc 0.\n- `pnpm --filter @kobalte/utils build && pnpm --filter @kobalte/tests build && pnpm --filter @kobalte/core typecheck`: rc 2.\n- `git diff --check && git diff --stat`: rc 0."
     },
     "powerchat": {
       "branches_sample": [

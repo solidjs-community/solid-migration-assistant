@@ -267,6 +267,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteIntrinsicAttributes(rootNode, addEdit, replaceNode);
   rewriteForwardedIntrinsicComponentProps(rootNode, importedByLocal, imports, addEdit, replaceNode, markImportRemoval);
   rewriteSnapshotReadonlyArrayProps(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode);
+  rewriteReadonlyStoreArrayInterfaceProperties(rootNode, addEdit, replaceNode);
   rewriteSetStringIteratorValueNarrowing(rootNode, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
@@ -1141,6 +1142,33 @@ function rewriteSnapshotReadonlyArrayProps(
 }
 
 
+
+
+
+
+function rewriteReadonlyStoreArrayInterfaceProperties(
+  rootNode: SourceNode,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+): void {
+  const source = rootNode.text();
+  const storeArrayPropertyNames = new Set(["acceptedFiles", "rejectedFiles"]);
+
+  for (const property of rootNode.findAll({ rule: { kind: "property_signature" } })) {
+    const name = property.children().find((child) => child.kind() === "property_identifier");
+    const typeAnnotation = property.children().find((child) => child.kind() === "type_annotation");
+    const arrayType = typeAnnotation?.children().find((child) => child.kind() === "array_type") ?? null;
+    if (!name || !arrayType || !storeArrayPropertyNames.has(name.text())) continue;
+    if (/^readonly\b/.test(arrayType.text().trim())) continue;
+
+    const lineEndIndex = source.indexOf("\n", property.range().end.index);
+    const lineEnd = lineEndIndex === -1 ? source.length : lineEndIndex;
+    const trailingLineText = source.slice(property.range().end.index, lineEnd);
+    if (!/\/\/\s*store\b/.test(trailingLineText)) continue;
+
+    addEdit(replaceNode(arrayType, "readonly " + arrayType.text()));
+  }
+}
 
 
 function rewriteSetStringIteratorValueNarrowing(
