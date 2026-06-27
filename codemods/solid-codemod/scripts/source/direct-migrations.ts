@@ -259,11 +259,12 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteStorePathSetters(rootNode, imports, addEdit, replaceNode, state.handled);
   rewriteCreateStoreDirectSetters(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteOnMountCleanups(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode, markImportRemoval, markImportRename, state);
+  rewriteOnCleanupReturns(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode, markImportRemoval, state.handled);
   rewriteSimplePropDestructuring(rootNode, addEdit, replaceNode);
   rewriteContextHookShims(rootNode, addEdit, replaceNode);
   rewriteCreateSignalIntersectionAssertions(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteDomDirectives(rootNode, addEdit, replaceNode);
-  rewriteIntrinsicTabIndexAttributes(rootNode, addEdit, replaceNode);
+  rewriteIntrinsicAttributes(rootNode, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
       if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
@@ -935,6 +936,87 @@ function rewriteOnMountCleanups(
   }
 }
 
+
+function rewriteOnCleanupReturns(
+  rootNode: SourceNode,
+  importedByLocal: Map<string, ImportedBinding>,
+  namespaceImports: Map<string, string>,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+  markImportRemoval: (binding: ImportedBinding) => void,
+  handled: Set<string>,
+): void {
+  const rewrittenBindings = new Set<ImportedBinding>();
+
+  const isSolidCall = (call: SourceNode, importedNames: Set<string>): boolean => {
+    const callee = callFunction(call);
+    if (callee?.kind() === "identifier") {
+      const binding = importedByLocal.get(callee.text());
+      return !!binding && importedNames.has(binding.importedName) && binding.moduleName === "solid-js";
+    }
+    if (callee?.kind() === "member_expression") {
+      const { objectNode, propertyNode } = memberExpressionParts(callee);
+      return !!propertyNode && importedNames.has(propertyNode.text()) && objectNode?.kind() === "identifier" && namespaceImports.get(objectNode.text()) === "solid-js";
+    }
+    return false;
+  };
+
+  const isOnCleanupCall = (call: SourceNode): ImportedBinding | "namespace" | null => {
+    const callee = callFunction(call);
+    if (callee?.kind() === "identifier") {
+      const binding = importedByLocal.get(callee.text());
+      if (binding?.importedName === "onCleanup" && binding.moduleName === "solid-js" && !isLocallyShadowed(callee, callee.text())) return binding;
+      return null;
+    }
+    if (callee?.kind() === "member_expression") {
+      const { objectNode, propertyNode } = memberExpressionParts(callee);
+      if (propertyNode?.text() === "onCleanup" && objectNode?.kind() === "identifier" && namespaceImports.get(objectNode.text()) === "solid-js") return "namespace";
+    }
+    return null;
+  };
+
+  const nearestFunction = (node: SourceNode): SourceNode | null => {
+    return node.ancestors().find((ancestor) => ["arrow_function", "function_expression"].includes(ancestor.kind())) ?? null;
+  };
+
+  const callbackOwnerCall = (fn: SourceNode): SourceNode | null => {
+    const args = fn.parent();
+    const call = args?.parent();
+    return args?.kind() === "arguments" && call?.kind() === "call_expression" ? call : null;
+  };
+
+  const isReactiveCleanupCallback = (node: SourceNode): boolean => {
+    const fn = nearestFunction(node);
+    if (!fn) return false;
+    const owner = callbackOwnerCall(fn);
+    if (!owner) return false;
+    return isSolidCall(owner, new Set(["createEffect", "createRenderEffect", "on"]));
+  };
+
+  const isInsideOnMountCall = (node: SourceNode): boolean => {
+    for (const ancestor of node.ancestors()) {
+      if (ancestor.kind() === "call_expression" && isSolidCall(ancestor, new Set(["onMount"]))) return true;
+    }
+    return false;
+  };
+
+  for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+    const cleanupSource = isOnCleanupCall(call);
+    if (!cleanupSource || isInsideOnMountCall(call) || !isReactiveCleanupCallback(call)) continue;
+    const cleanupArg = callArguments(call)[0];
+    if (!cleanupArg) continue;
+
+    const parent = call.parent();
+    if (parent?.kind() === "expression_statement") addEdit(replaceNode(parent, "return " + cleanupArg.text() + ";"));
+    else addEdit(replaceNode(call, cleanupArg.text()));
+
+    if (cleanupSource !== "namespace") rewrittenBindings.add(cleanupSource);
+    handled.add("onCleanup return");
+  }
+
+  for (const binding of rewrittenBindings) markImportRemoval(binding);
+}
+
 function rewriteSimplePropDestructuring(rootNode: SourceNode, addEdit: (edit: Edit) => void, replaceNode: (node: SourceNode, text: string) => Edit): void {
   for (const fn of rootNode.findAll({ rule: { kind: "function_declaration" } })) {
     const parameters = fn.field("parameters");
@@ -998,10 +1080,16 @@ function rewriteDomDirectives(rootNode: SourceNode, addEdit: (edit: Edit) => voi
 }
 
 
-function rewriteIntrinsicTabIndexAttributes(rootNode: SourceNode, addEdit: (edit: Edit) => void, replaceNode: (node: SourceNode, text: string) => Edit): void {
+function rewriteIntrinsicAttributes(rootNode: SourceNode, addEdit: (edit: Edit) => void, replaceNode: (node: SourceNode, text: string) => Edit): void {
+  const intrinsicAttributeRenames = new Map([
+    ["tabIndex", "tabindex"],
+    ["readOnly", "readonly"],
+  ]);
+
   for (const attribute of rootNode.findAll({ rule: { kind: "jsx_attribute" } })) {
     const attributeName = attribute.children().find((child) => child.kind() === "property_identifier");
-    if (attributeName?.text() !== "tabIndex") continue;
+    const replacement = attributeName ? intrinsicAttributeRenames.get(attributeName.text()) : null;
+    if (!attributeName || !replacement) continue;
 
     const element = attribute.parent();
     if (!element || (element.kind() !== "jsx_opening_element" && element.kind() !== "jsx_self_closing_element")) continue;
@@ -1009,7 +1097,7 @@ function rewriteIntrinsicTabIndexAttributes(rootNode: SourceNode, addEdit: (edit
     const tagName = jsxElementTagName(element);
     if (!tagName || !/^[a-z]/.test(tagName)) continue;
 
-    addEdit(replaceNode(attributeName, "tabindex"));
+    addEdit(replaceNode(attributeName, replacement));
   }
 }
 
