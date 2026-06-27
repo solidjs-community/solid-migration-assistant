@@ -578,10 +578,12 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
   };
 
   const isInsideJsxTag = (node: SourceNode): boolean => {
-    return node.ancestors().some((ancestor) => {
+    for (const ancestor of node.ancestors()) {
       const kind = ancestor.kind();
-      return kind === "jsx_opening_element" || kind === "jsx_closing_element" || kind === "jsx_self_closing_element";
-    });
+      if (kind === "jsx_expression") return false;
+      if (kind === "jsx_opening_element" || kind === "jsx_closing_element" || kind === "jsx_self_closing_element") return true;
+    }
+    return false;
   };
 
   const isJsxModuleAugmentationSource = (node: SourceNode): boolean => {
@@ -1331,6 +1333,34 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
       any: [{ kind: "jsx_opening_element" }, { kind: "jsx_self_closing_element" }],
     },
   });
+
+  for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+    const callee = callFunction(call);
+    if (callee?.kind() !== "identifier" || callee.text() !== "createComponent") continue;
+    if (isLocallyShadowed(callee, "createComponent")) continue;
+    const firstArgument = callArguments(call)[0];
+    if (!firstArgument || firstArgument.kind() !== "member_expression" || !firstArgument.text().endsWith(".Provider")) continue;
+    const { objectNode, propertyNode } = memberExpressionParts(firstArgument);
+    const contextName = objectNode?.text() ?? firstArgument.text().slice(0, -".Provider".length);
+    const isUnshadowedProvider =
+      propertyNode?.text() === "Provider" &&
+      objectNode?.kind() === "identifier" &&
+      !isContextNameShadowed(objectNode, contextName);
+    const isImportedOrExternalProvider =
+      isUnshadowedProvider &&
+      objectNode?.kind() === "identifier" &&
+      (importedLocalNames.has(contextName) || !hasSameFileValueDeclarationBefore(objectNode, contextName));
+    const shouldRewriteImportedProvider =
+      isImportedOrExternalProvider &&
+      looksLikeImportedSolidContextProviderName(contextName);
+    if (isUnshadowedProvider && (contextNames.has(contextName) || shouldRewriteImportedProvider)) {
+      addEdit(replaceNode(firstArgument, contextName));
+      if (shouldRewriteImportedProvider) semanticReviewNames.add(contextName + ".Provider");
+    } else if (isImportedOrExternalProvider) {
+      semanticReviewNames.add(contextName + ".Provider");
+    }
+  }
+
   const classExpressionNeedsHelper = (value: string): boolean => {
     const trimmed = value.trim();
     return (trimmed.startsWith("{") || trimmed.startsWith("[")) && !trimmed.startsWith(`${classNameHelperName}(`);

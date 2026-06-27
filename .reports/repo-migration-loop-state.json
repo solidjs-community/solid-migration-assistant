@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T12:21:27Z",
-  "last_scheduler_run_at": "2026-06-27T11:41:14Z",
+  "last_run_at": "2026-06-27T13:05:00Z",
+  "last_scheduler_run_at": "2026-06-27T13:05:00Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -306,6 +306,16 @@
       "status": "needs-codemod-fix",
       "summary": "Changed JSX namespace handling so JSX.Element references from solid-js imports stay as JSX.Element with JSX imported from @solidjs/web, matching kobalte manual v2 migration shape and avoiding the prior Solid core Element rewrite.",
       "target": "kobalte"
+    },
+    {
+      "at": "2026-06-27T13:05:00Z",
+      "commit": "90891bdeb8d9112b60fb76fbc2e14fdd9982c1ab",
+      "mode": "manual-compare",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1305-kobalte.md",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-1305-kobalte-workspace-links-52f404fb347c",
+      "status": "needs-codemod-fix",
+      "summary": "Fixed JSX-expression safe renames and createComponent context-provider rewrites; package tests pass; kobalte core typecheck still fails on remaining migration categories.",
+      "target": "kobalte"
     }
   ],
   "targets": {
@@ -313,7 +323,7 @@
       "baseline_branch": "origin/main",
       "baseline_sha": "abd56134f40075258ad7f002502a20398fc3fc69",
       "branches": {
-        "baseline": "origin/main",
+        "default": "origin/main",
         "manual": "origin/v2/basic-migration"
       },
       "branches_sample": [
@@ -329,70 +339,47 @@
         "origin/v2/basic-migration"
       ],
       "codemod_changes": [
-        "codemods/solid-codemod/scripts/source/solid-transform.ts",
-        "codemods/solid-codemod/tests/source/jsx-render-prop-preserve/input.tsx",
-        "codemods/solid-codemod/tests/source/jsx-render-prop-preserve/expected.tsx",
-        "codemods/solid-codemod/tests/source/jsx-element-alias/expected.tsx",
-        "codemods/solid-codemod/tests/source/renderer-types-inline/expected.tsx",
-        "codemods/solid-codemod/tests/source/non-type-jsx-imports/expected.tsx"
+        "scripts/source/solid-transform.ts: allow safe import usage renames inside JSX expression containers instead of treating the whole JSX opening tag as off-limits",
+        "scripts/source/solid-transform.ts: rewrite createComponent(Context.Provider, ...) to createComponent(Context, ...) for imported context-like providers",
+        "tests/source/safe-renames-jsx-expression",
+        "tests/source/create-component-context-provider"
       ],
-      "commands": [
-        "git -C /home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte fetch --all --prune",
-        "git -C /home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte worktree add --detach /tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c/codemod origin/main",
-        "git -C /home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte worktree add --detach /tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c/manual origin/v2/basic-migration",
-        "zsh -ic cd /home/lucifer/work/active/codemod/solid/solid-codemod/codemods/solid-codemod && pnpm dlx codemod@latest workflow run -w workflow.yaml --target /tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c/codemod --no-interactive",
-        "zsh -ic pnpm install --no-frozen-lockfile",
-        "zsh -ic pnpm typecheck",
-        "git -C /tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c/codemod diff --check",
-        "git -C /tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c/codemod diff --stat",
-        "git -C /tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c/codemod diff -- packages/core/src/file-field/file-field-root.tsx",
-        "git -C /home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte diff origin/main..origin/v2/basic-migration -- packages/core/src/file-field/file-field-root.tsx",
-        "pnpm dlx codemod@latest search solid",
-        "pnpm dlx codemod@latest ai docs jssg-instructions",
-        "pnpm test && pnpm check-types"
-      ],
-      "commit": "pending in committed report; final delivery contains commit hash",
+      "commands": {
+        "codemod": "cd codemods/solid-codemod && pnpm dlx codemod@latest workflow run -w workflow.yaml --target /tmp/solid-codemod-runs/20260627-1305-kobalte-workspace-links-52f404fb347c/codemod --no-interactive",
+        "install": "pnpm install --no-frozen-lockfile",
+        "package_verify": "pnpm test && pnpm check-types",
+        "verify": "pnpm -F @kobalte/utils build && pnpm -F @kobalte/tests build && pnpm -F @kobalte/core typecheck"
+      },
+      "commit": "90891bdeb8d9112b60fb76fbc2e14fdd9982c1ab",
       "default_branch": "origin/main",
       "end_of_run_commit": "pending-final-commit",
       "findings": [
-        "Changed JSX namespace handling so JSX.Element references from solid-js imports stay as JSX.Element with JSX imported from @solidjs/web, matching kobalte manual v2 migration shape and avoiding the prior Solid core Element rewrite.",
-        "Added fixture tests/source/jsx-render-prop-preserve plus updated JSX import fixtures; package tests and typecheck pass.",
-        "Kobalte target typecheck still exits 2. The dominant blocker remains unresolved workspace packages (@kobalte/utils/@kobalte/tests: 242 module-resolution errors). Callable render-prop errors remain (11) but occur beside missing @kobalte/utils, so the next actionable step is to verify/fix workspace-link resolution before adding unsafe render-prop rewrites."
+        "Fixed safe import usage renames inside JSX expression containers; kobalte number-field batch call is now rewritten to flush.",
+        "Fixed createComponent(Context.Provider, props) calls for imported context-like objects; kobalte create-dom-collection no longer leaves .Provider in createComponent.",
+        "Remaining target errors include onCleanup cleanup migration, readonly snapshot arrays, intrinsic readOnly-to-readonly, and manual createControllableSignal/list narrowing issues."
       ],
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1139-kobalte.md",
-      "last_run_at": "2026-06-27T12:21:27Z",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1305-kobalte.md",
+      "last_run_at": "2026-06-27T13:05:00Z",
       "last_run_dir": "/tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
       "manual_sha": "661f6f65a226fcb1759dc3764e2c81b38f53d1c6",
       "mode": "manual-compare",
-      "next_action": "continue kobalte after resolving disposable worktree workspace module links; do not add broad render-prop rewrites until @kobalte/utils is resolved and isFunction narrowing can be trusted",
+      "next_action": "triage remaining kobalte errors: onCleanup cleanup migration and readonly snapshot/readOnly intrinsic issues are now the highest-value mechanical candidates",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1221-kobalte.md",
-      "run_dir": "/tmp/solid-codemod-runs/20260627-122127-kobalte-jsx-render-prop-52f404fb347c",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-1305-kobalte-workspace-links-52f404fb347c",
       "stale_lock": "yes (cleared stale lock left by aborted in-turn acquisition before continuing)",
       "status": "needs-codemod-fix",
       "verification": {
-        "codemod_apply_exit": 0,
-        "diff_check_exit": 0,
-        "diff_stat": " apps/docs/package.json                             |   9 +-\n apps/docs/src/app.tsx                              |   6 +-\n apps/docs/src/components/callout.tsx               |   9 +-\n apps/docs/src/components/header.tsx                |   4 +-\n apps/docs/src/components/icons.tsx                 |   2 +-\n apps/docs/src/components/kbd.tsx                   |   9 +-\n apps/docs/src/components/mobile-navigation.tsx     |  13 +-\n apps/docs/src/components/navigation.tsx            |  10 +-\n apps/docs/src/components/preview.tsx               |  12 +-\n apps/docs/src/components/prose.tsx                 |   9 +-\n apps/docs/src/components/table-of-contents.tsx     |  33 +-\n apps/docs/src/components/tabs-snippets.tsx         |  20 +-\n apps/docs/src/components/theme-selector.tsx        |   5 +-\n apps/docs/src/examples/rating-group.tsx            |  30 +-\n apps/docs/src/examples/toggle-group.tsx            |   5 +-\n apps/docs/src/mdx-components.tsx                   |  21 +-\n package.json                                       |  13 +-\n packages/core/dev/index.tsx                        |   2 +-\n packages/core/package.json                         |   3 +-\n packages/core/src/accordion/accordion-content.tsx  |  22 +-\n packages/core/src/accordion/accordion-context.tsx  |   3 +-\n packages/core/src/accordion/accordion-header.tsx   |   2 +-\n .../core/src/accordion/accordion-item-context.tsx  |   3 +-\n packages/core/src/accordion/accordion-item.tsx     |  21 +-\n packages/core/src/accordion/accordion-root.tsx     |  20 +-\n packages/core/src/accordion/accordion-trigger.tsx  |  23 +-\n packages/core/src/accordion/accordion.test.tsx     |   3 +-\n .../core/src/alert-dialog/alert-dialog-content.tsx |   3 +-\n packages/core/src/alert/alert-root.tsx             |   2 +-\n packages/core/src/badge/badge-root.tsx             |   9 +-\n .../core/src/breadcrumbs/breadcrumbs-context.tsx   |   6 +-\n packages/core/src/breadcrumbs/breadcrumbs-link.tsx |  10 +-\n packages/core/src/breadcrumbs/breadcrumbs-root.tsx |  13 +-\n .../core/src/breadcrumbs/breadcrumbs-separator.tsx |   2 +-\n packages/core/src/button/button-root.tsx           |  10 +-\n packages/core/src/checkbox/checkbox-context.tsx    |   3 +-\n packages/core/src/checkbox/checkbox-control.tsx    |   9 +-\n .../core/src/checkbox/checkbox-description.tsx     |   3 +-\n .../core/src/checkbox/checkbox-error-message.tsx   |   3 +-\n packages/core/src/checkbox/checkbox-indicator.tsx  |  19 +-\n packages/core/src/checkbox/checkbox-input.tsx      |  27 +-\n packages/core/src/checkbox/checkbox-label.tsx      |   3 +-\n packages/core/src/checkbox/checkbox-root.tsx       |  27 +-\n .../core/src/collapsible/collapsible-content.tsx   |  39 +-\n .../core/src/collapsible/collapsible-context.tsx   |   3 +-\n packages/core/src/collapsible/collapsible-root.tsx |  21 +-\n .../core/src/collapsible/collapsible-trigger.tsx   |  15 +-\n packages/core/src/collapsible/collapsible.test.tsx |   2 +-\n .../core/src/color-area/color-area-background.tsx  |  16 +-\n .../core/src/color-area/color-area-context.tsx     |   3 +-\n .../color-area/color-area-hidden-input-base.tsx    |  17 +-\n .../src/color-area/color-area-hidden-input-x.tsx   |   2 +-\n .../src/color-area/color-area-hidden-input-y.tsx   |   2 +-\n packages/core/src/color-area/color-area-root.tsx   |  23 +-\n packages/core/src/color-area/color-area-thumb.tsx  |   9 +-\n .../core/src/color-area/create-color-area-state.ts |   1 +\n .../color-channel-field-root.tsx                   |  16 +-\n .../core/src/color-field/color-field-context.tsx   |   6 +-\n .../core/src/color-field/color-field-input.tsx     |  15 +-\n packages/core/src/color-field/color-field-root.tsx |  25 +-\n .../core/src/color-mode/color-mode-context.tsx     |   3 +-\n .../core/src/color-mode/color-mode-provider.tsx    |  15 +-\n packages/core/src/color-mode/color-mode-script.tsx |   5 +-\n packages/core/src/color-mode/storage-manager.ts    |   2 +-\n packages/core/src/color-mode/utils.ts              |   2 +-\n .../core/src/color-slider/color-slider-context.tsx |   3 +-\n .../core/src/color-slider/color-slider-root.tsx    |  20 +-\n .../core/src/color-slider/color-slider-thumb.tsx   |  16 +-\n .../core/src/color-slider/color-slider-track.tsx   |  16 +-\n .../core/src/color-swatch/color-swatch-root.tsx    |  15 +-\n .../core/src/color-wheel/color-wheel-context.tsx   |   3 +-\n .../core/src/color-wheel/color-wheel-input.tsx     |  11 +-\n packages/core/src/color-wheel/color-wheel-root.tsx |  28 +-\n .../core/src/color-wheel/color-wheel-thumb.tsx     |  15 +-\n .../core/src/color-wheel/color-wheel-track.tsx     |  16 +-\n .../src/color-wheel/color-wheel-value-label.tsx    |   2 +-\n .../src/color-wheel/create-color-wheel-state.ts    |   1 +\n packages/core/src/combobox/combobox-base.tsx       |  51 +-\n packages/core/src/combobox/combobox-content.tsx    |  16 +-\n packages/core/src/combobox/combobox-context.tsx    |   6 +-\n packages/core/src/combobox/combobox-control.tsx    |  16 +-\n .../core/src/combobox/combobox-hidden-select.tsx   |   2 +-\n",
-        "error_counts": {
-          "Cannot find module": 242,
-          "Cannot find name": 11,
-          "Expected 1 arguments": 0,
-          "Parameter": 316,
-          "This expression is not callable": 11,
-          "has no call signatures": 11,
-          "is not assignable": 26
-        },
-        "install_exit": 0,
-        "package_verification": "pnpm test && pnpm check-types passed: 100 source fixtures, 14 JSON fixtures, tsc --noEmit exit 0",
-        "registry_search_exit": 0,
-        "run_dir": "/tmp/solid-codemod-runs/20260627-122127-kobalte-jsx-render-prop-52f404fb347c",
-        "verify_command": "pnpm typecheck",
-        "verify_command_repeated_for_log": "pnpm typecheck > /tmp/kobalte-20260627-122127-typecheck.log 2>&1",
-        "verify_exit": 2
+        "initial_codemod_rc": "0",
+        "initial_install_rc": "0",
+        "initial_verify_rc": "2",
+        "package_tests": "passed: pnpm test and pnpm check-types",
+        "rerun_codemod_rc": "0",
+        "rerun_diff_check_rc": "0",
+        "rerun_verify_rc": "2"
       }
     },
     "powerchat": {
