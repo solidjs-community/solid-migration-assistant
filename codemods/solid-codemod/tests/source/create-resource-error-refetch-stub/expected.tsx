@@ -1,18 +1,15 @@
-// TODO(solid-2): Review semantic migration sites in this file: catchError, createEffect, createRenderEffect, createResource.
+// TODO(solid-2): Review semantic migration sites in this file: createResource.
+import { createSignal } from "solid-js";
 
 // TODO(solid-2): Removed Solid 1 imports below are compatibility stubs for type-checking only. Replace each with a Solid 2 migration before relying on runtime behavior.
-const catchError: (fn: (...args: any[]) => any, handler?: (...args: any[]) => any) => any = ((fn: (...args: any[]) => any, handler?: (...args: any[]) => any) => { try { return fn(); } catch (err) { return handler ? handler(err) : undefined; } }) as any;
-import { createEffect as __solid2CreateEffect } from "solid-js";
-const createEffect: (fn: (previous?: any) => any, value?: any, options?: any) => any = ((fn: (previous?: any) => any, value?: any, options?: any) => { let previous = value; return __solid2CreateEffect(() => fn(previous), (next: any) => { previous = next; }, options); }) as any;
-const createRenderEffect: (fn: (previous?: any) => any, value?: any, options?: any) => any = ((fn: (previous?: any) => any, value?: any) => fn(value)) as any;
 import { createEffect as __solid2CreateResourceEffect, createSignal as __solid2CreateResourceSignal } from "solid-js";
 const createResource: { (source: any, fetcher: (value: any, info: any) => any, options?: any): any; (fetcher: (...args: any[]) => any, options?: any): any } = ((source: any, fetcher?: any, options?: any) => { const hasSource = typeof fetcher === "function"; const actualSource = hasSource ? source : undefined; const actualFetcher = hasSource ? fetcher : source; const actualOptions = hasSource ? options : fetcher ?? options; let latest = actualOptions?.initialValue; const [readLatest, setLatest] = __solid2CreateResourceSignal(latest as any, { ownedWrite: true }); const [readError, setError] = __solid2CreateResourceSignal<any>(undefined, { ownedWrite: true }); const [readLoading, setLoading] = __solid2CreateResourceSignal<boolean>(false, { ownedWrite: true }); const resource: any = () => { const error = readError(); if (error) throw error; return readLatest(); }; Object.defineProperty(resource, "latest", { get: () => readLatest() }); Object.defineProperty(resource, "error", { get: () => readError() }); Object.defineProperty(resource, "loading", { get: () => readLoading() }); Object.defineProperty(resource, "state", { get: () => readError() ? "errored" : readLoading() ? "pending" : readLatest() === undefined ? "unresolved" : "ready" }); const mutate = (value: any) => { setError(undefined as any); const next = typeof value === "function" ? value(latest) : value; latest = next; setLatest(() => next); return next; }; const fail = (err: any) => { setError(() => err); return undefined; }; const readSource = () => typeof actualSource === "function" ? actualSource() : actualSource; let requestId = 0; const run = (input: any, refetching?: any) => { if (hasSource && input === undefined) { setLoading(false); return Promise.resolve(undefined); } setLoading(true); const id = ++requestId; return Promise.resolve(typeof actualFetcher === "function" ? actualFetcher(input, { value: latest, refetching }) : input).then(value => { if (id === requestId) { setLoading(false); return mutate(value); } return value; }, err => { if (id === requestId) { setLoading(false); return fail(err); } return undefined; }); }; const refetch = function(value?: any) { const input = hasSource ? readSource() : arguments.length > 0 ? value : undefined; const refetching = arguments.length > 0 ? value : undefined; return run(input, refetching); }; if (hasSource) { let previousInput = readSource(); if (previousInput !== undefined) void run(previousInput); __solid2CreateResourceEffect(() => readSource(), (input: any) => { if (input === previousInput) return; previousInput = input; void run(input); }); } else void refetch(); return [resource, { mutate, refetch }]; }) as any;
 
 
-export // TODO(solid-2): Review createResource resource cluster.
-const data = createResource(() => "id", async id => id);
-export const guarded = catchError(() => data[0](), () => "fallback");
-// TODO(solid-2): Review createEffect split.
-createEffect((prev = 0) => prev + 1);
-// TODO(solid-2): Review createRenderEffect split.
-createRenderEffect((prev = 0) => prev + 1);
+const [url, setUrl] = createSignal<string | undefined>();
+// TODO(solid-2): Review createResource resource cluster.
+const [ready, actions] = createResource(url, async (value, info) => ({ value, refetching: info.refetching }));
+ready.error;
+ready.loading;
+actions.refetch({ reason: "manual" });
+setUrl("/api/ready");
