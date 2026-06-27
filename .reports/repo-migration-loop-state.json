@@ -402,14 +402,16 @@
         "origin/v2/basic-migration"
       ],
       "codemod_changes": [
-        "scripts/source/direct-migrations.ts",
-        "tests/source/testing-library-render-query-destructuring"
+        "scripts/source/solid-transform.ts",
+        "tests/source/splitprops-selected-compat/expected.tsx",
+        "tests/source/review-only/expected.tsx",
+        "tests/source/renderer-validcomponent-direct-import/expected.tsx"
       ],
       "commands": [
         {
-          "cmd": "pnpm dlx codemod@latest search solid",
-          "note": "registry returned 503",
-          "rc": "503"
+          "cmd": "codemod search solid 2 / npx codemod search solid 2",
+          "note": "no packages found",
+          "rc": 0
         },
         {
           "cmd": "git worktree add --detach <run>/codemod origin/main && git worktree add --detach <run>/manual origin/v2/basic-migration",
@@ -425,46 +427,54 @@
         },
         {
           "cmd": "pnpm --filter @kobalte/utils build && pnpm --filter @kobalte/tests build && pnpm --filter @kobalte/core typecheck",
+          "note": "initial 10 diagnostics",
+          "rc": 2
+        },
+        {
+          "cmd": "pnpm test && pnpm check-types",
+          "cwd": "codemods/solid-codemod",
+          "rc": 0
+        },
+        {
+          "cmd": "git reset --hard && git clean -fd packages/core/src packages/tests/src packages/utils/src; rerun codemod",
+          "note": "temp worktree only",
+          "rc": 0
+        },
+        {
+          "cmd": "pnpm --filter @kobalte/utils build && pnpm --filter @kobalte/tests build && pnpm --filter @kobalte/core typecheck",
+          "note": "post-splitProps-overload rerun",
           "rc": 2
         },
         {
           "cmd": "git diff --check && git diff --stat",
           "rc": 0
-        },
-        {
-          "cmd": "grep acceptedFiles/rejectedFiles file-field-context.tsx",
-          "rc": 0
-        },
-        {
-          "cmd": "pnpm test && pnpm check-types",
-          "rc": 0
         }
       ],
-      "commit": "pending-final-commit",
+      "commit": "f24084b996a405bd0dde03f087e089f5c02b9262",
       "default_branch": "origin/main",
-      "end_of_run_commit": "d7a5d344cc838d7dfabadce464d2b0a40104e261",
+      "end_of_run_commit": "f24084b996a405bd0dde03f087e089f5c02b9262",
       "findings": [
-        "Added render(...) -> const { getByRole } = render(...) migration for @solidjs/testing-library when getByRole is later used in the same block.",
-        "Fresh kobalte rerun has no TS2304 getByRole diagnostics.",
-        "Kobalte still fails typecheck on implicit-any callbacks, unused ts-expect-error, and time-field indexing."
+        "Previous splitProps any compatibility stub caused Kobalte selected props to become any, producing implicit-any callbacks and an unused ts-expect-error.",
+        "Changed splitProps review stub to overloads that preserve selected prop groups and rest types for up to five key groups; package fixtures/typecheck pass.",
+        "Fresh Kobalte rerun removes earlier combobox/select/search/time-field implicit-any/unused-expect-error diagnostics, but surfaces stricter Solid 2 JSX/ref/event-handler incompatibilities plus toast hotkey key implicit-any."
       ],
       "last_commit": "4fa33af15dd761cfb99051f91995b4ae8db9e1f6",
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1956-kobalte.md",
-      "last_run_at": "2026-06-27T19:56:49Z",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-2044-kobalte.md",
+      "last_run_at": "2026-06-27T20:44:03Z",
       "last_run_dir": "/tmp/solid-codemod-runs/20260627-195411-kobalte-render-query-52f404fb347c",
-      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-195411-kobalte-render-query-52f404fb347c",
+      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-203112-kobalte-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
-      "manual_sha": "661f6f65a226fcb1759dc3764e2c81b38f53d1c6",
+      "manual_sha": "901386b8727dbc2ec098084f7fb633e6c8b8be74",
       "mode": "manual-compare",
-      "next_action": "Continue kobalte triage on remaining diagnostics: combobox/select implicit-any callbacks, search ts-expect-error, time-field indexing, dismissable-layer/toast callback typing.",
+      "next_action": "Continue kobalte triage on newly surfaced strict Solid 2 ref/event-handler/RemoveAttribute diagnostics and toast hotkey key implicit-any; consider a narrower toast hotkey parameter annotation before broad prop typing changes.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1726-kobalte.md",
-      "run_dir": "/tmp/solid-codemod-runs/20260627-1736-kobalte-set-string-iterator-52f404fb347c",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-203112-kobalte-52f404fb347c",
       "stale_lock": "none",
       "status": "needs-codemod-fix",
-      "verification": "codemod search rc 0; package pnpm test && pnpm check-types rc 0; kobalte apply rc 0; install rc 0; kobalte build/typecheck rc 2; diff check/stat rc 0; getByRole errors gone."
+      "verification": "codemod search solid 2 rc 0 (no packages found); kobalte apply rc 0; install rc 0 before codemod edit; initial typecheck rc 2 with 10 diagnostics; package pnpm test && pnpm check-types rc 0; rerun apply rc 0; rerun kobalte build/typecheck rc 2; diff check/stat rc 0."
     },
     "powerchat": {
       "branches_sample": [
@@ -914,5 +924,6 @@
         "install_exit_code": 0
       }
     }
-  }
+  },
+  "updated_at": "2026-06-27T20:44:03Z"
 }
