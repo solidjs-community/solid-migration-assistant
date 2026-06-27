@@ -8,6 +8,7 @@ const VITE_PLUGIN_SOLID_3_VERSION_RANGE = '"^3.0.0-next.0"';
 const SOLID_TESTING_LIBRARY_1_VERSION_RANGE = '"^1.0.0-beta.2"';
 const BABEL_PRESET_SOLID_2_VERSION_RANGE = '">=2.0.0-beta.15 <2.0.0-experimental.0"';
 const SOLID_ROUTER_NEXT_VERSION_RANGE = '"^0.17.0-next.3"';
+const TYPESCRIPT_6_VERSION_RANGE = '"^6.0.0"';
 const jsxImportSourceReplacements = new Map<string, string>([
   ["solid-js", "@solidjs/web"],
   ["solid-js/h", "@solidjs/h"],
@@ -32,7 +33,8 @@ const codemod: Codemod<JSON> = async (root) => {
     insertedText,
   });
 
-  const stringValue = (node: JsonNode): string | null => {
+  const stringValue = (node: JsonNode | null | undefined): string | null => {
+    if (!node) return null;
     const text = node.text();
     if (text.length < 2) return null;
     if (text[0] !== '"' || text[text.length - 1] !== '"') return null;
@@ -61,7 +63,68 @@ const codemod: Codemod<JSON> = async (root) => {
     };
   };
 
+  const removeArrayElement = (element: JsonNode): Edit => {
+    const start = element.range().start.index;
+    const end = element.range().end.index;
+    const lineStart = source.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+    const nextNewline = source.indexOf("\n", end);
+    const lineEnd = nextNewline === -1 ? source.length : nextNewline;
+    const beforeOnLine = source.slice(lineStart, start);
+    const afterOnLine = source.slice(end, lineEnd);
+
+    if (/^\s*$/.test(beforeOnLine) && /^\s*,?\s*$/.test(afterOnLine)) {
+      return {
+        startPos: lineStart,
+        endPos: nextNewline === -1 ? lineEnd : nextNewline + 1,
+        insertedText: "",
+      };
+    }
+
+    let right = end;
+    while (right < source.length && /\s/.test(source[right] ?? "")) right += 1;
+    if (source[right] === ",") {
+      right += 1;
+      while (right < source.length && /[ \t]/.test(source[right] ?? "")) right += 1;
+      return { startPos: start, endPos: right, insertedText: "" };
+    }
+
+    let left = start;
+    while (left > 0 && /\s/.test(source[left - 1] ?? "")) left -= 1;
+    if (source[left - 1] === ",") left -= 1;
+    return { startPos: left, endPos: end, insertedText: "" };
+  };
+
   const rootObject = rootNode.children().find((child) => child.kind() === "object") ?? rootNode;
+  const compilerOptions = objectPair(rootObject, "compilerOptions")?.field("value") ?? null;
+  if (compilerOptions?.kind() === "object") {
+    const jsxImportSourceValue = objectPair(compilerOptions, "jsxImportSource")?.field("value") ?? null;
+    const migratedJsxImportSource = jsxImportSourceReplacements.get(stringValue(jsxImportSourceValue) ?? "") ?? stringValue(jsxImportSourceValue);
+    if (migratedJsxImportSource === "@solidjs/web") {
+      const moduleResolutionValue = objectPair(compilerOptions, "moduleResolution")?.field("value") ?? null;
+      const typesArray = objectPair(compilerOptions, "types")?.field("value") ?? null;
+      const hasSolidJsTypes =
+        typesArray?.kind() === "array" &&
+        typesArray.children().some((child) => child.kind() === "string" && stringValue(child) === "solid-js");
+      const shouldUseTs6Options = stringValue(moduleResolutionValue) === "Node" || hasSolidJsTypes;
+
+      if (stringValue(moduleResolutionValue) === "Node") {
+        addEdit(replaceNode(moduleResolutionValue!, "\"Bundler\""));
+      }
+
+      if (shouldUseTs6Options && !objectPair(compilerOptions, "ignoreDeprecations")) {
+        const insertIgnoreDeprecations = insertObjectPair(compilerOptions, "ignoreDeprecations", "\"6.0\"");
+        if (insertIgnoreDeprecations) addEdit(insertIgnoreDeprecations);
+      }
+
+      if (typesArray?.kind() === "array") {
+        for (const child of typesArray.children()) {
+          if (child.kind() === "string" && stringValue(child) === "solid-js") {
+            addEdit(removeArrayElement(child));
+          }
+        }
+      }
+    }
+  }
   const packageLockPackages = objectPair(rootObject, "packages")?.field("value") ?? null;
   const packageLockRootPackage = packageLockPackages?.kind() === "object" ? objectPair(packageLockPackages, "")?.field("value") ?? null : null;
   const isPackageLock = objectPair(rootObject, "lockfileVersion") !== null || packageLockRootPackage !== null;
@@ -102,6 +165,8 @@ const codemod: Codemod<JSON> = async (root) => {
       const routerVersion = routerPair?.field("value");
       const babelPresetSolidPair = objectPair(value, "babel-preset-solid");
       const babelPresetSolidVersion = babelPresetSolidPair?.field("value");
+      const typescriptPair = objectPair(value, "typescript");
+      const typescriptVersion = typescriptPair?.field("value");
 
       if (vitePluginSolidVersion) {
         addEdit(replaceNode(vitePluginSolidVersion, VITE_PLUGIN_SOLID_3_VERSION_RANGE));
@@ -117,6 +182,10 @@ const codemod: Codemod<JSON> = async (root) => {
 
       if (babelPresetSolidVersion) {
         addEdit(replaceNode(babelPresetSolidVersion, BABEL_PRESET_SOLID_2_VERSION_RANGE));
+      }
+
+      if (typescriptVersion) {
+        addEdit(replaceNode(typescriptVersion, TYPESCRIPT_6_VERSION_RANGE));
       }
 
       const webPair = objectPair(value, "@solidjs/web");
