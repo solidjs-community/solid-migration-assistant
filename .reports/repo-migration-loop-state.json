@@ -362,7 +362,7 @@
       "target": "kobalte",
       "status": "needs-codemod-fix",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1815-kobalte.md",
-      "commit": "pending-final-commit"
+      "commit": "d7a5d344cc838d7dfabadce464d2b0a40104e261"
     }
   ],
   "targets": {
@@ -426,7 +426,7 @@
       ],
       "commit": "pending-final-commit",
       "default_branch": "origin/main",
-      "end_of_run_commit": "pending-final-commit; final delivery records the created commit hash",
+      "end_of_run_commit": "d7a5d344cc838d7dfabadce464d2b0a40104e261",
       "findings": [
         "Added a conservative AST-bounded transform for interface property signatures named acceptedFiles/rejectedFiles whose array type is followed by a // store marker.",
         "Transformed kobalte packages/core/src/file-field/file-field-context.tsx now has `acceptedFiles: readonly File[]; // store` and `rejectedFiles: readonly FileRejection[]; // store`.",
