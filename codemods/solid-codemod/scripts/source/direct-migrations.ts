@@ -265,6 +265,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteCreateSignalIntersectionAssertions(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteDomDirectives(rootNode, addEdit, replaceNode);
   rewriteIntrinsicAttributes(rootNode, addEdit, replaceNode);
+  rewriteSnapshotReadonlyArrayProps(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
       if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
@@ -1097,6 +1098,45 @@ function rewriteDomDirectives(rootNode: SourceNode, addEdit: (edit: Edit) => voi
   }
 }
 
+
+function rewriteSnapshotReadonlyArrayProps(
+  rootNode: SourceNode,
+  importedByLocal: Map<string, ImportedBinding>,
+  namespaceImports: Map<string, string>,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+): void {
+  const mutableArrayPropNames = new Set(["acceptedFiles", "rejectedFiles"]);
+
+  for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+    const callee = callFunction(call);
+    const args = callArguments(call);
+    if (!callee || args.length !== 1 || !args[0]) continue;
+    if (call.parent()?.kind() === "spread_element") continue;
+
+    let replacementCallee: string | null = null;
+    if (callee.kind() === "identifier") {
+      const binding = importedByLocal.get(callee.text());
+      if (!binding || !solidModules.has(binding.moduleName)) continue;
+      if (binding.importedName !== "snapshot" && binding.importedName !== "unwrap") continue;
+      if (isLocallyShadowed(callee, callee.text())) continue;
+      replacementCallee = binding.aliasName ? binding.localName : (safeImportRenames.get(binding.importedName) ?? binding.importedName);
+    } else if (callee.kind() === "member_expression") {
+      const { objectNode, propertyNode } = memberExpressionParts(callee);
+      if (!objectNode || objectNode.kind() !== "identifier" || !propertyNode) continue;
+      if (!solidModules.has(namespaceImports.get(objectNode.text()) ?? "")) continue;
+      if (propertyNode.text() !== "snapshot" && propertyNode.text() !== "unwrap") continue;
+      replacementCallee = `${objectNode.text()}.${safeImportRenames.get(propertyNode.text()) ?? propertyNode.text()}`;
+    }
+    if (!replacementCallee) continue;
+
+    const pair = call.parent()?.kind() === "pair" ? call.parent() : null;
+    const property = pair?.children().find((child) => child.kind() === "property_identifier");
+    if (!property || !mutableArrayPropNames.has(property.text())) continue;
+
+    addEdit(replaceNode(call, `[...${replacementCallee}(${args[0].text()})]`));
+  }
+}
 
 function rewriteIntrinsicAttributes(rootNode: SourceNode, addEdit: (edit: Edit) => void, replaceNode: (node: SourceNode, text: string) => Edit): void {
   const intrinsicAttributeRenames = new Map([
