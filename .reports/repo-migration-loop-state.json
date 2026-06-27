@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T18:15:37Z",
-  "last_scheduler_run_at": "2026-06-27T18:15:37Z",
+  "last_run_at": "2026-06-27T19:07:12Z",
+  "last_scheduler_run_at": "2026-06-27T19:07:12Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -363,6 +363,13 @@
       "status": "needs-codemod-fix",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1815-kobalte.md",
       "commit": "d7a5d344cc838d7dfabadce464d2b0a40104e261"
+    },
+    {
+      "at": "2026-06-27T19:07:12Z",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1903-kobalte.md",
+      "status": "needs-codemod-fix",
+      "target": "kobalte",
+      "commit": "4fa33af15dd761cfb99051f91995b4ae8db9e1f6"
     }
   ],
   "targets": {
@@ -386,8 +393,8 @@
         "origin/v2/basic-migration"
       ],
       "codemod_changes": [
-        "scripts/source/direct-migrations.ts: added rewriteReadonlyStoreArrayInterfaceProperties",
-        "tests/source/readonly-store-array-context: added fixture"
+        "scripts/source/direct-migrations.ts: added rewriteGenericCreateSignalOptionalInitializers and nearest generic type-parameter lookup.",
+        "tests/source/create-signal-generic-optional-initializer: added positive and negative fixture coverage."
       ],
       "commands": [
         {
@@ -428,18 +435,18 @@
       "default_branch": "origin/main",
       "end_of_run_commit": "d7a5d344cc838d7dfabadce464d2b0a40104e261",
       "findings": [
-        "Added a conservative AST-bounded transform for interface property signatures named acceptedFiles/rejectedFiles whose array type is followed by a // store marker.",
-        "Transformed kobalte packages/core/src/file-field/file-field-context.tsx now has `acceptedFiles: readonly File[]; // store` and `rejectedFiles: readonly FileRejection[]; // store`.",
-        "The previous file-field-root.tsx TS4104 readonly assignment diagnostics disappeared from the kobalte typecheck output.",
-        "Kobalte still fails typecheck on combobox/select implicit-any callbacks, combobox test getByRole scope, createSignal initializer overload, unused search ts-expect-error, time-field indexing, dismissable-layer callback typing, and toast callback typing."
+        "Added a conservative AST-bounded transform for generic createSignal(props.defaultValue?.()) initializers inside generic functions.",
+        "The transformed kobalte create-controllable-signal.ts now emits createSignal<T>(props.defaultValue?.() as Exclude<T, Function>), matching Solid 2 overload constraints for generic possibly-function values while preserving runtime default initialization.",
+        "The previous create-controllable-signal.ts TS2769 diagnostics disappeared from the fresh target typecheck output.",
+        "Kobalte still fails typecheck on combobox/select implicit-any callbacks, combobox test getByRole scope, unused search ts-expect-error, time-field indexing, dismissable-layer callback typing, and toast callback typing."
       ],
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1726-kobalte.md",
-      "last_run_at": "2026-06-27T18:15:37Z",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1903-kobalte.md",
+      "last_run_at": "2026-06-27T19:07:12Z",
       "last_run_dir": "/tmp/solid-codemod-runs/20260627-1736-kobalte-set-string-iterator-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
       "manual_sha": "661f6f65a226fcb1759dc3764e2c81b38f53d1c6",
       "mode": "manual-compare",
-      "next_action": "Continue kobalte triage on remaining diagnostics: combobox/select implicit-any callbacks, combobox test getByRole scope, createSignal initializer overload, search ts-expect-error, time-field indexing, dismissable-layer/toast callback typing.",
+      "next_action": "Continue kobalte triage on remaining diagnostics: combobox/select implicit-any callbacks, combobox test getByRole scope, search ts-expect-error, time-field indexing, dismissable-layer/toast callback typing.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
@@ -447,7 +454,9 @@
       "run_dir": "/tmp/solid-codemod-runs/20260627-1736-kobalte-set-string-iterator-52f404fb347c",
       "stale_lock": "none",
       "status": "needs-codemod-fix",
-      "verification": "- Codemod package `pnpm test && pnpm check-types`: rc 0 (109 source fixtures, 14 JSON fixtures, tsc passed).\n- Codemod registry discovery `pnpm dlx codemod@latest search solid`: attempted but registry returned 503 Service Temporarily Unavailable.\n- Disposable kobalte worktrees created from origin/main and origin/v2/basic-migration.\n- Codemod workflow apply: rc 0.\n- `pnpm install --no-frozen-lockfile` in disposable codemod worktree: rc 0.\n- `pnpm --filter @kobalte/utils build && pnpm --filter @kobalte/tests build && pnpm --filter @kobalte/core typecheck`: rc 2.\n- `git diff --check && git diff --stat`: rc 0."
+      "verification": "- Registry discovery: npx codemod search solid-2 returned no packages.\n- Codemod package pnpm test plus pnpm check-types: rc 0, 110 source fixtures, 14 JSON fixtures, tsc passed.\n- Disposable kobalte worktrees created from origin/main and origin/v2/basic-migration.\n- Codemod workflow apply: rc 0.\n- pnpm install --no-frozen-lockfile in disposable codemod worktree: rc 0.\n- pnpm filter build/typecheck command: rc 2.\n- git diff --check plus git diff --stat: rc 0.",
+      "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-1903-kobalte-create-signal-rerun-52f404fb347c",
+      "last_commit": "4fa33af15dd761cfb99051f91995b4ae8db9e1f6"
     },
     "powerchat": {
       "branches_sample": [

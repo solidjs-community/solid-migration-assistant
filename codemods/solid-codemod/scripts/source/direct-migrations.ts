@@ -262,6 +262,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteOnCleanupReturns(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode, markImportRemoval, state.handled);
   rewriteSimplePropDestructuring(rootNode, addEdit, replaceNode);
   rewriteContextHookShims(rootNode, addEdit, replaceNode);
+  rewriteGenericCreateSignalOptionalInitializers(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteCreateSignalIntersectionAssertions(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteDomDirectives(rootNode, addEdit, replaceNode);
   rewriteIntrinsicAttributes(rootNode, addEdit, replaceNode);
@@ -284,6 +285,55 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   if (state.cleanupHandled) handledReviewNames.add("onMount cleanup");
 
   return { handledReviewNames };
+}
+
+
+function rewriteGenericCreateSignalOptionalInitializers(
+  rootNode: SourceNode,
+  importedByLocal: Map<string, ImportedBinding>,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+  handled: Set<string>,
+): void {
+  for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+    const callee = callFunction(call);
+    const args = callArguments(call);
+    if (!callee || callee.kind() !== "identifier" || args.length !== 1 || !args[0]) continue;
+    const binding = importedByLocal.get(callee.text());
+    if (!binding || binding.importedName !== "createSignal" || !solidModules.has(binding.moduleName)) continue;
+    if (isLocallyShadowed(callee, callee.text())) continue;
+    if (call.children().some((child) => child.kind() === "type_arguments")) continue;
+
+    const initializer = args[0];
+    if (initializer.kind() === "as_expression") continue;
+    const initializerText = initializer.text().trim();
+    if (!/^[A-Za-z_$][A-Za-z0-9_$.]*\?\.\(\s*\)$/.test(initializerText)) continue;
+
+    const typeParameter = nearestGenericTypeParameter(call, "T");
+    if (!typeParameter) continue;
+
+    addEdit(replaceNode(call, callee.text() + "<" + typeParameter + ">(" + initializerText + " as Exclude<" + typeParameter + ", Function>)"));
+    handled.add("createSignal generic initializer");
+  }
+}
+
+function nearestGenericTypeParameter(node: SourceNode, preferredName: string): string | null {
+  let current: SourceNode | null = node.parent() ?? null;
+  while (current) {
+    const kind = current.kind();
+    if (kind === "function_declaration" || kind === "function_expression" || kind === "arrow_function" || kind === "method_definition") {
+      const typeParameters = current.children().find((child) => child.kind() === "type_parameters") ?? null;
+      if (!typeParameters) return null;
+      const names = typeParameters
+        .findAll({ rule: { kind: "type_parameter" } })
+        .map((typeParameter) => typeParameter.children().find((child) => child.kind() === "type_identifier")?.text() ?? "")
+        .filter(Boolean);
+      if (names.includes(preferredName)) return preferredName;
+      return names[0] ?? null;
+    }
+    current = current.parent() ?? null;
+  }
+  return null;
 }
 
 
