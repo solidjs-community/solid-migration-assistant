@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T19:56:49Z",
-  "last_scheduler_run_at": "2026-06-27T19:56:49Z",
+  "last_run_at": "2026-06-27T21:31:10Z",
+  "last_scheduler_run_at": "2026-06-27T21:31:10Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -379,6 +379,13 @@
       "run_dir": "/tmp/solid-codemod-runs/20260627-195411-kobalte-render-query-52f404fb347c",
       "status": "needs-codemod-fix",
       "target": "kobalte"
+    },
+    {
+      "at": "2026-06-27T21:31:10Z",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-2125-kobalte.md",
+      "status": "needs-codemod-fix",
+      "target": "kobalte",
+      "commit": "d696cbafcc3ab5956843446ea3d68c218d31724d"
     }
   ],
   "targets": {
@@ -402,10 +409,9 @@
         "origin/v2/basic-migration"
       ],
       "codemod_changes": [
-        "scripts/source/solid-transform.ts",
-        "tests/source/splitprops-selected-compat/expected.tsx",
-        "tests/source/review-only/expected.tsx",
-        "tests/source/renderer-validcomponent-direct-import/expected.tsx"
+        "codemods/solid-codemod/scripts/source/direct-migrations.ts",
+        "codemods/solid-codemod/tests/source/hotkey-every-string-callback/input.tsx",
+        "codemods/solid-codemod/tests/source/hotkey-every-string-callback/expected.tsx"
       ],
       "commands": [
         {
@@ -450,23 +456,23 @@
           "rc": 0
         }
       ],
-      "commit": "640981c49f443faf7338084df87125333ea9c44a",
+      "commit": "d696cbafcc3ab5956843446ea3d68c218d31724d",
       "default_branch": "origin/main",
       "end_of_run_commit": "640981c49f443faf7338084df87125333ea9c44a",
       "findings": [
-        "Previous splitProps any compatibility stub caused Kobalte selected props to become any, producing implicit-any callbacks and an unused ts-expect-error.",
-        "Changed splitProps review stub to overloads that preserve selected prop groups and rest types for up to five key groups; package fixtures/typecheck pass.",
-        "Fresh Kobalte rerun removes earlier combobox/select/search/time-field implicit-any/unused-expect-error diagnostics, but surfaces stricter Solid 2 JSX/ref/event-handler incompatibilities plus toast hotkey key implicit-any."
+        "Added narrow hotkey.every callback parameter annotation.",
+        "Fresh Kobalte target verification no longer reports toast-list key implicit-any.",
+        "Kobalte still fails on strict Solid 2 JSX ref, event handler, RemoveAttribute, portal children, and style false diagnostics."
       ],
       "last_commit": "4fa33af15dd761cfb99051f91995b4ae8db9e1f6",
       "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-2044-kobalte.md",
-      "last_run_at": "2026-06-27T20:44:03Z",
+      "last_run_at": "2026-06-27T21:31:10Z",
       "last_run_dir": "/tmp/solid-codemod-runs/20260627-195411-kobalte-render-query-52f404fb347c",
       "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-203112-kobalte-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
       "manual_sha": "901386b8727dbc2ec098084f7fb633e6c8b8be74",
       "mode": "manual-compare",
-      "next_action": "Continue kobalte triage on newly surfaced strict Solid 2 ref/event-handler/RemoveAttribute diagnostics and toast hotkey key implicit-any; consider a narrower toast hotkey parameter annotation before broad prop typing changes.",
+      "next_action": "Continue Kobalte triage on strict Solid 2 JSX ref/event-handler/RemoveAttribute diagnostics, likely starting with repeated hidden input ref/event handler patterns.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
@@ -474,7 +480,16 @@
       "run_dir": "/tmp/solid-codemod-runs/20260627-203112-kobalte-52f404fb347c",
       "stale_lock": "none",
       "status": "needs-codemod-fix",
-      "verification": "codemod search solid 2 rc 0 (no packages found); kobalte apply rc 0; install rc 0 before codemod edit; initial typecheck rc 2 with 10 diagnostics; package pnpm test && pnpm check-types rc 0; rerun apply rc 0; rerun kobalte build/typecheck rc 2; diff check/stat rc 0."
+      "verification": {
+        "codemod_search_rc": 0,
+        "package_test_rc": 0,
+        "package_check_types_rc": 0,
+        "apply_rc": 0,
+        "install_rc": 0,
+        "target_verify_rc": 2,
+        "diff_check_rc": 0,
+        "toast_hotkey_key_diagnostic_present": false
+      }
     },
     "powerchat": {
       "branches_sample": [

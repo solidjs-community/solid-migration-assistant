@@ -271,6 +271,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteReadonlyStoreArrayInterfaceProperties(rootNode, addEdit, replaceNode);
   rewriteSetStringIteratorValueNarrowing(rootNode, addEdit, replaceNode);
   rewriteTestingLibraryRenderQueryDestructuring(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
+  rewriteHotkeyEveryStringCallbacks(rootNode, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
       if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
@@ -1276,6 +1277,28 @@ function rewriteSetStringIteratorValueNarrowing(
     addEdit(replaceNode(value, valueText + " as string"));
   }
 }
+
+
+function rewriteHotkeyEveryStringCallbacks(
+  rootNode: SourceNode,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+): void {
+  for (const call of rootNode.findAll({ rule: { kind: "call_expression" } })) {
+    const callText = call.text();
+    if (!/^hotkey\.every\s*\(/.test(callText.trim())) continue;
+    if (!/\bevent\.code\s*===\s*key\b/.test(callText)) continue;
+    if (!/\[\s*key\s*\]/.test(callText)) continue;
+
+    const replacement = callText.replace(
+      /\(\s*key\s*\)(\s*=>\s*\(event\s+as\s+any\)\s*\[\s*key\s*\]\s*\|\|\s*event\.code\s*===\s*key)/,
+      (_match: string, tail: string) => "(key: string)" + tail,
+    );
+    if (replacement === callText) continue;
+    addEdit(replaceNode(call, replacement));
+  }
+}
+
 
 function rewriteForwardedIntrinsicComponentProps(
   rootNode: SourceNode,
