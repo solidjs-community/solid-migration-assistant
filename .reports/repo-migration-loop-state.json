@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T01:22:26Z",
-  "last_scheduler_run_at": "2026-06-27T01:22:26Z",
+  "last_run_at": "2026-06-27T02:12:32Z",
+  "last_scheduler_run_at": "2026-06-27T02:12:32Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -187,6 +187,15 @@
       "target": "solid-primitives",
       "status": "needs-codemod-fix",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-012226-solid-primitives.md"
+    },
+    {
+      "at": "2026-06-27T02:12:32Z",
+      "target": "solid-primitives",
+      "mode": "manual-compare",
+      "status": "needs-codemod-fix",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c",
+      "commit": "pending",
+      "summary": "createEffect compatibility wrapper added; package tests pass; focused fetch still times out"
     }
   ],
   "targets": {
@@ -354,73 +363,79 @@
         "upstream/on-dispose"
       ],
       "codemod_changes": [
-        "Updated solid-transform.ts createResource stub refetch guard",
-        "Updated expected fixtures",
-        "Added create-resource-undefined-source-stub fixture"
+        "Updated scripts/source/solid-transform.ts createEffect stub generation to import Solid 2 createEffect under an alias and provide a Solid 1-style wrapper.",
+        "Updated createEffect-related expected fixtures to cover the wrapper and retained review TODO markers."
       ],
       "commands": {
-        "clone": {
-          "cmd": "git clone --no-hardlinks /home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives /tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/codemod",
+        "registry-search": {
+          "cmd": "npx codemod@latest search \"solid 2\"",
           "exit": 0,
-          "seconds": 0.3,
-          "log": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/clone.log"
+          "seconds": 2.3,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/registry-search.log"
         },
-        "checkout-main": {
-          "cmd": "git checkout main || git checkout origin/main || git checkout master || git checkout origin/master",
+        "clone-codemod": {
+          "cmd": "git clone --no-hardlinks /home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives /tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/codemod",
           "exit": 0,
-          "seconds": 0.1,
-          "log": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/checkout-main.log"
+          "seconds": 0.9,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/clone-codemod.log"
+        },
+        "checkout-codemod-main": {
+          "cmd": "git checkout main || git checkout upstream/main || git checkout master || git checkout upstream/master",
+          "exit": 0,
+          "seconds": 0.9,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/checkout-codemod-main.log"
+        },
+        "clone-manual": {
+          "cmd": "git clone --no-hardlinks /home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives /tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/manual",
+          "exit": 0,
+          "seconds": 0.9,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/clone-manual.log"
+        },
+        "checkout-manual-next": {
+          "cmd": "git checkout next || git checkout upstream/next || git checkout solid2 || git checkout upstream/solid2",
+          "exit": 0,
+          "seconds": 0.8,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/checkout-manual-next.log"
         },
         "codemod-run": {
-          "cmd": "cd /home/lucifer/work/active/codemod/solid/solid-codemod/codemods/solid-codemod && pnpm dlx codemod@latest workflow run -w workflow.yaml --target /tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/codemod --no-interactive",
+          "cmd": "cd /home/lucifer/work/active/codemod/solid/solid-codemod/codemods/solid-codemod && pnpm dlx codemod@latest workflow run -w workflow.yaml --target /tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/codemod --no-interactive",
           "exit": 0,
-          "seconds": 4.0,
-          "log": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/codemod-run.log"
+          "seconds": 4.7,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/codemod-run.log"
+        },
+        "diff-check-stat": {
+          "cmd": "git diff --check && git diff --stat",
+          "exit": 0,
+          "seconds": 0.8,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/diff-check-stat.log"
         },
         "install": {
           "cmd": "pnpm install --no-frozen-lockfile",
           "exit": 0,
-          "seconds": 5.3,
-          "log": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/install.log"
-        },
-        "focused-immutable-test": {
-          "cmd": "pnpm exec vitest run packages/immutable/test/index.test.ts",
-          "exit": 1,
-          "seconds": 0.7,
-          "log": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/focused-immutable-test.log"
+          "seconds": 5.7,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/install.log"
         },
         "focused-fetch-test": {
-          "cmd": "pnpm exec vitest run packages/fetch/test/index.test.ts",
+          "cmd": "pnpm exec vitest -c ./configs/vitest.config.ts packages/fetch/test/index.test.ts --run",
           "exit": 1,
-          "seconds": 15.9,
-          "log": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/focused-fetch-test.log"
-        },
-        "package-tests-check-types": {
-          "cmd": "cd codemods/solid-codemod && pnpm test && pnpm check-types",
-          "exit": 0,
-          "seconds": null,
-          "log": "Hermes terminal output"
-        },
-        "diff-check-parse": {
-          "cmd": "git diff --check && esbuild transform parse for packages/immutable/test/index.test.ts and packages/fetch/test/index.test.ts && git diff --stat",
-          "exit": 0,
-          "seconds": null,
-          "log": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c/diff-check-parse.log"
+          "seconds": 72.1,
+          "log": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c/focused-fetch-test.log"
         }
       },
       "default_branch": "main",
-      "end_of_run_commit": "pending; final delivery records actual hash",
+      "end_of_run_commit": "pending (final response records actual commit hash after commit creation)",
       "findings": [
-        "createResource stub skips fetcher when source/accessor returns undefined",
-        "focused fetch test no longer reports requestData is not iterable or undefined[0] cache crashes",
-        "remaining failures are non-reactive resource semantics/timeouts and localStorage server runtime"
+        "Registry discovery still found no existing Solid 2 codemod package, so local package iteration continued.",
+        "Preserving Solid 2 createEffect directly removes the undefined/stub error but Solid 2 requires a compute/effect split; one-argument Solid 1 createEffect calls throw MISSING_EFFECT_FN.",
+        "Added a conservative createEffect compatibility wrapper that aliases Solid 2 createEffect and adapts Solid 1 (fn, value, options) calls by tracking previous values.",
+        "Focused solid-primitives fetch tests progressed from immediate MISSING_EFFECT_FN failures to timeout failures: createEffect no longer throws, but fetch/resource-heavy behavior still does not settle for 14 tests."
       ],
       "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-012226-solid-primitives.md",
-      "last_run_at": "2026-06-27T01:22:26Z",
+      "last_run_at": "2026-06-27T02:12:32Z",
       "last_temp_run_dir": "/tmp/solid-codemod-runs/20260626-222817-solid-primitives-trailing-comma-52f404fb347c",
       "manual_branch": "next",
       "mode": "manual-compare",
-      "next_action": "Continue solid-primitives fetch triage: design/fixture a safe createResource/resource runtime migration or document these resource-heavy files as manual after eliminating the undefined source crash class.",
+      "next_action": "Continue solid-primitives fetch triage: wrapper removed MISSING_EFFECT_FN, but 14 focused fetch tests now time out; inspect createResource/createEffect scheduling/manual next branch diff and decide safe automation vs TODO/manual marker.",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "priority": 4,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
@@ -428,9 +443,15 @@
       "stale_lock_cleared": true,
       "status": "needs-codemod-fix",
       "verification": {
-        "codemod_package": "pnpm test && pnpm check-types exit 0 (87 source fixtures, 12 JSON fixtures)",
-        "target": "workflow/diff-check/install exit 0; focused fetch Vitest exit 1 with 15 failed/1 passed; requestData undefined crash class removed"
-      }
+        "registry_search": "No packages found for solid 2",
+        "codemod_package_tests": "pnpm test passed: 87 source + 12 json fixtures",
+        "codemod_package_check_types": "pnpm check-types passed (tsc --noEmit)",
+        "target_diff_check": "passed (git diff --check exit 0)",
+        "target_install": "passed (pnpm install --no-frozen-lockfile exit 0)",
+        "focused_fetch_test": "failed: 14/16 tests timed out after createEffect compatibility wrapper; previous MISSING_EFFECT_FN runtime error is eliminated"
+      },
+      "latest_run_dir": "/tmp/solid-codemod-runs/20260627-020759-solid-primitives-createeffect-wrapper-52f404fb347c",
+      "stale_lock": "no"
     },
     "solid-router": {
       "branches_sample": [

@@ -243,6 +243,9 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
 
     const callablePrevious = "(fn: (previous?: any) => any, value?: any, options?: any) => any";
     const callablePreviousRuntime = "((fn: (previous?: any) => any, value?: any) => fn(value)) as any";
+    const createEffectImportName = localName === "createEffect" ? "__solid2CreateEffect" : `__solid2CreateEffect_${localName}`;
+    const createEffectRuntime = `import { createEffect as ${createEffectImportName} } from "solid-js";
+const ${localName}: ${callablePrevious} = ((fn: (previous?: any) => any, value?: any, options?: any) => { let previous = value; return ${createEffectImportName}(() => fn(previous), (next: any) => { previous = next; }, options); }) as any;`;
     const createResourceRuntime = `const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, options?: any): any; (fetcher: (...args: any[]) => any, options?: any): any } = ((source: any, fetcher?: any, options?: any) => { let latest = options?.initialValue; let error: any; const resource: any = () => { if (error) throw error; return latest; }; Object.defineProperty(resource, "latest", { get: () => latest }); Object.defineProperty(resource, "error", { get: () => error }); Object.defineProperty(resource, "state", { get: () => error ? "errored" : latest === undefined ? "unresolved" : "ready" }); const mutate = (value: any) => { error = undefined; latest = typeof value === "function" ? value(latest) : value; return latest; }; const fail = (err: any) => { error = err; return undefined; }; const refetch = () => { const input = typeof source === "function" ? source() : source; if (input === undefined) return Promise.resolve(undefined); return Promise.resolve(typeof fetcher === "function" ? fetcher(input, { value: latest }) : input).then(mutate, fail); }; void refetch(); return [resource, { mutate, refetch }]; }) as any;`;
     const valueStubs = new Map<string, string>([
       ["createResource", createResourceRuntime],
@@ -250,7 +253,7 @@ const codemod: Codemod<SourceLanguage> = async (root) => {
       ["createSelector", "const " + localName + ": (source: any, fn?: any, options?: any) => (key: any) => boolean = undefined as any;"],
       ["useTransition", "const " + localName + ": () => [() => boolean, (fn: () => any) => any] = undefined as any;"],
       ["startTransition", "const " + localName + ": (fn: () => any) => any = ((fn: () => any) => fn()) as any;"],
-      ["createEffect", "const " + localName + ": " + callablePrevious + " = " + callablePreviousRuntime + ";"],
+      ["createEffect", createEffectRuntime],
       ["createRenderEffect", "const " + localName + ": " + callablePrevious + " = " + callablePreviousRuntime + ";"],
       ["createComputed", "const " + localName + ": " + callablePrevious + " = " + callablePreviousRuntime + ";"],
       ["createReaction", "const " + localName + ": (fn: (...args: any[]) => any, options?: any) => (tracker: any) => any = undefined as any;"],

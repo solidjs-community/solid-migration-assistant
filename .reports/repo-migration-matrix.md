@@ -1,12 +1,10 @@
 # Solid codemod migration matrix
 
-Last updated: 2026-06-27T01:22:26Z
-
-| Priority | Target | Mode | Status | Next action | Last run |
+| Priority | Target | Mode | Status | Last run | Next action |
 |---:|---|---|---|---|---|
-| 1 | test | synthetic | successful | run migration feedback loop for powerchat | 2026-06-25T21:30:59-0500 |
-| 2 | powerchat | direct-migrate | blocked-manual-dependency-remediation | manual dependency remediation needed for @solidjs/start and Solid 1-era ecosystem packages; proceed to solid-router for codemod feedback unless these dependencies publish Solid 2-compatible releases. | 2026-06-26T05:00:36Z |
-| 3 | solid-router | manual-compare | successful | Proceed to solid-primitives migration feedback loop. | 2026-06-26T15:52:21Z |
-| 4 | solid-primitives | manual-compare | needs-codemod-fix | Continue solid-primitives fetch triage: design/fixture a safe createResource/resource runtime migration or document these resource-heavy files as manual after eliminating the undefined source crash class. | 2026-06-27T01:22:26Z |
-| 5 | kobalte | manual-compare | pending | run migration feedback loop |  |
-| 100 | solid | manual-compare | pending | run migration feedback loop |  |
+| 1 | `test` | synthetic | `successful` | 2026-06-25T21:30:59-0500 | run migration feedback loop for powerchat |
+| 2 | `powerchat` | direct-migrate | `blocked-manual-dependency-remediation` | 2026-06-26T05:00:36Z | manual dependency remediation needed for @solidjs/start and Solid 1-era ecosystem packages; proceed to solid-router for codemod feedback unless these dependencies publish Solid 2-compatible releases. |
+| 3 | `solid-router` | manual-compare | `successful` | 2026-06-26T15:52:21Z | Proceed to solid-primitives migration feedback loop. |
+| 4 | `solid-primitives` | manual-compare | `needs-codemod-fix` | 2026-06-27T02:12:32Z | Continue solid-primitives fetch triage: wrapper removed MISSING_EFFECT_FN, but 14 focused fetch tests now time out; inspect createResource/createEffect scheduling/manual next branch diff and decide safe automation vs TODO/manual marker. |
+| 5 | `kobalte` | manual-compare | `pending` |  | run migration feedback loop |
+| 6 | `solid` | manual-compare | `pending` |  | run migration feedback loop |
