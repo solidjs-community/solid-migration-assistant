@@ -1,3 +1,3 @@
-import type { Element } from "solid-js";
+import type { JSX as SolidJSX } from "@solidjs/web";
 
-export type View = () => Element;
+export type View = () => SolidJSX.Element;

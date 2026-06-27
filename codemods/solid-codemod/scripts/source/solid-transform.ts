@@ -611,18 +611,9 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
     if (comment.text().includes("/*@once*/")) semanticReviewNames.add("/*@once*/");
   }
 
-  const jsxElementNamespaceLocals = new Set<string>();
-  const unsafeJsxNamespaceLocals = new Set<string>();
-  for (const nestedType of rootNode.findAll({ rule: { kind: "nested_type_identifier" } })) {
-    const children = nestedType.children();
-    const namespace = children.find((child) => child.kind() === "identifier") ?? null;
-    const property = children.find((child) => child.kind() === "type_identifier") ?? null;
-    if (!namespace) continue;
-    if (property?.text() === "Element") jsxElementNamespaceLocals.add(namespace.text());
-    else unsafeJsxNamespaceLocals.add(namespace.text());
-  }
-
-  const jsxNamespaceElementRenames = new Set<string>();
+  // Keep JSX namespace references (for example JSX.Element render props) on
+  // @solidjs/web. Rewriting JSX.Element to the Solid core Element type loses
+  // renderer-specific callable/narrowing behavior in downstream libraries.
   const namespaceImports = new Map<string, string>();
   const createContextLocalNames = new Set<string>();
   const createMemoLocalNames = new Set<string>();
@@ -679,13 +670,6 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
         onCleanupLocalNames.add(specifier.field("alias")?.text() ?? importedName);
       }
       if (isSolidWebModule(originalModuleName) && importedName && webReviewOnlyNames.has(importedName)) semanticReviewNames.add(importedName);
-      if (originalModuleName === "solid-js" && importedName === "JSX") {
-        const aliasName = specifier.field("alias")?.text() ?? null;
-        const jsxLocalName = aliasName ?? importedName;
-        if (jsxElementNamespaceLocals.has(jsxLocalName) && !unsafeJsxNamespaceLocals.has(jsxLocalName)) {
-          jsxNamespaceElementRenames.add(jsxLocalName);
-        }
-      }
     }
   }
 
@@ -869,18 +853,11 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
       const localName = aliasName ?? importedName;
       const isTypeOnlySpecifier = specifierIsTypeOnly(specifier, typeOnlyImport);
       const solidTypeReplacement = originalModuleName === "solid-js" ? solidTypeRenames.get(importedName) : null;
-      const rewriteJsxElementNamespace = originalModuleName === "solid-js" && importedName === "JSX" && jsxNamespaceElementRenames.has(localName);
-      const isRendererType = originalModuleName === "solid-js" && rendererTypeNames.has(importedName) && !rewriteJsxElementNamespace;
+      const isRendererType = originalModuleName === "solid-js" && rendererTypeNames.has(importedName);
       const webReplacementName = isSolidWebModule(originalModuleName) ? webSafeImportRenames.get(importedName) : null;
 
       if (originalModuleName === "solid-js" && importedName === "Signal") {
         addReviewStub(localName, importedName, true);
-        changedNamedImport = true;
-        continue;
-      }
-
-      if (rewriteJsxElementNamespace) {
-        addSolidTypeSpecifier(specifierText(specifier, "Element", null, true), "Element", null);
         changedNamedImport = true;
         continue;
       }
@@ -1045,16 +1022,6 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
     }
   }
 
-  if (jsxNamespaceElementRenames.size > 0) {
-    for (const nestedType of rootNode.findAll({ rule: { kind: "nested_type_identifier" } })) {
-      const children = nestedType.children();
-      const namespace = children.find((child) => child.kind() === "identifier") ?? null;
-      const property = children.find((child) => child.kind() === "type_identifier") ?? null;
-      if (!namespace || property?.text() !== "Element") continue;
-      if (!jsxNamespaceElementRenames.has(namespace.text())) continue;
-      addEdit(replaceNode(nestedType, "Element"));
-    }
-  }
 
   if (sharedConfigLocalNames.size > 0) {
     for (const member of rootNode.findAll({ rule: { kind: "member_expression" } })) {

@@ -1,8 +1,7 @@
 import { createSignal } from "solid-js";
-import type { Element } from "solid-js";
-import type { ComponentProps as PropsFor } from "@solidjs/web";
+import type { JSX, ComponentProps as PropsFor } from "@solidjs/web";
 
-type ButtonProps = PropsFor<"button"> & { children: Element };
+type ButtonProps = PropsFor<"button"> & { children: JSX.Element };
 
 export function Button(props: ButtonProps) {
   const [count] = createSignal(0);
