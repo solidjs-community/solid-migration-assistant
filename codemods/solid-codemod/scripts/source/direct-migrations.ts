@@ -265,6 +265,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteCreateSignalIntersectionAssertions(rootNode, importedByLocal, addEdit, replaceNode, state.handled);
   rewriteDomDirectives(rootNode, addEdit, replaceNode);
   rewriteIntrinsicAttributes(rootNode, addEdit, replaceNode);
+  rewriteForwardedIntrinsicComponentProps(rootNode, importedByLocal, imports, addEdit, replaceNode, markImportRemoval);
   rewriteSnapshotReadonlyArrayProps(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
@@ -1135,6 +1136,105 @@ function rewriteSnapshotReadonlyArrayProps(
     if (!property || !mutableArrayPropNames.has(property.text())) continue;
 
     addEdit(replaceNode(call, `[...${replacementCallee}(${args[0].text()})]`));
+  }
+}
+
+
+
+function rewriteForwardedIntrinsicComponentProps(
+  rootNode: SourceNode,
+  importedByLocal: Map<string, ImportedBinding>,
+  imports: ImportStatementInfo[],
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+  markImportRemoval: (binding: ImportedBinding) => void,
+): void {
+  const componentPropsBindings = new Map<string, ImportedBinding>();
+  for (const binding of importedByLocal.values()) {
+    if (binding.importedName !== "ComponentProps") continue;
+    if (!solidModules.has(binding.moduleName) && !webModules.has(binding.moduleName)) continue;
+    componentPropsBindings.set(binding.localName, binding);
+  }
+  if (componentPropsBindings.size === 0 && !rootNode.text().includes("ComponentProps<")) return;
+
+  const importedComponents = new Map<string, { propTypeName: string; importInfo: ImportStatementInfo }>();
+  for (const importInfo of imports) {
+    if (!importInfo.moduleName.startsWith(".")) continue;
+    for (const specifier of importInfo.specifiers) {
+      if (specifier.aliasName) continue;
+      if (!/^[A-Z]/.test(specifier.localName)) continue;
+      importedComponents.set(specifier.localName, {
+        propTypeName: specifier.importedName + "Props",
+        importInfo,
+      });
+    }
+  }
+  const source = rootNode.text();
+  const importStatementsEdited = new Set<number>();
+
+  const directForwardedImportPattern = /import\s+\{\s*([A-Z][A-Za-z0-9_]*)\s*\}\s+from\s+"[^"]+";/g;
+  for (const importMatch of source.matchAll(directForwardedImportPattern)) {
+    const componentName = importMatch[1];
+    const importText = importMatch[0];
+    if (!componentName || !importText || importMatch.index === undefined) continue;
+    const propTypeName = componentName + "Props";
+    const typePattern = /type\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*ComponentProps\s*<\s*"input"\s*>\s*;?/;
+    const typeMatch = typePattern.exec(source);
+    if (!typeMatch || typeMatch.index === undefined) continue;
+    const aliasName = typeMatch[1];
+    const typeText = typeMatch[0];
+    if (!aliasName || !typeText) continue;
+    const forwardsProps = source.includes("props: " + aliasName) && source.includes("<" + componentName) && source.includes("{...props}");
+    if (!forwardsProps) continue;
+
+    addEdit({ startPos: typeMatch.index, endPos: typeMatch.index + typeText.length, insertedText: "type " + aliasName + " = " + propTypeName + ";" });
+    addEdit({
+      startPos: importMatch.index,
+      endPos: importMatch.index + importText.length,
+      insertedText: importText.replace(" }", ", type " + propTypeName + " }"),
+    });
+    const componentPropsBinding = componentPropsBindings.get("ComponentProps");
+    if (componentPropsBinding) markImportRemoval(componentPropsBinding);
+    break;
+  }
+
+  for (const typeAlias of rootNode.findAll({ rule: { kind: "type_alias_declaration" } })) {
+    const match = typeAlias.text().match(/^(?:export\s+)?type\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*<\s*["]input["]\s*>\s*;?/s);
+    if (!match) continue;
+    const aliasName = match[1];
+    const componentPropsLocal = match[2];
+    if (!aliasName || !componentPropsLocal) continue;
+    const componentPropsBinding = componentPropsBindings.get(componentPropsLocal) ?? null;
+    if (!componentPropsBinding && componentPropsLocal !== "ComponentProps") continue;
+
+    for (const jsxElement of rootNode.findAll({ rule: { kind: "jsx_self_closing_element" } })) {
+      const jsxMatch = jsxElement.text().match(/^<([A-Z][A-Za-z0-9_]*)\s+\{\.\.\.([A-Za-z_][A-Za-z0-9_]*)\}\s*\/>/s);
+      if (!jsxMatch) continue;
+      const componentName = jsxMatch[1];
+      const propsName = jsxMatch[2];
+      if (!componentName || !propsName) continue;
+      const componentInfo = importedComponents.get(componentName);
+      if (!componentInfo) continue;
+
+      const parameterPattern = new RegExp("\b" + propsName + "\s*:\s*" + aliasName + "\b");
+      if (!parameterPattern.test(source)) continue;
+
+      addEdit(replaceNode(typeAlias, "type " + aliasName + " = " + componentInfo.propTypeName + ";"));
+      if (componentPropsBinding) markImportRemoval(componentPropsBinding);
+
+      if (componentInfo.importInfo.specifiers.some((specifier) => specifier.localName === componentInfo.propTypeName)) continue;
+      const statementId = componentInfo.importInfo.statement.id();
+      if (importStatementsEdited.has(statementId)) continue;
+      importStatementsEdited.add(statementId);
+      const statementText = componentInfo.importInfo.statement.text();
+      const closeBraceIndex = statementText.lastIndexOf("}");
+      if (closeBraceIndex === -1) continue;
+      const beforeClose = statementText.slice(0, closeBraceIndex).trimEnd();
+      const afterClose = statementText.slice(closeBraceIndex);
+      const separator = beforeClose.endsWith(",") ? (beforeClose.includes("\n") ? "\n\t" : " ") : beforeClose.includes("\n") ? ",\n\t" : ", ";
+      addEdit(replaceNode(componentInfo.importInfo.statement, beforeClose + separator + "type " + componentInfo.propTypeName + afterClose));
+      break;
+    }
   }
 }
 
