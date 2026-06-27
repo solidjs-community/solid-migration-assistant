@@ -947,6 +947,7 @@ function rewriteOnCleanupReturns(
   handled: Set<string>,
 ): void {
   const rewrittenBindings = new Set<ImportedBinding>();
+  const rewrittenIdentifierIds = new Set<number>();
 
   const isSolidCall = (call: SourceNode, importedNames: Set<string>): boolean => {
     const callee = callFunction(call);
@@ -1007,6 +1008,9 @@ function rewriteOnCleanupReturns(
     if (!cleanupArg) continue;
 
     const parent = call.parent();
+    const callee = callFunction(call);
+    if (callee?.kind() === "identifier") rewrittenIdentifierIds.add(callee.id());
+
     if (parent?.kind() === "expression_statement") addEdit(replaceNode(parent, "return " + cleanupArg.text() + ";"));
     else addEdit(replaceNode(call, cleanupArg.text()));
 
@@ -1014,7 +1018,21 @@ function rewriteOnCleanupReturns(
     handled.add("onCleanup return");
   }
 
-  for (const binding of rewrittenBindings) markImportRemoval(binding);
+  for (const binding of rewrittenBindings) {
+    if (!hasRemainingLocalReferences(rootNode, binding.localName, rewrittenIdentifierIds)) markImportRemoval(binding);
+  }
+}
+
+function hasRemainingLocalReferences(rootNode: SourceNode, localName: string, ignoredIdentifierIds: Set<number>): boolean {
+  for (const identifier of rootNode.findAll({ rule: { kind: "identifier" } })) {
+    if (identifier.text() !== localName) continue;
+    if (ignoredIdentifierIds.has(identifier.id())) continue;
+    if (identifier.ancestors().some((ancestor) => ancestor.kind() === "import_statement")) continue;
+    if (isBindingIdentifier(identifier)) continue;
+    if (isLocallyShadowed(identifier, localName)) continue;
+    return true;
+  }
+  return false;
 }
 
 function rewriteSimplePropDestructuring(rootNode: SourceNode, addEdit: (edit: Edit) => void, replaceNode: (node: SourceNode, text: string) => Edit): void {
