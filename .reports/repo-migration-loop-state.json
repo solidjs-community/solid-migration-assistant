@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T06:15:00Z",
-  "last_scheduler_run_at": "2026-06-27T06:15:00Z",
+  "last_run_at": "2026-06-27T06:49:41Z",
+  "last_scheduler_run_at": "2026-06-27T06:49:41Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -235,6 +235,13 @@
       "status": "needs-codemod-fix",
       "summary": "Fixed presence SSR createEffect server guard and context Provider member expression; focused SSR now only fails createInfiniteScroll timeout.",
       "target": "solid-primitives"
+    },
+    {
+      "at": "2026-06-27T06:49:41Z",
+      "target": "solid-primitives",
+      "status": "blocked-manual-pagination-migration",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0644-solid-primitives.md",
+      "commit": "5e30a3c5538dc3f0be93e786577cd37054b19c0c"
     }
   ],
   "targets": {
@@ -407,93 +414,109 @@
         "upstream/solidbase-implementation"
       ],
       "codemod_changes": [
-        "solid-transform.ts createEffect stub now imports isServer and no-ops on SSR.",
-        "solid-transform.ts rewrites same-file createContext member expressions like Ctx.Provider outside JSX tag names.",
-        "Added create-effect-server-guard and context-provider-member-expression source fixtures; updated createEffect expected fixtures."
+        "createResource runtime stub imports @solidjs/web isServer and skips source/refetch execution under SSR",
+        "updated six createResource runtime fixture expectations"
       ],
       "commands": [
         {
-          "exit_code": 0,
-          "name": "codemod-run"
+          "name": "registry-search",
+          "exit": 0,
+          "seconds": 1.9,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/registry-search.log"
         },
         {
-          "exit_code": 0,
-          "name": "install"
+          "name": "clone-codemod",
+          "exit": 0,
+          "seconds": 0.4,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/clone-codemod.log"
         },
         {
-          "exit_code": 0,
-          "name": "diff-check-stat"
+          "name": "checkout-codemod-main",
+          "exit": 0,
+          "seconds": 0.1,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/checkout-codemod-main.log"
         },
         {
-          "exit_code": "failed remaining SSR tests",
-          "name": "verify-ssr"
+          "name": "clone-manual",
+          "exit": 0,
+          "seconds": 0.1,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/clone-manual.log"
         },
         {
-          "exit_code": 0,
-          "name": "codemod-package-test"
+          "name": "checkout-manual-next",
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/checkout-manual-next.log"
         },
         {
-          "exit_code": 0,
-          "name": "codemod-package-check-types"
+          "name": "manual-pagination-diff",
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/manual-pagination-diff.log"
+        },
+        {
+          "name": "codemod-run",
+          "exit": 0,
+          "seconds": 4.7,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/codemod-run.log"
+        },
+        {
+          "name": "install",
+          "exit": 0,
+          "seconds": 5.8,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/install.log"
+        },
+        {
+          "name": "diff-check-stat",
+          "exit": 0,
+          "seconds": 0.7,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/diff-check-stat.log"
+        },
+        {
+          "name": "verify-pagination-ssr",
+          "exit": 1,
+          "seconds": 7.0,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/verify-pagination-ssr.log"
+        },
+        {
+          "name": "changed-files",
+          "exit": 0,
+          "seconds": 0.0,
+          "log": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c/changed-files.log"
         }
       ],
       "default_branch": "main",
-      "end_of_run_commit": "final delivery records the amended commit hash",
+      "end_of_run_commit": "5e30a3c5538dc3f0be93e786577cd37054b19c0c",
       "findings": [
-        "Generated createEffect compatibility stubs ran on the server and triggered document access in presence SSR tests; adding an isServer guard fixed presence server failures.",
-        "Same-file Solid createContext providers used as value-position member expressions were not rewritten; replacing Ctx.Provider with Ctx fixed the context MultiProvider SSR failure.",
-        "Remaining focused SSR failure is createInfiniteScroll timeout; manual next replaces the createResource/createComputed cluster with explicit client-only fetch/createEffect flow, which is semantic and should remain next triage."
+        "createResource SSR guard fixture/package tests passed but target pagination SSR still times out",
+        "manual next rewrites the Solid 1 resource server test to synchronous empty-state server behavior",
+        "remaining pagination cluster is unsafe for broad automation without a narrower fixture-backed transform"
       ],
       "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0615-solid-primitives.md",
-      "last_run_at": "2026-06-27T06:15:00Z",
+      "last_run_at": "2026-06-27T06:49:41Z",
       "last_run_dir": "/tmp/solid-codemod-runs/20260627-0615-solid-primitives-52f404fb347c",
       "last_temp_run_dir": "/tmp/solid-codemod-runs/20260627-025446-solid-primitives-reactive-resource-52f404fb347c",
       "latest_run_dir": "/tmp/solid-codemod-runs/20260627-025446-solid-primitives-reactive-resource-52f404fb347c",
       "manual_branch": "next",
       "mode": "manual-compare",
-      "next_action": "continue solid-primitives pagination triage; createInfiniteScroll timeout likely needs conservative manual or TODO treatment for the createResource/createComputed cluster.",
+      "next_action": "blocked on manual pagination source/test migration; proceed to kobalte for additional codemod feedback unless this exact pagination pattern is selected for narrow automation",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "priority": 4,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/solid-primitives",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-025446-solid-primitives.md",
       "stale_lock": "no",
       "stale_lock_cleared": "no",
-      "status": "needs-codemod-fix",
-      "verification": [
-        {
-          "cmd": "codemod search solid",
-          "exit_code": 0,
-          "name": "codemod registry search",
-          "summary": "No packages found."
-        },
-        {
-          "cmd": "pnpm dlx codemod@latest workflow run -w workflow.yaml --target temp worktree --no-interactive",
-          "exit_code": 0,
-          "name": "codemod workflow"
-        },
-        {
-          "cmd": "pnpm install --no-frozen-lockfile",
-          "exit_code": 0,
-          "name": "target install",
-          "summary": "Installed 87 workspace projects; peer warnings remain."
-        },
-        {
-          "exit_code": 0,
-          "name": "git diff --check"
-        },
-        {
-          "cmd": "pnpm exec vitest -c configs/vitest.config.ts --mode ssr presence pagination context server tests",
-          "exit_code": 1,
-          "name": "focused SSR known failures",
-          "summary": "presence and context SSR tests now pass; createInfiniteScroll server test still times out."
-        },
-        {
-          "cmd": "pnpm test && pnpm check-types",
-          "exit_code": 0,
-          "name": "codemod package",
-          "summary": "93 source fixtures and 12 JSON fixtures passed; tsc passed."
-        }
-      ]
+      "status": "blocked-manual-pagination-migration",
+      "verification": {
+        "codemod_package": "pnpm test && pnpm check-types passed before target rerun",
+        "workflow_exit": 0,
+        "install_exit": 0,
+        "diff_check_exit": 0,
+        "pagination_ssr_exit": 1,
+        "pagination_ssr_result": "createInfiniteScroll server test timed out after 5000ms"
+      },
+      "baseline_branch": "main",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-0644-solid-primitives-52f404fb347c"
     },
     "solid-router": {
       "branches_sample": [
