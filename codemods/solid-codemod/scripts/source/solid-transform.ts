@@ -590,7 +590,7 @@ const ${localName}: { (source: any, fetcher: (value: any, info: any) => any, opt
     return !!ambientDeclaration && ambientDeclaration.text().includes("namespace JSX");
   };
 
-  const looksLikeImportedSolidContextProviderName = (name: string): boolean => /ContextObj$/.test(name);
+  const looksLikeImportedSolidContextProviderName = (name: string): boolean => /(?:Context|ContextObj)$/.test(name);
 
   const importStatements = rootNode.findAll({ rule: { kind: "import_statement" } });
   for (const stringNode of rootNode.findAll({ rule: { kind: "string" } })) {
