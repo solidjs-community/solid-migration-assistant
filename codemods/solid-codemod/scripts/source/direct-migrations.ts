@@ -1,6 +1,6 @@
 import type { Edit, SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { importSourceReplacements, safeImportRenames, webSafeImportRenames } from "./solid-api.ts";
+import { importSourceReplacements, rendererTypeNames, safeImportRenames, webSafeImportRenames } from "./solid-api.ts";
 
 type SourceNode = SgNode<TSX>;
 
@@ -990,9 +990,15 @@ function applyImportEdits(
 
     const moduleName = importSourceReplacements.get(importInfo.moduleName) ?? importInfo.moduleName;
     const primarySpecifiers: string[] = [];
+    const rendererTypeSpecifiers: string[] = [];
     for (const specifier of importInfo.specifiers) {
       if (removals.has(specifier.localName)) continue;
       if ((importInfo.moduleName === "solid-js" || importInfo.moduleName === "solid-js/store") && solidCompatStubImportNames.has(specifier.importedName) && !renames.has(specifier.localName)) continue;
+      if ((importInfo.moduleName === "solid-js" || importInfo.moduleName === "solid-js/store") && rendererTypeNames.has(specifier.importedName) && !renames.has(specifier.localName)) {
+        const alias = specifier.aliasName && specifier.aliasName !== specifier.importedName ? ` as ${specifier.aliasName}` : "";
+        rendererTypeSpecifiers.push(`${specifier.importedName}${alias}`);
+        continue;
+      }
       const importedName = renames.get(specifier.localName) ?? safeImportName(importInfo.moduleName, specifier.importedName);
       const alias = specifier.aliasName && specifier.aliasName !== importedName ? ` as ${specifier.aliasName}` : "";
       primarySpecifiers.push(`${importedName}${alias}`);
@@ -1023,6 +1029,9 @@ function applyImportEdits(
     if (primaryParts.length > 0) {
       const importPrefix = importInfo.typeOnlyImport ? "import type" : "import";
       lines.push(`${importPrefix} ${primaryParts.join(", ")} from ${importInfo.quote}${moduleName}${importInfo.quote};`);
+    }
+    if (rendererTypeSpecifiers.length > 0) {
+      lines.push(`import type { ${Array.from(new Set(rendererTypeSpecifiers)).join(", ")} } from ${importInfo.quote}@solidjs/web${importInfo.quote};`);
     }
     if (moduleName !== "@solidjs/web" && webExtras.size > 0) lines.push(`import { ${Array.from(webExtras).join(", ")} } from ${importInfo.quote}@solidjs/web${importInfo.quote};`);
     addEdit(replaceNode(importInfo.statement, lines.join("\n")));

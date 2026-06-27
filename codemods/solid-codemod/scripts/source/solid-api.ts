@@ -36,7 +36,7 @@ export const webReviewOnlyNames = new Set([
   "use",
 ]);
 
-export const rendererTypeNames = new Set(["JSX", "ComponentProps"]);
+export const rendererTypeNames = new Set(["JSX", "ComponentProps", "ValidComponent"]);
 export const solidTypeRenames = new Map<string, string>([["JSXElement", "Element"]]);
 export const removedDomDirectivePrefixes = new Set(["oncapture"]);
 

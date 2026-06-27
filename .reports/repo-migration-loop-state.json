@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T08:33:20Z",
-  "last_scheduler_run_at": "2026-06-27T08:33:20Z",
+  "last_run_at": "2026-06-27T09:27:42Z",
+  "last_scheduler_run_at": "2026-06-27T09:27:42Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -254,17 +254,29 @@
     },
     {
       "at": "2026-06-27T08:33:20Z",
-      "target": "kobalte",
+      "commit": "pending",
       "mode": "manual-compare",
-      "status": "needs-codemod-fix",
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0833-kobalte.md",
       "run_dir": "/tmp/solid-codemod-runs/20260627-082437-kobalte-context-provider-52f404fb347c",
-      "commit": "pending",
-      "summary": "Fixed imported *Context.Provider rewriting; package tests pass; kobalte typecheck still fails on workspace links/ValidComponent/typing issues."
+      "status": "needs-codemod-fix",
+      "summary": "Fixed imported *Context.Provider rewriting; package tests pass; kobalte typecheck still fails on workspace links/ValidComponent/typing issues.",
+      "target": "kobalte"
+    },
+    {
+      "at": "2026-06-27T09:27:42Z",
+      "commit": "d5659adb133270fd2e25013e357d29f3bfcf1c73",
+      "mode": "manual-compare",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0926-kobalte.md",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-0926-kobalte-validcomponent-52f404fb347c",
+      "status": "needs-codemod-fix",
+      "summary": "Moved Solid renderer-only ValidComponent imports to @solidjs/web and made direct-migration import edits split renderer types instead of keeping them in solid-js.",
+      "target": "kobalte"
     }
   ],
   "targets": {
     "kobalte": {
+      "baseline_branch": "origin/main",
+      "baseline_sha": "abd56134f40075258ad7f002502a20398fc3fc69",
       "branches_sample": [
         "main",
         "v2/basic-migration",
@@ -278,42 +290,57 @@
         "origin/v2/basic-migration"
       ],
       "codemod_changes": [
-        "Broadened imported Solid context provider heuristic from ContextObj to Context/ContextObj.",
-        "Added imported-context-provider source fixture and updated context-provider-locality expected output."
+        "codemods/solid-codemod/scripts/source/solid-api.ts",
+        "codemods/solid-codemod/scripts/source/direct-migrations.ts",
+        "codemods/solid-codemod/tests/source/renderer-validcomponent-direct-import/input.tsx",
+        "codemods/solid-codemod/tests/source/renderer-validcomponent-direct-import/expected.tsx"
       ],
       "commands": [
+        "codemod search solid (no packages found)",
+        "pnpm test && pnpm check-types",
         "pnpm dlx codemod@latest workflow run -w workflow.yaml --target <temp>/codemod --no-interactive",
         "pnpm install --no-frozen-lockfile",
         "pnpm typecheck",
-        "pnpm test && pnpm check-types"
+        "git diff --check"
       ],
-      "commit": "pending",
+      "commit": "d5659adb133270fd2e25013e357d29f3bfcf1c73",
       "default_branch": "origin/main",
       "findings": [
-        "Fixed imported *Context.Provider JSX tags by rewriting to direct Solid 2 provider components with semantic review markers.",
-        "Fresh kobalte verification has Provider errors=1 and Solid JSX export errors=4.",
-        "Remaining failures include workspace @kobalte/* module declarations, ValidComponent string constraints, implicit event/ref typing, and event prop casing."
+        "Moved Solid renderer-only ValidComponent imports to @solidjs/web and made direct-migration import edits split renderer types instead of keeping them in solid-js.",
+        "Fresh kobalte selected error counts: {\"Cannot find module\": 242, \"Provider property\": 1, \"ValidComponent\": 0, \"solid-js JSX export\": 0, \"tabIndex\": 20}",
+        "Kobalte typecheck still fails; remaining failures require further codemod work or repo-specific/manual workspace dependency remediation."
       ],
-      "last_run_at": "2026-06-27T08:33:20Z",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0833-kobalte.md",
+      "last_run_at": "2026-06-27T09:27:42Z",
+      "last_run_dir": "/tmp/solid-codemod-runs/20260627-082437-kobalte-context-provider-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
+      "manual_sha": "661f6f65a226fcb1759dc3764e2c81b38f53d1c6",
       "mode": "manual-compare",
-      "next_action": "continue kobalte with fixture-backed ValidComponent/string intrinsic or event/ref typing migration; workspace @kobalte/* link failures remain manual/out-of-scope unless a safe repo rule emerges",
+      "next_action": "continue kobalte with fixture-backed event/ref typing or remaining JSX/ARIA prop migration; keep workspace @kobalte/* link failures manual/out-of-scope",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
-      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0741-kobalte.md",
-      "run_dir": "/tmp/solid-codemod-runs/20260627-073545-kobalte-tsconfig-fix-52f404fb347c",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0926-kobalte.md",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-0926-kobalte-validcomponent-52f404fb347c",
       "status": "needs-codemod-fix",
       "verification": {
-        "codemod_package": "passed",
-        "target_typecheck": "failed exit 2; log /tmp/solid-codemod-runs/20260627-082437-kobalte-context-provider-52f404fb347c/typecheck.log",
-        "diff_check": "passed"
-      },
-      "baseline_branch": "origin/main",
-      "baseline_sha": "abd56134f40075258ad7f002502a20398fc3fc69",
-      "manual_sha": "661f6f65a226fcb1759dc3764e2c81b38f53d1c6",
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-0833-kobalte.md",
-      "last_run_dir": "/tmp/solid-codemod-runs/20260627-082437-kobalte-context-provider-52f404fb347c"
+        "package_test_and_check_types": "passed: 95 source fixtures, 14 JSON fixtures, tsc exit 0",
+        "target_diff_check": {
+          "log": "/tmp/solid-codemod-runs/20260627-0926-kobalte-validcomponent-52f404fb347c/diff-check.log",
+          "rc": 0
+        },
+        "target_error_counts": {
+          "Cannot find module": 242,
+          "Provider property": 1,
+          "ValidComponent": 0,
+          "solid-js JSX export": 0,
+          "tabIndex": 20
+        },
+        "target_typecheck": {
+          "log": "/tmp/solid-codemod-runs/20260627-0926-kobalte-validcomponent-52f404fb347c/typecheck.log",
+          "rc": 2
+        }
+      }
     },
     "powerchat": {
       "branches_sample": [
