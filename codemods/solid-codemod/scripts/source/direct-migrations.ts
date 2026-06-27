@@ -256,7 +256,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   }
 
   rewriteProduceWrappers(rootNode, importedByLocal, addEdit, replaceNode, markImportRemoval, state.handled, state.unhandled);
-  rewriteStorePathSetters(rootNode, imports, addEdit, replaceNode, addSolidExtra, state.handled);
+  rewriteStorePathSetters(rootNode, imports, addEdit, replaceNode, state.handled);
   rewriteOnMountCleanups(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode, markImportRemoval, markImportRename, state);
   rewriteSimplePropDestructuring(rootNode, addEdit, replaceNode);
   rewriteContextHookShims(rootNode, addEdit, replaceNode);
@@ -736,7 +736,6 @@ function rewriteStorePathSetters(
   imports: ImportStatementInfo[],
   addEdit: (edit: Edit) => void,
   replaceNode: (node: SourceNode, text: string) => Edit,
-  addSolidExtra: (statement: SourceNode, importedName: string) => void,
   handled: Set<string>,
 ): void {
   const storeImport = imports.find((item) => item.specifiers.some((specifier) => specifier.importedName === "createStore"));
@@ -745,16 +744,53 @@ function rewriteStorePathSetters(
     const callee = callFunction(call);
     const args = callArguments(call);
     if (callee?.kind() !== "identifier" || !callee.text().startsWith("set") || args.length < 2) continue;
-    if (args[0]?.kind() !== "string") continue;
-    const finalArg = args[args.length - 1];
-    if (!finalArg || finalArg.kind() === "arrow_function" || finalArg.kind() === "function_expression") continue;
-    const pathArgs = args.slice(0, -1);
-    if (pathArgs.some((arg) => arg.kind() !== "string")) continue;
-    const finalArgText = isReconcileCall(finalArg) ? `${finalArg.text()} as any` : finalArg.text();
-    addEdit(replaceNode(call, `${callee.text()}(storePath(${[...pathArgs.map((arg) => arg.text()), finalArgText].join(", ")}))`));
-    addSolidExtra(storeImport.statement, "storePath");
+    const mutationText = storeSetterMutationCallback(args);
+    if (!mutationText) continue;
+    addEdit(replaceNode(call, `${callee.text()}(${mutationText})`));
     handled.add("storePath");
   }
+}
+
+function storeSetterMutationCallback(args: SourceNode[]): string | null {
+  if (args[0]?.kind() !== "string") return null;
+
+  if (args.length === 4 && isCallbackNode(args[1]) && args[2]?.kind() === "string" && args[3]) {
+    const predicateArg = args[1];
+    const valueArg = args[3];
+    if (!predicateArg || !valueArg) return null;
+    const collectionAccess = storeStringKeyAccess(args[0]);
+    const propertyAccess = storeStringKeyAccess(args[2]);
+    if (!collectionAccess || !propertyAccess) return null;
+    return `(state) => {
+  const item = state${collectionAccess}.find(${predicateArg.text()});
+  if (item) item${propertyAccess} = ${storeSetterAssignmentValue(valueArg, `item${propertyAccess}`)};
+}`;
+  }
+
+  const finalArg = args[args.length - 1];
+  if (!finalArg) return null;
+  const pathArgs = args.slice(0, -1);
+  if (pathArgs.some((arg) => arg.kind() !== "string")) return null;
+  const targetAccess = pathArgs.map((arg) => storeStringKeyAccess(arg)).join("");
+  if (!targetAccess) return null;
+  return `(state) => {
+  state${targetAccess} = ${storeSetterAssignmentValue(finalArg, `state${targetAccess}`)};
+}`;
+}
+
+function storeSetterAssignmentValue(valueNode: SourceNode, currentValueText: string): string {
+  if (isCallbackNode(valueNode)) return `(${valueNode.text()})(${currentValueText})`;
+  return isReconcileCall(valueNode) ? `${valueNode.text()} as any` : valueNode.text();
+}
+
+function storeStringKeyAccess(node: SourceNode): string | null {
+  const value = moduleNameFromString(node);
+  if (value == null) return null;
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value) ? `.${value}` : `[${node.text()}]`;
+}
+
+function isCallbackNode(node: SourceNode | undefined): boolean {
+  return node?.kind() === "arrow_function" || node?.kind() === "function_expression";
 }
 
 function isReconcileCall(node: SourceNode): boolean {

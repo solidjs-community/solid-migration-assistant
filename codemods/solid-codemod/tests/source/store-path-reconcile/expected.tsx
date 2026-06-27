@@ -1,5 +1,7 @@
-import { createStore, reconcile, storePath } from "solid-js";
+import { createStore, reconcile } from "solid-js";
 
 const [state, setState] = createStore({ data: [] });
 
-setState(storePath("data", reconcile(next) as any));
+setState((state) => {
+  state.data = reconcile(next) as any;
+});
