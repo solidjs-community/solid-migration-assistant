@@ -438,7 +438,7 @@ function createMemoOnAccessorRewrite(args: SourceNode[]): CreateMemoRewrite | nu
   if (!source || !callback || callback.kind() !== "arrow_function") return null;
   if (source.kind() === "array") return null;
 
-  const params = callback.find({ rule: { kind: "formal_parameters" } });
+  const params = callback.field("parameters") ?? callback.children().find((child) => child.kind() === "formal_parameters") ?? null;
   if (!params) return null;
   const parameterNodes = params.children().filter((child) => child.isNamed());
   if (parameterNodes.length !== 3) return null;
@@ -483,7 +483,7 @@ function indentLines(text: string, indentation: string): string {
 }
 function callbackWithDefaultedFirstParam(callback: SourceNode, initialText: string): string | null {
   const text = callback.text();
-  const params = callback.find({ rule: { kind: "formal_parameters" } });
+  const params = callback.field("parameters") ?? callback.children().find((child) => child.kind() === "formal_parameters") ?? null;
   if (!params) {
     if (callback.kind() !== "arrow_function") return text;
     const arrowIndex = text.indexOf("=>");
