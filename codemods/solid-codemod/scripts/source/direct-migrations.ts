@@ -267,6 +267,7 @@ export function applyDirectMigrations({ rootNode, addEdit }: ApplyDirectMigratio
   rewriteIntrinsicAttributes(rootNode, addEdit, replaceNode);
   rewriteForwardedIntrinsicComponentProps(rootNode, importedByLocal, imports, addEdit, replaceNode, markImportRemoval);
   rewriteSnapshotReadonlyArrayProps(rootNode, importedByLocal, namespaceImports, addEdit, replaceNode);
+  rewriteSetStringIteratorValueNarrowing(rootNode, addEdit, replaceNode);
   if (/\.dispatchEvent\s*\(/.test(rootNode.text())) {
     for (const importInfo of imports) {
       if (importInfo.moduleName === "solid-js" && !importInfo.typeOnlyImport) addSolidExtra(importInfo.statement, "flush");
@@ -1140,6 +1141,23 @@ function rewriteSnapshotReadonlyArrayProps(
 }
 
 
+
+
+function rewriteSetStringIteratorValueNarrowing(
+  rootNode: SourceNode,
+  addEdit: (edit: Edit) => void,
+  replaceNode: (node: SourceNode, text: string) => Edit,
+): void {
+  for (const declarator of rootNode.findAll({ rule: { kind: "variable_declarator" } })) {
+    const name = declarator.field("name");
+    const value = declarator.field("value");
+    if (!name || !value || name.kind() !== "identifier") continue;
+    if (value.kind() === "as_expression") continue;
+    const valueText = value.text().trim();
+    if (!/^\(\s*[A-Za-z_$][A-Za-z0-9_$]*\s+as\s+Set\s*<\s*string\s*>\s*\)\.values\s*\(\s*\)\.next\s*\(\s*\)\.value$/.test(valueText)) continue;
+    addEdit(replaceNode(value, valueText + " as string"));
+  }
+}
 
 function rewriteForwardedIntrinsicComponentProps(
   rootNode: SourceNode,

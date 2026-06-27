@@ -1,12 +1,12 @@
 # Solid codemod migration matrix
 
-Last updated: 2026-06-27T16:47:44Z
+Last updated: 2026-06-27T17:26:38Z
 
 | Priority | Target | Mode | Status | Last run | Next action |
 |---:|---|---|---|---|---|
-| 1 | test | synthetic | successful |  | run migration feedback loop for powerchat |
-| 2 | powerchat | direct-migrate | blocked-manual-dependency-remediation |  | manual dependency remediation needed |
-| 3 | solid-router | manual-compare | successful |  | Proceed to solid-primitives or kobalte |
-| 4 | solid-primitives | manual-compare | blocked-manual-pagination-migration |  | manual pagination migration selected or out-of-scope |
-| 5 | kobalte | manual-compare | needs-codemod-fix | 2026-06-27T16:47:44Z | triage remaining kobalte categories: file-field readonly context arrays, createSignal initializer overloads, implicit-any/list narrowing, or combobox test getByRole scope |
+| 1 | test | synthetic | successful | 2026-06-25T21:30:59-0500 | run migration feedback loop for powerchat |
+| 2 | powerchat | direct-migrate | blocked-manual-dependency-remediation | 2026-06-26T05:00:36Z | manual dependency remediation needed for @solidjs/start and Solid 1-era ecosystem packages; proceed to solid-router for codemod feedback unless these dependencies publish Solid 2-compatible releases. |
+| 3 | solid-router | manual-compare | successful | 2026-06-26T15:52:21Z | Proceed to solid-primitives migration feedback loop. |
+| 4 | solid-primitives | manual-compare | blocked-manual-pagination-migration | 2026-06-27T06:49:41Z | blocked on manual pagination source/test migration; proceed to kobalte for additional codemod feedback unless this exact pagination pattern is selected for narrow automation |
+| 5 | kobalte | manual-compare | needs-codemod-fix | 2026-06-27T17:26:38Z | triage remaining kobalte categories: file-field readonly context arrays, createSignal initializer overloads, combobox/select implicit-any callbacks, combobox test getByRole scope, or toast/dismissable-layer callback typing |
 | 6 | solid | manual-compare | pending |  | run migration feedback loop |

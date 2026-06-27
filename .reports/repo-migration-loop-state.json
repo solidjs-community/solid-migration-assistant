@@ -1,8 +1,8 @@
 {
   "initialized_at": "2026-06-26T00:21:22.662480+00:00",
   "job_id": "52f404fb347c",
-  "last_run_at": "2026-06-27T16:47:44Z",
-  "last_scheduler_run_at": "2026-06-27T16:47:44Z",
+  "last_run_at": "2026-06-27T17:26:38Z",
+  "last_scheduler_run_at": "2026-06-27T17:26:38Z",
   "runs": [
     {
       "at": "2026-06-26T00:21:22.662480+00:00",
@@ -350,6 +350,12 @@
       "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1643-kobalte.md",
       "status": "needs-codemod-fix",
       "target": "kobalte"
+    },
+    {
+      "at": "2026-06-27T17:26:38Z",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1726-kobalte.md",
+      "status": "needs-codemod-fix",
+      "target": "kobalte"
     }
   ],
   "targets": {
@@ -374,7 +380,7 @@
       ],
       "codemod_changes": [
         "codemods/solid-codemod/scripts/source/direct-migrations.ts",
-        "codemods/solid-codemod/tests/source/forwarded-intrinsic-component-props"
+        "codemods/solid-codemod/tests/source/set-string-iterator-value"
       ],
       "commands": [
         {
@@ -383,6 +389,10 @@
         },
         {
           "cmd": "git worktree add origin/main",
+          "rc": 0
+        },
+        {
+          "cmd": "git worktree add origin/v2/basic-migration",
           "rc": 0
         },
         {
@@ -400,36 +410,41 @@
         {
           "cmd": "git diff --check",
           "rc": 0
+        },
+        {
+          "cmd": "codemod package pnpm test && pnpm check-types",
+          "rc": 0
         }
       ],
-      "commit": "pending-final-commit; final delivery records hash",
+      "commit": "pending-final-commit",
       "default_branch": "origin/main",
       "end_of_run_commit": "pending-final-commit",
       "findings": [
-        "Forwarded ColorAreaHiddenInput ComponentProps errors no longer appear in kobalte core typecheck output.",
-        "Remaining errors are now concentrated in combobox/select implicit any and getByRole scopes, file-field readonly arrays, list string undefined narrowing, createSignal generic initializer overload, unused ts-expect-error, time-field indexing, and toast-list key typing."
+        "List-state Set<string> iterator value narrowing now matches manual migration and removed create-single-select-list-state from kobalte diagnostics.",
+        "Kobalte still fails on combobox/select implicit-any callbacks, getByRole scope errors, file-field readonly context arrays, createSignal generic initializer overload, unused ts-expect-error, time-field indexing, and toast/dismissable-layer implicit-any callbacks."
       ],
-      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1520-kobalte.md",
-      "last_run_at": "2026-06-27T16:47:44Z",
-      "last_run_dir": "/tmp/solid-codemod-runs/20260627-113952-kobalte-direct-store-setters-52f404fb347c",
+      "last_report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1726-kobalte.md",
+      "last_run_at": "2026-06-27T17:26:38Z",
+      "last_run_dir": "/tmp/solid-codemod-runs/20260627-1736-kobalte-set-string-iterator-52f404fb347c",
       "manual_branch": "origin/v2/basic-migration",
       "manual_sha": "661f6f65a226fcb1759dc3764e2c81b38f53d1c6",
       "mode": "manual-compare",
-      "next_action": "triage remaining kobalte categories: file-field readonly context arrays, createSignal initializer overloads, implicit-any/list narrowing, or combobox test getByRole scope",
+      "next_action": "triage remaining kobalte categories: file-field readonly context arrays, createSignal initializer overloads, combobox/select implicit-any callbacks, combobox test getByRole scope, or toast/dismissable-layer callback typing",
       "path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
       "priority": 5,
       "repo_path": "/home/lucifer/work/active/codemod/solid/solid-codemod/.repos/kobalte",
-      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1221-kobalte.md",
-      "run_dir": "/tmp/solid-codemod-runs/20260627-1436-kobalte-oncleanup-import-52f404fb347c",
+      "report": "/home/lucifer/work/active/codemod/solid/solid-codemod/.reports/runs/20260627-1726-kobalte.md",
+      "run_dir": "/tmp/solid-codemod-runs/20260627-1736-kobalte-set-string-iterator-52f404fb347c",
       "stale_lock": "none",
       "status": "needs-codemod-fix",
       "verification": {
         "codemod_apply_rc": 0,
-        "diff_check_rc": 0,
-        "diff_stat_tail": "kages/core/src/toast/toast-root.tsx             |  43 +-\n packages/core/src/toast/toast-store.ts             |  25 +-\n packages/core/src/toast/toast-title.tsx            |  20 +-\n packages/core/src/toast/toast.test.tsx             |  10 +\n .../core/src/toggle-button/toggle-button-root.tsx  |  17 +-\n .../core/src/toggle-group/toggle-group-base.tsx    |  20 +-\n .../core/src/toggle-group/toggle-group-context.tsx |   3 +-\n .../core/src/toggle-group/toggle-group-item.tsx    |  16 +-\n .../core/src/toggle-group/toggle-group-root.tsx    |  15 +-\n packages/core/src/tooltip/tooltip-content.tsx      |  24 +-\n packages/core/src/tooltip/tooltip-context.tsx      |   3 +-\n packages/core/src/tooltip/tooltip-portal.tsx       |   5 +-\n packages/core/src/tooltip/tooltip-root.tsx         |  41 +-\n packages/core/src/tooltip/tooltip-trigger.tsx      |  12 +-\n packages/dates/calendar/calendar-body.tsx          |   2 +-\n packages/dates/calendar/calendar-context.tsx       |   3 +-\n .../calendar/calendar-grid-body-cell-context.tsx   |   3 +-\n .../calendar/calendar-grid-body-cell-trigger.tsx   |  16 +-\n .../dates/calendar/calendar-grid-body-cell.tsx     |  13 +-\n packages/dates/calendar/calendar-grid-body-row.tsx |  18 +-\n packages/dates/calendar/calendar-grid-body.tsx     |  18 +-\n packages/dates/calendar/calendar-grid-context.tsx  |   3 +-\n .../dates/calendar/calendar-grid-header-cell.tsx   |   2 +-\n .../dates/calendar/calendar-grid-header-row.tsx    |  12 +-\n packages/dates/calendar/calendar-grid-header.tsx   |   2 +-\n packages/dates/calendar/calendar-grid.tsx          |  14 +-\n packages/dates/calendar/calendar-header.tsx        |   2 +-\n packages/dates/calendar/calendar-heading.tsx       |   4 +-\n packages/dates/calendar/calendar-next-trigger.tsx  |  16 +-\n packages/dates/calendar/calendar-prev-trigger.tsx  |  16 +-\n packages/dates/calendar/calendar-root.tsx          |  51 +-\n packages/dates/date-picker/date-picker-content.tsx |  16 +-\n packages/dates/date-picker/date-picker-context.tsx |   3 +-\n packages/dates/date-picker/date-picker-control.tsx |   9 +-\n .../date-picker/date-picker-input-context.tsx      |   3 +-\n packages/dates/date-picker/date-picker-input.tsx   |  44 +-\n packages/dates/date-picker/date-picker-portal.tsx  |   5 +-\n packages/dates/date-picker/date-picker-root.tsx    |  37 +-\n packages/dates/date-picker/date-picker-segment.tsx |  35 +-\n packages/dates/date-picker/date-picker-trigger.tsx |  22 +-\n packages/dates/date-picker/utils.ts                |  11 +-\n packages/tests/package.json                        |   7 +-\n packages/utils/package.json                        |   3 +-\n packages/utils/src/events.ts                       |   2 +-\n packages/utils/src/props.ts                        |   5 +-\n packages/utils/src/styles.ts                       |   2 +-\n pnpm-lock.yaml                                     | 605 +++++++++++++++------\n tsconfig.json                                      |   8 +-\n 395 files changed, 3480 insertions(+), 2279 deletions(-)\n",
         "install_rc": 0,
         "verify_cmd": "pnpm filter utils/tests build and core typecheck",
-        "verify_rc": 2
+        "verify_rc": 2,
+        "diff_check_rc": 0,
+        "codemod_package_test_rc": 0,
+        "codemod_package_check_types_rc": 0
       }
     },
     "powerchat": {
