@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Solid Codemod Recipe Split Plan</title>
+<style>
+  :root{--bg:#0b1020;--panel:#111832;--panel2:#151f40;--text:#eef3ff;--muted:#aeb9d6;--line:#2a3764;--accent:#7dd3fc;--accent2:#a78bfa;--ok:#86efac;--warn:#fde68a;--code:#07111f;}
+  *{box-sizing:border-box} body{margin:0;font:16px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at top left,#1d2a57 0,#0b1020 34rem);color:var(--text)}
+  a{color:var(--accent)} code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace} pre{background:var(--code);border:1px solid var(--line);border-radius:14px;padding:16px;overflow:auto} code{background:#101a33;border:1px solid #25345e;border-radius:6px;padding:.1rem .32rem} pre code{background:transparent;border:0;padding:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 80px}.hero{padding:42px 0 28px}.eyebrow{color:var(--accent);text-transform:uppercase;letter-spacing:.16em;font-weight:700;font-size:12px}.hero h1{font-size:clamp(34px,6vw,68px);line-height:1;margin:.18em 0;background:linear-gradient(90deg,#fff,#7dd3fc,#a78bfa);-webkit-background-clip:text;color:transparent}.hero p{max-width:850px;color:var(--muted);font-size:19px}.grid{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}.toc{position:sticky;top:18px;background:rgba(17,24,50,.88);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;padding:18px}.toc h2{font-size:14px;margin:0 0 10px;color:#fff}.toc a{display:block;text-decoration:none;color:var(--muted);padding:7px 0;border-top:1px solid rgba(255,255,255,.05)}.toc a:hover{color:#fff}.content{min-width:0}.card{background:linear-gradient(180deg,rgba(21,31,64,.92),rgba(17,24,50,.92));border:1px solid var(--line);border-radius:22px;padding:26px;margin:0 0 22px;box-shadow:0 24px 70px rgba(0,0,0,.22)} h2{font-size:28px;margin:0 0 14px} h3{font-size:21px;margin:24px 0 10px;color:#dbeafe} h4{font-size:17px;margin:18px 0 8px;color:#f5f3ff}.pillrow{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.pill{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:#101a33;color:var(--muted);font-size:13px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.mini{background:#0f1831;border:1px solid var(--line);border-radius:16px;padding:16px}.mini b{color:#fff}.flow{display:grid;gap:10px}.step{border-left:3px solid var(--accent);padding:10px 14px;background:#0f1831;border-radius:0 12px 12px 0}.check li{margin:.35rem 0}.warn{border-color:#6b5b22;background:#211c0b}.ok{border-color:#225a37;background:#0d2116}@media(max-width:900px){.grid{grid-template-columns:1fr}.toc{position:relative;top:0}}@media print{body{background:#fff;color:#111}.toc{display:none}.grid{display:block}.card{box-shadow:none;border-color:#ddd;background:#fff;color:#111} code,pre{background:#f6f8fa;color:#111}.hero h1{color:#111;background:none}.hero p,.pill{color:#333}}
+</style>
+</head>
+<body><div class="wrap">
+  <section class="hero">
+    <div class="eyebrow">Implementation Plan</div>
+    <h1>Split Solid Codemod into Registry-Style Recipes</h1>
+    <p>Break the current broad Solid 1→2 codemod into smaller, independently testable codemods, then compose them with a thin <code>solid-v2-migration-recipe</code>.</p>
+    <div class="pillrow"><span class="pill">Repo: /home/lucifer/work/active/codemod/solid/solid-codemod</span><span class="pill">JSSG + workflow.yaml</span><span class="pill">pnpm workspace</span></div>
+  </section>
+  <div class="grid">
+    <nav class="toc"><h2>Contents</h2><a href="#summary">Summary</a><a href="#breakdown">Package Breakdown</a><a href="#sequence">Execution Sequence</a><a href="#validation">Validation</a><a href="#risks">Risks</a><a href="#dod">Definition of Done</a></nav>
+    <main class="content">
+      <section id="summary" class="card"><h2>Summary</h2><p>The Solid package already looks like a real Codemod package, but it mixes many domains: imports, JSX types, JSX shape rewrites, runtime safe rewrites, review comments, JSON config, and dogfood skill installation. The registry pattern is to keep these as smaller packages and expose one recipe that runs them in order.</p><div class="cards"><div class="mini"><b>Current</b><br>One broad <code>solid-codemod</code> package plus dogfood repos/reports.</div><div class="mini"><b>Target</b><br>Six focused <code>solid-v2-*</code> codemods plus one recipe.</div><div class="mini"><b>Migration style</b><br>Copy-first, delete unrelated behavior, verify, then extract shared helpers.</div></div></section>
+      <section id="breakdown" class="card"><h2>Package Breakdown</h2><pre><code>codemods/
+  solid-v2-imports/
+  solid-v2-jsx-types/
+  solid-v2-jsx-shapes/
+  solid-v2-runtime-safe/
+  solid-v2-review-markers/
+  solid-v2-json-config/
+  solid-v2-migration-recipe/
+  solid-codemod/              # temporary compatibility wrapper
+packages/
+  solid-codemod-shared/       # optional internal helper package</code></pre><h3>solid-v2-imports</h3><p>Module moves and safe import renames: <code>solid-js/web</code>→<code>@solidjs/web</code>, safe API renames, aliases/collisions.</p><h3>solid-v2-jsx-types</h3><p>Type-only moves: <code>JSXElement</code>→<code>Element</code>, renderer-owned types to <code>@solidjs/web</code>.</p><h3>solid-v2-jsx-shapes</h3><p>Context providers, dynamic components, error fallback, Reveal props, intrinsic attrs, classlist, simple prop destructuring.</p><h3>solid-v2-runtime-safe</h3><p>Call/runtime rewrites: <code>createMemo</code>, <code>createComputed</code>, <code>createSelector</code>, <code>splitProps</code>, stores, cleanup, resources, testing-library flush.</p><h3>solid-v2-review-markers</h3><p>Idempotent comments for semantic migrations needing human intent.</p><h3>solid-v2-json-config</h3><p>Package dependency ranges, JSX config, tsconfig/jsconfig/package-lock updates.</p></section>
+      <section id="sequence" class="card"><h2>Execution Sequence</h2><div class="flow"><div class="step"><b>1. Snapshot baseline</b><br><code>pnpm test</code> and <code>pnpm check-types</code> in current package.</div><div class="step"><b>2. Add root scripts</b><br>Root <code>package.json</code>: <code>test</code>, <code>check-types</code>, <code>ci</code>.</div><div class="step"><b>3. Split JSON first</b><br>Create <code>solid-v2-json-config</code> from existing isolated <code>json-config.ts</code>.</div><div class="step"><b>4. Split source transforms</b><br>Create imports → JSX types → JSX shapes → runtime-safe → review-markers, moving fixtures with each package.</div><div class="step"><b>5. Extract shared helpers</b><br>Only after package tests pass, add <code>packages/solid-codemod-shared</code>.</div><div class="step"><b>6. Add recipe</b><br>Create <code>solid-v2-migration-recipe</code> that delegates to the six focused codemods.</div><div class="step"><b>7. Compatibility</b><br>Convert or deprecate old <code>solid-codemod</code>.</div><div class="step"><b>8. Dogfood dry runs</b><br>Run recipe against <code>.repos/solid-primitives</code>, <code>.repos/kobalte</code>, <code>.repos/solid-router</code>.</div></div></section>
+      <section id="validation" class="card"><h2>Validation</h2><pre><code>cd /home/lucifer/work/active/codemod/solid/solid-codemod
+pnpm run ci
+codemod workflow validate --workflow codemods/solid-v2-migration-recipe/workflow.yaml
+codemod run -w codemods/solid-v2-migration-recipe/workflow.yaml --target .repos/solid-primitives --dry-run</code></pre><p>Each split package should own its copied fixtures and run <code>pnpm test</code> + <code>pnpm check-types</code> independently.</p></section>
+      <section id="risks" class="card warn"><h2>Risks</h2><ul><li><b>Ordering drift:</b> recipe order must be explicit; add integration fixtures for cross-package interactions.</li><li><b>Helper divergence:</b> copy-first is safer, but extract shared helpers once behavior is protected.</li><li><b>Marker duplication:</b> review-marker package must be idempotent.</li><li><b>Over-splitting:</b> keep six packages, not one per tiny AST rule.</li></ul></section>
+      <section id="dod" class="card ok"><h2>Definition of Done</h2><ul class="check"><li>Root workspace scripts exist.</li><li>Each new package has package metadata, workflow, README, tests, and typecheck.</li><li>Existing fixtures are redistributed by ownership.</li><li>Recipe composes smaller codemods in documented order.</li><li>Old <code>solid-codemod</code> remains compatible or clearly deprecated.</li><li>Root <code>pnpm run ci</code> passes.</li><li>Dogfood dry runs complete or blockers are documented.</li></ul></section>
+    </main>
+  </div>
+</div></body></html>
