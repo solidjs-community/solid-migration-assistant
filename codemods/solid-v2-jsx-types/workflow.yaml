@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: "1"
+
+nodes:
+  - id: apply-transform
+    name: Move Solid and renderer JSX types for Solid v2
+    type: automatic
+    steps:
+      - name: "Move Solid and renderer JSX types for Solid v2"
+        js-ast-grep:
+          js_file: scripts/codemod.ts
+          base_path: "."
+          language: "typescript"
+          include:
+            - "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"

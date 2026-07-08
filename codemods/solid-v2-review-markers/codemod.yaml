@@ -1,0 +1,24 @@
+schema_version: "1.0"
+
+name: "solid-v2-review-markers"
+version: "0.1.0"
+description: "Insert Solid v2 review markers for semantic migrations"
+author: "Solid Codemod Contributors"
+license: "MIT"
+category: "migration"
+
+targets:
+  languages: ["typescript", "javascript"]
+
+keywords: ["solid", "solidjs", "upgrade", "v2", "breaking-change"]
+
+registry:
+  access: "public"
+  visibility: "public"
+
+capabilities: []
+
+workflows:
+  - name: main
+    default: true
+    path: workflow.yaml

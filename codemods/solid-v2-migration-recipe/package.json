@@ -1,0 +1,11 @@
+{
+  "name": "solid-v2-migration-recipe",
+  "version": "0.1.0",
+  "description": "Compose focused Solid v2 migration codemods in a stable order",
+  "packageManager": "pnpm@10.19.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test ./scripts/metadata-tests.mjs",
+    "check-types": "node --check ./scripts/metadata-tests.mjs"
+  }
+}

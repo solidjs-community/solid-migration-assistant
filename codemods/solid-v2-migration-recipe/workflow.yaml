@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: "1"
+
+nodes:
+  - id: solid-v2-migration
+    name: Solid v2 Migration
+    type: automatic
+    steps:
+      - name: "Update package/config files for Solid v2"
+        codemod:
+          source: "solid-v2-json-config"
+      - name: "Rewrite Solid package imports and safe API names"
+        codemod:
+          source: "solid-v2-imports"
+      - name: "Move Solid/renderer JSX types"
+        codemod:
+          source: "solid-v2-jsx-types"
+      - name: "Rewrite local-safe JSX/component shapes"
+        codemod:
+          source: "solid-v2-jsx-shapes"
+      - name: "Apply local-safe runtime/API migrations"
+        codemod:
+          source: "solid-v2-runtime-safe"
+      - name: "Insert review markers for semantic migrations"
+        codemod:
+          source: "solid-v2-review-markers"

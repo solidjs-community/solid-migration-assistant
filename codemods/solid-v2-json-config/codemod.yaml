@@ -1,0 +1,24 @@
+schema_version: "1.0"
+
+name: "solid-v2-json-config"
+version: "0.1.0"
+description: "Update Solid v2 package and config files"
+author: "Solid Codemod Contributors"
+license: "MIT"
+category: "migration"
+
+targets:
+  languages: ["json"]
+
+keywords: ["solid", "solidjs", "upgrade", "v2", "breaking-change"]
+
+registry:
+  access: "public"
+  visibility: "public"
+
+capabilities: []
+
+workflows:
+  - name: main
+    default: true
+    path: workflow.yaml

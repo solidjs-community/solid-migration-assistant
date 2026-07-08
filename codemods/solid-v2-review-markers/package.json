@@ -1,0 +1,15 @@
+{
+  "name": "solid-v2-review-markers",
+  "version": "0.1.0",
+  "description": "Insert Solid v2 review markers for semantic migrations",
+  "packageManager": "pnpm@10.19.0",
+  "type": "module",
+  "scripts": {
+    "test": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/codemod.ts ./tests/source --strictness ast",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "latest",
+    "typescript": "latest"
+  }
+}

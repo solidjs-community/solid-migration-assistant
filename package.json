@@ -1,5 +1,11 @@
 {
   "name": "solid-codemod-workspace",
   "private": true,
-  "description": "Monorepo workspace for codemods"
+  "description": "Monorepo workspace for Solid v2 codemods",
+  "packageManager": "pnpm@10.19.0",
+  "scripts": {
+    "test": "pnpm -r test",
+    "check-types": "pnpm -r check-types",
+    "ci": "pnpm run test && pnpm run check-types"
+  }
 }

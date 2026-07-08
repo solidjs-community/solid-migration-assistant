@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "moduleResolution": "Node",
+    "sourceMap": true,
+    "types": [
+      "solid-js",
+      "vite/client",
+      "node"
+    ]
+  }
+}

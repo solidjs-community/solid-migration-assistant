@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: "1"
+
+nodes:
+  - id: apply-transform
+    name: Insert Solid v2 review markers for semantic migrations
+    type: automatic
+    steps:
+      - name: "Insert Solid v2 review markers for semantic migrations"
+        js-ast-grep:
+          js_file: scripts/codemod.ts
+          base_path: "."
+          language: "typescript"
+          include:
+            - "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"
