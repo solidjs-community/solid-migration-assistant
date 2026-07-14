@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid 2 Codemod Plan — Critical Review</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #61707e;
+      --paper: #f4f5f2;
+      --card: #ffffff;
+      --line: #d9ded8;
+      --navy: #264d73;
+      --navy-soft: #e8f0f8;
+      --red: #a03838;
+      --red-soft: #fbeaea;
+      --amber: #936018;
+      --amber-soft: #fff3dc;
+      --green: #287158;
+      --green-soft: #e7f5ef;
+      --violet: #684a96;
+      --violet-soft: #f0eafa;
+      --shadow: 0 14px 38px rgba(23, 33, 43, .08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 88% 1%, rgba(160, 56, 56, .10), transparent 32rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    a { color: var(--navy); text-underline-offset: .18em; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code { font-size: .91em; }
+    .shell { display: grid; grid-template-columns: 272px minmax(0, 1fr); max-width: 1540px; margin: 0 auto; }
+    aside {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow: auto;
+      border-right: 1px solid var(--line);
+      padding: 30px 22px;
+      background: rgba(244, 245, 242, .92);
+      backdrop-filter: blur(14px);
+    }
+    .brand { margin-bottom: 22px; color: var(--red); font-weight: 850; letter-spacing: -.02em; }
+    nav a { display: block; border-radius: 8px; padding: 7px 10px; color: var(--muted); font-size: .86rem; text-decoration: none; }
+    nav a:hover { color: var(--ink); background: var(--red-soft); }
+    main { min-width: 0; padding: 62px clamp(28px, 6vw, 92px) 120px; }
+    article { max-width: 1180px; margin: 0 auto; }
+    .eyebrow { margin: 0 0 10px; color: var(--red); font-size: .78rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3, h4 { line-height: 1.17; letter-spacing: -.025em; }
+    h1 { max-width: 1020px; margin: 0; font-size: clamp(2.65rem, 5vw, 5.2rem); }
+    h2 { margin: 76px 0 20px; font-size: clamp(1.8rem, 3vw, 2.75rem); }
+    h3 { margin: 34px 0 12px; font-size: 1.34rem; }
+    h4 { margin: 20px 0 8px; font-size: 1.04rem; }
+    .lede { max-width: 930px; margin: 24px 0 30px; color: var(--muted); font-size: 1.22rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 42px; }
+    .pill, .severity {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 760;
+    }
+    .hero, .card, .callout, .finding { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); }
+    .hero { padding: clamp(24px, 4vw, 42px); }
+    .hero h2 { margin-top: 0; }
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card { padding: 22px; }
+    .card h3, .card h4 { margin-top: 0; }
+    .callout { margin: 24px 0; padding: 22px 24px; box-shadow: none; }
+    .callout.red { border-color: #df9c9c; background: var(--red-soft); }
+    .callout.amber { border-color: #dfbb7d; background: var(--amber-soft); }
+    .callout.green { border-color: #99cbb8; background: var(--green-soft); }
+    .callout.blue { border-color: #a9bfd5; background: var(--navy-soft); }
+    .callout.violet { border-color: #bba8d8; background: var(--violet-soft); }
+    .finding { margin: 20px 0; padding: 24px 26px; }
+    .finding.p0 { border-left: 6px solid var(--red); }
+    .finding.p1 { border-left: 6px solid var(--amber); }
+    .finding.p2 { border-left: 6px solid var(--navy); }
+    .finding h3 { margin-top: 0; }
+    .severity.p0 { border-color: #df9c9c; color: var(--red); background: var(--red-soft); }
+    .severity.p1 { border-color: #dfbb7d; color: var(--amber); background: var(--amber-soft); }
+    .severity.p2 { border-color: #a9bfd5; color: var(--navy); background: var(--navy-soft); }
+    table {
+      width: 100%;
+      margin: 20px 0 32px;
+      border: 1px solid var(--line);
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--card);
+      font-size: .89rem;
+    }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #3d4954; background: #edf0ec; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: .39rem; }
+    pre {
+      overflow: auto;
+      margin: 18px 0;
+      border: 1px solid #c9d1d9;
+      border-radius: 12px;
+      padding: 18px;
+      color: #eef5fb;
+      background: #18232e;
+      font-size: .84rem;
+      line-height: 1.55;
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: .84rem; }
+    .flow { display: grid; gap: 10px; margin: 26px 0 36px; }
+    .flow-row {
+      display: grid;
+      grid-template-columns: 54px 210px minmax(0, 1fr) 160px;
+      gap: 17px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 16px 18px;
+      background: var(--card);
+    }
+    .flow-row .num { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; color: white; background: var(--navy); font-weight: 850; }
+    .flow-row .name { font-weight: 820; }
+    .flow-row .out { color: var(--muted); font-size: .82rem; }
+    .flow-row.gate { border-left: 5px solid var(--amber); }
+    .flow-row.ai { border-left: 5px solid var(--violet); }
+    .flow-row.verify { border-left: 5px solid var(--green); }
+    .roadmap { counter-reset: phase; }
+    .phase { position: relative; margin: 0 0 15px 22px; border-left: 2px solid var(--line); padding: 0 0 27px 34px; }
+    .phase::before {
+      counter-increment: phase;
+      content: counter(phase);
+      position: absolute;
+      left: -18px;
+      top: 0;
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: var(--navy);
+      font-weight: 820;
+    }
+    .phase h3 { margin-top: 0; }
+    footer { margin-top: 72px; border-top: 1px solid var(--line); padding-top: 24px; color: var(--muted); font-size: .84rem; }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      nav { display: flex; flex-wrap: wrap; gap: 3px; }
+      main { padding-top: 44px; }
+      .grid.two, .grid.three { grid-template-columns: 1fr; }
+      .flow-row { grid-template-columns: 48px minmax(0, 1fr); }
+      .flow-row .detail, .flow-row .out { grid-column: 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">Critical plan review</div>
+      <nav>
+        <a href="#verdict">Verdict</a>
+        <a href="#evidence">Current evidence</a>
+        <a href="#consensus">Consensus P0s</a>
+        <a href="#solid">Solid semantics</a>
+        <a href="#runtime">Runtime correctness</a>
+        <a href="#delivery">Delivery and trust</a>
+        <a href="#preserve">What to preserve</a>
+        <a href="#corrected">Corrected workflow</a>
+        <a href="#artifacts">Artifact contract</a>
+        <a href="#spikes">Proving spikes</a>
+        <a href="#fixtures">Fixture matrix</a>
+        <a href="#roadmap">Revised sequence</a>
+        <a href="#decisions">Decisions required</a>
+        <a href="#sources">Sources</a>
+      </nav>
+    </aside>
+
+    <main>
+      <article>
+        <p class="eyebrow">Three-perspective review · 13 July 2026</p>
+        <h1>Keep the AST-controlled AI idea. Replace the workflow contract around it.</h1>
+        <p class="lede">
+          Three parallel reviewers examined the earlier AST → AI plan as a Codemod runtime engineer, a Solid migration expert, and a migration product/QA lead. Their independent conclusion is consistent: the plan has a strong control-plane idea, but the guided workflow is not safe or executable enough to build as written.
+        </p>
+        <div class="meta">
+          <span class="pill">Reviewed plan: AST → AI workflow</span>
+          <span class="pill">Codemod CLI checked: 1.12.7</span>
+          <span class="pill">Solid target: 2.0.0-beta.17</span>
+          <span class="pill">Reviewers: runtime · semantics · delivery</span>
+          <span class="pill">Result: redesign before implementation</span>
+        </div>
+
+        <section id="verdict" class="hero">
+          <h2>Executive verdict</h2>
+          <p><strong>The durable insight is correct:</strong> deterministic AST analysis should inventory, narrow, and verify any AI work.</p>
+          <p><strong>The proposed execution model is not:</strong> local failure is not transactional, the human approves before seeing the plan, the compatibility profile omits the compiler, fixed “reactivity / async / DOM” AI domains cut through real behavioral units, and the mechanical node can fail on the very semantic residue it intends to hand to AI.</p>
+          <div class="callout red">
+            <strong>Recommendation:</strong> do not start with three real AI nodes. First ship a clean, deterministic, behavior-proven vertical slice on a committed Solid 1 baseline. Then add classifier-only residue, a fake AI harness, and one isolated real-AI cluster canary.
+          </div>
+        </section>
+
+        <section id="evidence">
+          <h2>Current evidence changes the priority</h2>
+          <div class="grid three">
+            <div class="card">
+              <h3>Transforms</h3>
+              <p>All six current transform scripts are still explicit no-ops. The project has orchestration scaffolding but no working deterministic migration rule.</p>
+            </div>
+            <div class="card">
+              <h3>Migrated API fixture</h3>
+              <p>The committed Solid 2 snapshot in <code>.repos/test</code> currently exits typecheck with <strong>59 TypeScript errors</strong>, including duplicate imports and removed APIs.</p>
+            </div>
+            <div class="card">
+              <h3>Behavior fixture</h3>
+              <p>The new Kanban fixture has eight passing Solid 1 browser tests, but it is uncommitted and has no Solid 2 result yet. It is a promising oracle, not a completed before/after proof.</p>
+            </div>
+          </div>
+          <div class="callout amber">
+            The next unit of progress should be measured as “one real application migrated and behaviorally verified,” not “more workflow machinery authored.”
+          </div>
+        </section>
+
+        <section id="consensus">
+          <h2>Consensus: six release-blocking corrections</h2>
+
+          <div class="finding p0">
+            <span class="severity p0">P0</span>
+            <h3>1. Local nodes are not transaction boundaries</h3>
+            <p>The earlier report says a failed task discards its diff and uses that assumption to justify separate AI nodes. In local runs, JSSG and AI write directly to the checkout; failure changes task status but does not restore files. Disposable Campaign worktrees provide isolation, local guided mode does not.</p>
+            <p><strong>Correction:</strong> either state that local guided mode is non-transactional, or run each semantic cluster in an isolated worktree and apply a validated patch only after deterministic checks. Snapshot/restore is the minimum fallback, but worktree isolation is the clearer contract.</p>
+          </div>
+
+          <div class="finding p0">
+            <span class="severity p0">P0</span>
+            <h3>2. The human approval gate is blind</h3>
+            <p>The step that prints the AI plan is inside the manual-triggered node. Manual nodes pause before their steps execute, so the reviewer must resume before seeing what they supposedly approved.</p>
+            <p><strong>Correction:</strong> generate and display <code>plan.json</code> in an automatic node. Bind approval to the base commit plus plan, compatibility, and candidate hashes. The first post-resume step must reject drift before any provider call.</p>
+          </div>
+
+          <div class="finding p0">
+            <span class="severity p0">P0</span>
+            <h3>3. The compatibility tuple omits the JSX compiler</h3>
+            <p>Solid source semantics are partly defined by compiled output. The Solid 1 Kanban uses <code>vite-plugin-solid@2.11.12</code> and a preset that emits <code>solid-js/web</code> and recognizes old control-flow built-ins. Beta.17 uses a 3.x-next plugin/preset that emits <code>@solidjs/web</code> and recognizes <code>Loading</code>, <code>Reveal</code>, and <code>Errored</code>.</p>
+            <p><strong>Correction:</strong> profile and migrate runtime, renderer, Babel preset, Vite/Rollup integration, refresh integration, JSX type owner, and directly used DOM-expression packages atomically. Add a compiled-output assertion, not only a source import assertion.</p>
+          </div>
+
+          <div class="finding p0">
+            <span class="severity p0">P0</span>
+            <h3>4. Fixed AI domains split real Solid behavior clusters</h3>
+            <p>A resource producer, consuming effect, store writes, <code>Loading</code>/<code>Errored</code> boundaries, refresh/mutation controls, and pending UI form one behavioral unit. “Reactivity → async → DOM” can verify one half and invalidate it in the next node.</p>
+            <p><strong>Correction:</strong> make the AI unit a dependency-connected semantic cluster. Domain is metadata, not the transaction boundary. Build edges from symbol flow, props/context, boundary ancestry, resource/action handles, exports, and related tests, then topologically process clusters.</p>
+          </div>
+
+          <div class="finding p0">
+            <span class="severity p0">P0</span>
+            <h3>5. “No new errors” deadlocks before AI</h3>
+            <p>Once Solid 2 dependencies are installed, expected semantic residue—removed <code>createResource</code>, <code>on</code>, <code>createComputed</code>, or one-argument <code>createEffect</code>—becomes new build/type errors. Rejecting every new error prevents the workflow from reaching the semantic stage.</p>
+            <p><strong>Correction:</strong> reject only <em>unmapped</em> regressions. Every expected diagnostic must map to one candidate ID and signature. Safe mode may finish as <code>partial</code> with a reconciled blocking ledger; only final verification requires a clean target.</p>
+          </div>
+
+          <div class="finding p0">
+            <span class="severity p0">P0</span>
+            <h3>6. AI receipts are self-attestation, not proof</h3>
+            <p>The YAML asks AI to run checks and write exit codes but does not grant <code>bash</code>; it also restricts edits to source allowlists while requiring a new control file. Even with tools enabled, an AI-authored exit code cannot prove a command ran.</p>
+            <p><strong>Correction:</strong> AI may write claims—candidate outcomes, changed-file claims, unresolved reasons. A deterministic post-step process measures the actual diff, runs checks, captures exit codes and hashes, and creates the authoritative receipt. Separate source and control-artifact allowlists.</p>
+          </div>
+        </section>
+
+        <section id="solid">
+          <h2>Solid semantic review: narrow the “safe” set</h2>
+          <table>
+            <thead><tr><th>Earlier treatment</th><th>Critical issue</th><th>Correct routing</th></tr></thead>
+            <tbody>
+              <tr><td><code>mergeProps → merge</code></td><td><code>merge</code> treats <code>undefined</code> as a real override. Optional-source defaults can change.</td><td>Automatic only with value-flow proof that later sources cannot supply <code>undefined</code>; otherwise candidate.</td></tr>
+              <tr><td><code>unwrap → snapshot</code></td><td>A snapshot is a distinct plain graph suited to serialization/interop. Identity or mutation assumptions can change.</td><td>Automatic at proven serialization/clone/interop sinks only.</td></tr>
+              <tr><td><code>createEffect(on(...))</code></td><td>Solid 1 callbacks may use previous input/result and return the next previous result; Solid 2 apply returns cleanup.</td><td>Automatic only when previous-result/return/cleanup dataflow is absent or mechanically convertible.</td></tr>
+              <tr><td><code>onMount → onSettled</code></td><td>Cleanup shape changes and nested primitives are forbidden in the new settle scope.</td><td>Whole-callback ownership proof; otherwise lifecycle cluster.</td></tr>
+              <tr><td><code>ErrorBoundary → Errored</code></td><td>The error argument becomes an accessor. Passing, storing, destructuring, or comparing it requires callback-wide rewriting.</td><td>Whole-callback proof; otherwise semantic cluster.</td></tr>
+              <tr><td>Import-based sharding</td><td>Solid ownership crosses props, context, dynamic routes, portals, roots, directives, and public exports.</td><td>Semantic closure; oversized connected components become human-planned clusters.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout violet">
+            <strong>Behavioral invariant, not internal timing:</strong> Solid 2 intentionally changes batching and effect phases. The verifier should preserve declared external observations—DOM after an event, same-tick storage/network payloads, cleanup counts, loading/error phases, public declarations, SSR HTML, and hydration behavior—not demand identical internal scheduling.
+          </div>
+
+          <h3>Beta.17 needs scenario pins, not only version pins</h3>
+          <p>Beta.16/17 fixes touch patterns the migration may generate: nested <code>Errored</code>/<code>Loading</code> routing, action calls in owned scopes, falsy and nullish async rejection, createReaction re-arming, store-in-store tracking, lazy/NoHydration SSR, and hydration asset identity. These should become regression scenarios for generated patterns.</p>
+        </section>
+
+        <section id="runtime">
+          <h2>Runtime review: make state, scope, and paths measurable</h2>
+
+          <div class="finding p1">
+            <span class="severity p1">P1</span>
+            <h3>Per-step scope attribution is undefined</h3>
+            <p>During the async cluster, a repository-wide <code>git diff</code> also contains mechanical and earlier semantic changes. The validator cannot attribute the current step from that diff alone.</p>
+            <p><strong>Correction:</strong> snapshot file existence, content hashes, mode, and repository file list immediately before each AI invocation. Compare after it, including created/deleted/renamed/symlink/binary cases.</p>
+          </div>
+
+          <div class="finding p1">
+            <span class="severity p1">P1</span>
+            <h3>Shell helper paths are not proven package-relative</h3>
+            <p>JSSG script paths resolve from the bundle; <code>run: node ./scripts/...</code> may resolve from the target. The report acknowledges this but still presents the uncertain form as representative YAML.</p>
+            <p><strong>Correction:</strong> prove target path, shell <code>pwd</code>, <code>CODEMOD_PATH</code>, and cross-platform invocation first. Prefer a published executable/package entry point over shell-specific path interpolation.</p>
+          </div>
+
+          <div class="finding p1">
+            <span class="severity p1">P1</span>
+            <h3>Candidate aggregation can race</h3>
+            <p>JSSG processes files concurrently. Per-file transforms rewriting one manifest can lose candidates or produce nondeterministic output.</p>
+            <p><strong>Correction:</strong> emit unique per-file fragments and consolidate in a deterministic later step, or use proven workflow locks. Test 100-file multi-threaded classification for completeness, ordering, duplicates, and second-run identity.</p>
+          </div>
+
+          <div class="finding p1">
+            <span class="severity p1">P1</span>
+            <h3>Campaign dependency is scheduling, not branch lineage</h3>
+            <p>A downstream Campaign node does not automatically inherit an upstream node’s branch. Residual shards must start from an already merged safe baseline, and the expected base SHA must be enforced.</p>
+          </div>
+
+          <div class="finding p2">
+            <span class="severity p2">P2</span>
+            <h3>Current platform assumptions need a living compatibility test</h3>
+            <p>The current CLI is <code>1.12.7</code>. Current docs describe step conditions, commit checkpoints, multiple workflows, task-context values, and improved handoffs. Keep a runtime conformance fixture rather than freezing implementation claims from one source commit into the product plan.</p>
+          </div>
+        </section>
+
+        <section id="delivery">
+          <h2>Delivery review: define trust, recovery, and “done”</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Execution status is not migration status</h3>
+              <p>Codemod <code>Completed</code> means a task succeeded and its diff applied. It does not mean all candidates resolved or the app is migration-ready.</p>
+              <p>Use <code>executionStatus</code> separately from <code>migrationStatus: ready | partial | blocked</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Every candidate needs one disposition</h3>
+              <p>Use explicit terminal outcomes such as <code>ast_resolved</code>, <code>ai_resolved</code>, <code>human_required</code>, <code>unsupported</code>, <code>verification_failed</code>, <code>scope_violation</code>, and <code>stale</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Recovery is part of the product</h3>
+              <p>Record base SHA, run ID, workflow and compatibility hashes, original dirty patch, candidate/plan hashes, provider/model, and prompt version. Reject stale receipts and define exact rollback.</p>
+            </div>
+            <div class="card">
+              <h3>Budgets and privacy are gates</h3>
+              <p>Pin model/provider, cap candidates/files/shards/calls/cost, skip empty clusters, exclude secrets/vendor/generated files, resist source prompt injection, and redact logs/artifacts.</p>
+            </div>
+          </div>
+
+          <div class="callout red">
+            <strong>Reconciliation invariant:</strong><br>
+            <code>totalCandidates = astResolved + aiResolved + humanRequired + unsupported + blocked + verificationFailed + retained</code><br>
+            A retained or failed candidate can never yield <code>migrationStatus: ready</code>.
+          </div>
+        </section>
+
+        <section id="preserve">
+          <h2>What the earlier plan got right</h2>
+          <div class="grid three">
+            <div class="card">
+              <h3>AST as AI control plane</h3>
+              <p>Keep deterministic discovery, bounded candidate creation, source provenance, scope checks, and post-edit verification.</p>
+            </div>
+            <div class="card">
+              <h3>Separate products</h3>
+              <p>Keep <code>safe</code>, <code>guided-ai</code>, and <code>campaign-ai</code> distinct. Safe can reach GA without waiting for AI maturity.</p>
+            </div>
+            <div class="card">
+              <h3>AI remains optional</h3>
+              <p>Keep explicit approval, narrow prompts, retained markers, deterministic checks, and human-required routing for public behavior choices.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="corrected">
+          <h2>Corrected top-down workflow</h2>
+          <div class="flow">
+            <div class="flow-row">
+              <div class="num">0</div><div class="name">Freeze run context</div>
+              <div class="detail">Require a clean committed target by default. Record base SHA, original patch if overridden, workflow version, and target roots.</div>
+              <div class="out">run.json<br>rollback point</div>
+            </div>
+            <div class="flow-row">
+              <div class="num">1</div><div class="name">Profile toolchain</div>
+              <div class="detail">Detect workspace/package manager, runtime, renderer, compiler/preset/plugin, JSX owner, SSR/CSR modes, public package role, and compatibility conflicts.</div>
+              <div class="out">profile.json<br>compatibility hash</div>
+            </div>
+            <div class="flow-row verify">
+              <div class="num">2</div><div class="name">Capture baseline oracles</div>
+              <div class="detail">Install Solid 1 graph from a fresh clone; run type/build/browser/SSR/public-API checks twice; normalize deterministic diagnostics and observable traces.</div>
+              <div class="out">baseline.json<br>oracle artifacts</div>
+            </div>
+            <div class="flow-row">
+              <div class="num">3</div><div class="name">Atomic toolchain migration</div>
+              <div class="detail">Update package graph, compiler integration, JSX config, renderer imports, and lockfile; install exact Solid 2 tuple; assert compiled output imports the correct renderer.</div>
+              <div class="out">installed Solid 2 graph</div>
+            </div>
+            <div class="flow-row">
+              <div class="num">4</div><div class="name">Deterministic AST migration</div>
+              <div class="detail">Apply only proven rules. Classify semantic residue into connected clusters. Map expected new diagnostics to candidates; fail only unexplained regressions.</div>
+              <div class="out">candidate fragments<br>diagnostic ledger</div>
+            </div>
+            <div class="flow-row verify">
+              <div class="num">5</div><div class="name">Consolidate and render plan</div>
+              <div class="detail">Deterministically merge fragments, compute closures and checks, estimate scope/cost, render machine JSON plus reviewer HTML, and hash the approval envelope.</div>
+              <div class="out">plan.json/html<br>approval hash</div>
+            </div>
+            <div class="flow-row gate">
+              <div class="num">6</div><div class="name">Approve selected clusters</div>
+              <div class="detail">Reviewer sees risk, source locations, allowed source/control files, observable contracts, checks, unresolved policy, and budget before approval.</div>
+              <div class="out">signed selection<br>or safe partial stop</div>
+            </div>
+            <div class="flow-row ai">
+              <div class="num">7</div><div class="name">Migrate one isolated cluster</div>
+              <div class="detail">Validate no drift, snapshot scope, run AI in an isolated worktree, collect claims, deterministically measure the patch, execute cluster oracles, and apply only a verified patch.</div>
+              <div class="out">verified patch<br>measured receipt</div>
+            </div>
+            <div class="flow-row verify">
+              <div class="num">8</div><div class="name">Reconcile and certify</div>
+              <div class="detail">Re-inventory, replay full oracles, capture dev diagnostics, compare public declarations/SSR/CSR, prove second-run no-op, classify every candidate, and produce rollback instructions.</div>
+              <div class="out">ready / partial / blocked<br>final report</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="artifacts">
+          <h2>Minimal checked artifact protocol</h2>
+          <table>
+            <thead><tr><th>Artifact</th><th>Required identity</th><th>Authority</th></tr></thead>
+            <tbody>
+              <tr><td><code>run.json</code></td><td>run ID, base SHA, workflow version, compatibility hash, target/workspace roots</td><td>Deterministic preflight</td></tr>
+              <tr><td><code>candidate fragment</code></td><td>schema version, stable ID, source anchor/hash, semantic cluster edges, expected diagnostics, observable contract</td><td>AST classifier</td></tr>
+              <tr><td><code>plan.json</code></td><td>candidate closure, source/control allowlists, checks, risk, budget, base/manifest hashes</td><td>Deterministic consolidator</td></tr>
+              <tr><td><code>approval.json</code></td><td>selected IDs, approval-envelope hash, actor/time, unresolved policy</td><td>Human/manual gate</td></tr>
+              <tr><td><code>ai-claims.json</code></td><td>attempted IDs, claimed files, removed/retained markers, unresolved reasons</td><td>AI; untrusted input</td></tr>
+              <tr><td><code>receipt.json</code></td><td>measured diff, file hashes, command results, oracle results, scope verdict, prompt/model version</td><td>Deterministic verifier</td></tr>
+              <tr><td><code>final.json/html</code></td><td>execution status, migration status, exact candidate reconciliation, diagnostics, rollback</td><td>Deterministic closeout</td></tr>
+            </tbody>
+          </table>
+          <p>Define whether control artifacts are temporary, ignored, CI artifacts, or intentionally committed. Do not let them leak accidentally into migration PRs.</p>
+        </section>
+
+        <section id="spikes">
+          <h2>Seven spikes that should precede product implementation</h2>
+          <ol>
+            <li><strong>Local vs Campaign rollback:</strong> edit, then fail; measure surviving changes, worktree behavior, shell <code>pwd</code>, target path, and bundle path.</li>
+            <li><strong>Approval drift:</strong> generate a plan, pause, mutate source, resume; fail before AI because the approval envelope changed.</li>
+            <li><strong>AI execution modes:</strong> normal Rig, no key, parent handoff, and external-agent mode; skipped execution must never pass without measured output.</li>
+            <li><strong>Scope attribution:</strong> allowed edit, receipt creation, forbidden edit, rename, deletion, symlink, and binary; measure and restore only current-cluster changes.</li>
+            <li><strong>Concurrent aggregation:</strong> classify 100 files with multiple threads; output must be complete, ordered, duplicate-free, and second-run identical.</li>
+            <li><strong>Toolchain tracer bullet:</strong> committed Kanban Solid 1 baseline → atomic compiler/runtime/import/lockfile migration → same eight tests on Solid 2 → second-run no-op → rollback.</li>
+            <li><strong>Diagnostic ledger:</strong> seed one expected semantic error and one unrelated regression; permit only the candidate-mapped error and fail the unexplained one.</li>
+          </ol>
+        </section>
+
+        <section id="fixtures">
+          <h2>Minimum behavior and compatibility matrix</h2>
+          <table>
+            <thead><tr><th>Fixture</th><th>Required migration surfaces</th><th>Oracle</th></tr></thead>
+            <tbody>
+              <tr><td>Vite CSR Kanban</td><td>Compiler/plugin, JSX source, renderer import, store setter/read boundary, one-argument effect, persistence</td><td>Same eight Playwright tests before/after; exact storage; zero unexpected diagnostics; compiled output renderer assertion; second-run no-op</td></tr>
+              <tr><td>Reactivity/lifecycle</td><td>Split effects, dynamic dependencies, cleanup, previous values, <code>on</code>, simple/complex mount, top-level reads, roots</td><td>Ordered event/cleanup trace; mount/disposal counts; diagnostic capture</td></tr>
+              <tr><td>Async/resource UI</td><td>Initial/refresh/error/retry, mutate/refetch, optimistic state, nested boundaries, falsy/nullish rejection</td><td>DOM phase trace, request counts, error identity, pending/optimistic behavior</td></tr>
+              <tr><td>SSR/hydration</td><td>Async memos, nested boundaries, lazy/NoHydration, streams, hydration assets, post-hydration refresh</td><td>HTML/chunk snapshots, asset assertions, hydration diagnostics, final DOM</td></tr>
+              <tr><td>DOM/directives</td><td>Class/attribute/property semantics, listeners/options, refs/directives, portals, nested roots, <code>/*@once*/</code></td><td>Attribute/property values, event order, setup/cleanup counts, child-node ownership</td></tr>
+              <tr><td>Library/renderers</td><td>Exported JSX/component types, peer deps, web/hyperscript/custom renderer, conflicting renderer evidence</td><td>Declaration diff, downstream consumer typecheck, pack/export test, human gate on conflict</td></tr>
+              <tr><td>Broken baseline</td><td>Known errors, flaky command, missing dependency, unrelated new failure</td><td>Normalized diagnostic ledger; expected mappings only; truthful partial/blocked status</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="roadmap">
+          <h2>Revised rollout sequence</h2>
+          <div class="roadmap">
+            <div class="phase"><h3>Define status and artifact schemas</h3><p>Version run, profile, candidate, plan, approval, claims, receipt, and final report. Lock reconciliation and exit-code semantics first.</p></div>
+            <div class="phase"><h3>Prove runtime and recovery</h3><p>Resolve local transactionality, path resolution, manual pause/resume, drift rejection, interruption, stale artifacts, and rollback.</p></div>
+            <div class="phase"><h3>Commit the Kanban baseline</h3><p>Create an immutable Solid 1 commit/tag and reproducible clean-clone test harness. The current untracked nested repo is not yet a migration baseline.</p></div>
+            <div class="phase"><h3>Ship one safe vertical slice</h3><p>Profile npm/Vite, migrate the full compiler/runtime/renderer tuple and <code>solid-js/web</code> import, install lockfile graph, run unchanged tests, prove no-op rerun and rollback.</p></div>
+            <div class="phase"><h3>Add classifier-only residue</h3><p>One ownership-sensitive candidate generates stable fragments and a visible plan. No real AI. Prove accounting, idempotence, and expected-error mapping.</p></div>
+            <div class="phase"><h3>Use a deterministic fake AI harness</h3><p>Exercise no-run, malformed/stale claims, scope escape, retained marker, failed check, prompt injection, empty cluster, interruption, and budget exhaustion.</p></div>
+            <div class="phase"><h3>Run one real-AI canary</h3><p>One connected cluster in an isolated worktree, pinned model/prompt, explicit hashed approval, hard budget, measured receipt, deterministic oracle, human review.</p></div>
+            <div class="phase"><h3>Expand deterministic rules and fixtures</h3><p>Each rule needs golden, collision, shadowing, no-op, second-run, composed, and behavior tests. Reclassify proof-required transforms conservatively.</p></div>
+            <div class="phase"><h3>Release safe GA, guided beta</h3><p>Safe should not wait for AI. Guided graduates only after published scope-escape, success, review, variance, cost, and latency thresholds.</p></div>
+            <div class="phase"><h3>Add Campaign last</h3><p>Require merged safe-baseline SHA, bounded semantic closures, shard deduplication, aggregate reconciliation, canary waves, stop-the-line thresholds, and rollback through draft PR closure.</p></div>
+          </div>
+        </section>
+
+        <section id="decisions">
+          <h2>Decisions to make before coding the workflow</h2>
+          <table>
+            <thead><tr><th>Decision</th><th>Recommended default</th><th>Why it matters</th></tr></thead>
+            <tbody>
+              <tr><td>Must local guided mode be transactional?</td><td>Yes: isolated worktree + validated patch application</td><td>Otherwise a failed verifier leaves a partially modified user checkout.</td></tr>
+              <tr><td>Can safe mode finish with semantic residue?</td><td>Yes, as <code>partial</code>, never <code>ready</code></td><td>Expected Solid 2 errors must not deadlock deterministic progress.</td></tr>
+              <tr><td>What is the AI transaction unit?</td><td>Connected semantic cluster</td><td>Vocabulary domains do not align with runtime behavior.</td></tr>
+              <tr><td>Who writes authoritative receipts?</td><td>Deterministic verifier</td><td>AI claims are useful audit input, not evidence.</td></tr>
+              <tr><td>What is the first supported profile?</td><td>Committed npm + Vite + web CSR Kanban</td><td>A bounded toolchain lets the first slice prove behavior end to end.</td></tr>
+              <tr><td>What happens to control artifacts?</td><td>Ignored working files + attached final CI/report artifacts</td><td>Prevents accidental pollution while preserving auditability.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="sources">
+          <h2>Evidence and primary sources</h2>
+          <ul>
+            <li>Original plan: <code>.reports/2026-07-13-solid-v2-codemod-ast-ai-workflow.html</code></li>
+            <li>Solid migration guide: <code>.repos/solid/documentation/solid-2.0/MIGRATION.md</code> and focused RFCs under <code>documentation/solid-2.0/</code></li>
+            <li>Solid beta.17 source and changelogs at commit <code>a51cac193386507f27dd95546f6d567fab4ff6d3</code></li>
+            <li>Current project transforms under <code>codemods/*/scripts/codemod.ts</code></li>
+            <li>Committed before/after API fixture in <code>.repos/test</code>; live typecheck produced 59 errors on the Solid 2 snapshot</li>
+            <li>Behavior fixture and Playwright contract under <code>.repos/kanban</code></li>
+            <li><a href="https://docs.codemod.com/workflows/reference">Codemod Workflow Reference</a></li>
+            <li><a href="https://docs.codemod.com/workflows/ai-harness-rig">Codemod Rig AI harness behavior</a></li>
+            <li><a href="https://docs.codemod.com/workflows/sharding">Codemod sharding and matrix scope</a></li>
+            <li><a href="https://docs.codemod.com/jssg/semantic-analysis">JSSG semantic analysis</a></li>
+            <li><a href="https://docs.codemod.com/changelog">Codemod product/runtime updates</a></li>
+            <li><a href="https://github.com/codemod/codemod/blob/eaeb7a9a64502800a4c910c40f8e9bcd09bd2e16/crates/core/src/step_executor.rs">Codemod step execution source reviewed for local failure behavior</a></li>
+          </ul>
+          <p class="muted small">Method: three independent subagent reviews plus a primary-agent cross-check against the live repository, Solid beta.17 source/docs, current official Codemod documentation, and local Codemod CLI 1.12.7.</p>
+        </section>
+
+        <footer>
+          Companion critique to the AST → AI workflow plan. It does not replace the useful architectural principle; it replaces the unsafe assumptions and implementation order around it.
+        </footer>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

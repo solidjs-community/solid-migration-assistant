@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web",
+    "strict": true
+  }
+}

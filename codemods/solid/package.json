@@ -1,0 +1,19 @@
+{
+  "name": "solid-v2-first-pass",
+  "version": "0.1.0",
+  "description": "Binding-aware first Solid 1 to Solid 2 migration slice for applications and libraries",
+  "packageManager": "pnpm@10.19.0",
+  "type": "module",
+  "scripts": {
+    "test": "pnpm run test:config && pnpm run test:source && pnpm run test:validate && pnpm run test:validate-fail",
+    "test:config": "pnpm dlx codemod@latest jssg test -l json ./scripts/config.ts ./tests/config --strictness strict",
+    "test:source": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/source.ts ./tests/source --strictness strict",
+    "test:validate": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/validate.ts ./tests/validate --strictness strict",
+    "test:validate-fail": "node ./scripts/test-validation-failures.mjs",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "latest",
+    "typescript": "latest"
+  }
+}

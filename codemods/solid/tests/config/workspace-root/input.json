@@ -1,0 +1,10 @@
+{
+  "name": "solid-workspace",
+  "private": true,
+  "devDependencies": {
+    "babel-preset-solid": "^1.9.7",
+    "solid-js": "^1.9.7",
+    "vite-plugin-solid": "^2.11.0"
+  },
+  "packageManager": "pnpm@10.12.1"
+}

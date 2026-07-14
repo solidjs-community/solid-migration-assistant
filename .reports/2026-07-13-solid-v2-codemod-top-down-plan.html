@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid 2 Codemod — Top-down workflow and decision plan</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #5e6b78;
+      --paper: #f7f7f3;
+      --card: #ffffff;
+      --line: #d9ddd7;
+      --solid: #335d92;
+      --solid-soft: #e9f0f8;
+      --green: #28755c;
+      --green-soft: #e9f5f0;
+      --amber: #9b6416;
+      --amber-soft: #fff4de;
+      --red: #a23b3b;
+      --red-soft: #faeaea;
+      --violet: #69549a;
+      --violet-soft: #f0ecf8;
+      --shadow: 0 14px 40px rgba(23, 33, 43, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 90% 0%, rgba(51, 93, 146, 0.12), transparent 28rem),
+        var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+
+    a { color: var(--solid); text-underline-offset: 0.18em; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code { font-size: 0.91em; }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 32px 24px;
+      border-right: 1px solid var(--line);
+      background: rgba(247, 247, 243, 0.88);
+      backdrop-filter: blur(14px);
+      overflow: auto;
+    }
+
+    .brand {
+      margin-bottom: 26px;
+      color: var(--solid);
+      font-weight: 760;
+      letter-spacing: -0.02em;
+    }
+
+    nav a {
+      display: block;
+      padding: 7px 10px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+    nav a:hover { color: var(--ink); background: var(--solid-soft); }
+
+    main { min-width: 0; padding: 64px clamp(28px, 6vw, 88px) 120px; }
+    article { max-width: 1120px; margin: 0 auto; }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--solid);
+      font-size: 0.78rem;
+      font-weight: 780;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, h4 { line-height: 1.16; letter-spacing: -0.025em; }
+    h1 { max-width: 900px; margin: 0; font-size: clamp(2.6rem, 5vw, 5.2rem); }
+    h2 { margin: 76px 0 20px; font-size: clamp(1.8rem, 3vw, 2.75rem); }
+    h3 { margin: 34px 0 12px; font-size: 1.35rem; }
+    h4 { margin: 22px 0 8px; font-size: 1.05rem; }
+
+    .lede {
+      max-width: 850px;
+      margin: 24px 0 30px;
+      color: var(--muted);
+      font-size: 1.24rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 24px 0 48px;
+    }
+
+    .pill, .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 680;
+    }
+
+    .hero-card, .card, .callout {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card { padding: clamp(24px, 4vw, 42px); }
+    .hero-card strong { color: var(--solid); }
+
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card { padding: 22px; }
+    .card h3, .card h4 { margin-top: 0; }
+    .card p:last-child, .callout p:last-child { margin-bottom: 0; }
+
+    .callout { margin: 24px 0; padding: 22px 24px; box-shadow: none; }
+    .callout.warning { border-color: #e4bd7a; background: var(--amber-soft); }
+    .callout.critical { border-color: #df9b9b; background: var(--red-soft); }
+    .callout.idea { border-color: #aabed8; background: var(--solid-soft); }
+
+    .workflow {
+      display: grid;
+      gap: 12px;
+      margin: 26px 0 38px;
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: 76px 210px minmax(0, 1fr) 190px;
+      gap: 18px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      padding: 17px 20px;
+    }
+
+    .stage .number {
+      display: grid;
+      width: 52px;
+      height: 52px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--solid);
+      color: white;
+      font-weight: 800;
+    }
+
+    .stage .name { font-weight: 780; }
+    .stage .output { color: var(--muted); font-size: 0.88rem; }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 20px 0 32px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      overflow: hidden;
+      font-size: 0.91rem;
+    }
+
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { background: #eef1ee; color: #39434d; font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+
+    .safe { color: var(--green); background: var(--green-soft); }
+    .proof { color: var(--solid); background: var(--solid-soft); }
+    .compat { color: var(--violet); background: var(--violet-soft); }
+    .review { color: var(--amber); background: var(--amber-soft); }
+    .diagnostic { color: var(--red); background: var(--red-soft); }
+    .status { white-space: nowrap; font-weight: 760; }
+
+    pre {
+      overflow: auto;
+      margin: 18px 0;
+      border: 1px solid #ccd3db;
+      border-radius: 12px;
+      background: #17212b;
+      padding: 18px;
+      color: #eef5fb;
+      font-size: 0.86rem;
+      line-height: 1.55;
+    }
+
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: 0.36rem; }
+    .compact li + li { margin-top: 0.18rem; }
+    .muted { color: var(--muted); }
+    .small { font-size: 0.85rem; }
+
+    .decision-template {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 24px;
+      margin: 24px 0;
+      padding: 24px;
+      border-left: 5px solid var(--solid);
+      border-radius: 0 14px 14px 0;
+      background: var(--solid-soft);
+    }
+    .decision-template dt { font-weight: 780; }
+    .decision-template dd { margin: 2px 0 12px; color: var(--muted); }
+
+    .roadmap { counter-reset: slice; }
+    .slice {
+      position: relative;
+      margin: 0 0 16px 22px;
+      border-left: 2px solid var(--line);
+      padding: 0 0 28px 34px;
+    }
+    .slice::before {
+      counter-increment: slice;
+      content: counter(slice);
+      position: absolute;
+      left: -18px;
+      top: 0;
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--solid);
+      color: white;
+      font-weight: 800;
+    }
+    .slice h3 { margin-top: 0; }
+
+    footer {
+      margin-top: 80px;
+      border-top: 1px solid var(--line);
+      padding-top: 28px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 980px) {
+      .shell { display: block; }
+      aside { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      nav { display: flex; flex-wrap: wrap; }
+      .stage { grid-template-columns: 64px minmax(0, 1fr); }
+      .stage .detail, .stage .output { grid-column: 2; }
+    }
+
+    @media (max-width: 720px) {
+      main { padding: 38px 18px 80px; }
+      .grid.two, .grid.three, .decision-template { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">Solid 2 migration</div>
+      <nav aria-label="Report sections">
+        <a href="#recommendation">Recommendation</a>
+        <a href="#findings">What the docs change</a>
+        <a href="#beta-delta">Beta.15 → beta.17</a>
+        <a href="#workflow">Proposed workflow</a>
+        <a href="#modes">Execution modes</a>
+        <a href="#decision-model">Decision model</a>
+        <a href="#catalog">Decision catalog</a>
+        <a href="#topology">Package topology</a>
+        <a href="#markers">Review markers</a>
+        <a href="#verification">Verification</a>
+        <a href="#roadmap">Implementation roadmap</a>
+        <a href="#next">Immediate next steps</a>
+        <a href="#questions">Open decisions</a>
+        <a href="#sources">Sources</a>
+      </nav>
+    </aside>
+
+    <main>
+      <article>
+        <p class="eyebrow">Planning report · 13 July 2026</p>
+        <h1>Plan the codemod as a decision pipeline, not a bag of rewrites.</h1>
+        <p class="lede">
+          The existing six-package split is a useful implementation skeleton. The missing top-level design is the workflow contract around it: discover the target, preserve the evidence, make each migration decision explicitly, surface uncertainty, then verify the migrated program with Solid 2 diagnostics.
+        </p>
+
+        <div class="meta">
+          <span class="pill">Target docs/runtime: Solid 2.0.0-beta.17</span>
+          <span class="pill">Solid commit: a51cac19</span>
+          <span class="pill">Project branch: fresh-solid-v2-rewrite</span>
+          <span class="pill">Current transforms: scaffold / no-op</span>
+        </div>
+
+        <section id="recommendation" class="hero-card">
+          <p class="eyebrow">Recommendation</p>
+          <h2 style="margin-top:0">Make the workflow own seven stages and a stable decision vocabulary.</h2>
+          <p>
+            Keep <strong>Safe Mechanical Migration</strong> as the default product. Add a read-only inventory before any edits, and add diagnostics plus a <strong>Migration Report</strong> after the edits. Inside the transform packages, define every rule using the same contract: evidence, classification, action, fallback, idempotency, and verification.
+          </p>
+          <p>
+            This turns the recipe into a coherent migration system. A user can explain why an edit happened, why another site was left for review, which Solid 2 assumption it used, and what must run before the migration is considered done.
+          </p>
+        </section>
+
+        <section id="findings">
+          <h2>What the Solid docs imply for this project</h2>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>The source of truth is volatile</h3>
+              <p>The checked-in Solid repository is now on <code>2.0.0-beta.17</code>. The codemod must pin a <strong>Compatibility Manifest</strong> to a Solid docs/runtime revision rather than encode an unqualified idea of “Solid 2”.</p>
+            </div>
+            <div class="card">
+              <h3>Migration is not one confidence level</h3>
+              <p>The docs mix direct package moves, syntax-preserving renames, context-sensitive compatibility rewrites, intent-dependent redesigns, and runtime-only diagnostics. Treating all of them as AST rewrites would be unsafe.</p>
+            </div>
+            <div class="card">
+              <h3>Renderer ownership is a package decision</h3>
+              <p><code>jsxImportSource</code>, JSX types, package placement, and runtime import paths depend on a package’s <strong>Target Profile</strong>: web, hyperscript, custom renderer, or renderer-neutral library.</p>
+            </div>
+            <div class="card">
+              <h3>Diagnostics are part of migration</h3>
+              <p>Solid 2 exposes structured diagnostic codes. Static transforms cannot reliably find all top-level reads, owned writes, pending async reads, lifecycle errors, or ownership leaks. The workflow needs a <strong>Diagnostic-Driven Migration</strong> phase.</p>
+            </div>
+          </div>
+
+          <div class="callout critical">
+            <h3 style="margin-top:0">Correct the current <code>batch</code> assumption before implementation</h3>
+            <p>
+              The project glossary currently says <code>batch</code> can be safely renamed to <code>flush</code>. The migration guide—unchanged through beta.17—says something materially different: Solid 2 batches by default, so most <code>batch(fn)</code> wrappers should disappear. <code>flush()</code> or <code>flush(fn)</code> is only justified when code requires immediate reactive or DOM visibility. A blanket rename would preserve synchrony that may no longer be necessary and would overuse a forcing primitive.
+            </p>
+            <p><strong>Proposed resolution:</strong> redefine <strong>Flush Boundary</strong> as a proven synchronous-observation boundary. Classify ordinary <code>batch</code> sites as “remove wrapper”, sites followed by immediate reads/DOM operations as “insert/retain flush”, and ambiguous sites as review.</p>
+          </div>
+
+          <h3>Current scaffold: good bones, missing ends</h3>
+          <p>
+            The recipe already separates JSON/config, imports, JSX types, JSX shapes, runtime-safe edits, and review markers. That is a reasonable publishable-package layout. What it does not yet model is the information flow before and after those transforms.
+          </p>
+          <table>
+            <thead><tr><th>Existing area</th><th>What is useful</th><th>What is missing</th></tr></thead>
+            <tbody>
+              <tr><td>Migration recipe</td><td>Stable orchestration point and ordered package composition</td><td>Preflight, immutable package profile, diagnostics, verification, report</td></tr>
+              <tr><td>JSON/config</td><td>Clear file boundary</td><td>Role-aware dependencies, profile-based JSX config, version policy</td></tr>
+              <tr><td>Imports</td><td>Binding-aware package moves and names belong together</td><td>A decision list that distinguishes direct renames from semantic removals</td></tr>
+              <tr><td>JSX types / shapes</td><td>Renderer types are separated from JSX syntax changes</td><td>Explicit renderer-neutral vs renderer-owned type classification</td></tr>
+              <tr><td>Runtime-safe</td><td>Contains context-sensitive but potentially local rewrites</td><td>Internal rule groups; “runtime-safe” is too broad as a decision category</td></tr>
+              <tr><td>Review markers</td><td>Safe fallback after mechanical passes</td><td>Stable codes, evidence, machine report, verification mapping</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="beta-delta">
+          <h2>Beta.15 → beta.17 update audit</h2>
+          <p>
+            The Solid checkout fast-forwarded from <code>a4ca10b7</code> (<code>2.0.0-beta.15</code>) to <code>a51cac19</code> (<code>2.0.0-beta.17</code>). The range contains 214 changed files and is dominated by async, optimistic-state, store, SSR, hydration, and error-handling correctness work. The main migration guide, RFCs 01–07 and 09, and the package cheatsheet did not change. RFC 08 gained one lifecycle diagnostic. Consequently, the workflow architecture and most decisions remain valid; the changes below are targeted amendments rather than a redesign.
+          </p>
+
+          <table>
+            <thead><tr><th>Beta.16/17 difference</th><th>Codemod consequence</th><th>Plan update</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>All Solid packages advanced to <code>2.0.0-beta.17</code>.</td>
+                <td>The Compatibility Manifest and generated dependency ranges must target one coherent beta.17 package set.</td>
+                <td>Re-pin the target and source commit; include related <code>@dom-expressions/*</code> versions.</td>
+              </tr>
+              <tr>
+                <td>New <code>ACTION_CALLED_IN_OWNED_SCOPE</code> dev error.</td>
+                <td>An <code>action()</code> invocation is invalid when called synchronously from a component body or computation. Actions remain valid in handlers, effect apply callbacks, tracked effects, <code>onSettled</code>, and other imperative scopes.</td>
+                <td>Add a diagnostic mapping and a conservative static candidate scan. Never relocate an action call without intent.</td>
+              </tr>
+              <tr>
+                <td>New documented <code>SETTLED_CLEANUP_UNOWNED</code> dev error.</td>
+                <td>An <code>onSettled</code> callback may return cleanup only when it was established from an owned scope. Out-of-band one-shot callbacks may not return cleanup.</td>
+                <td>Lifecycle decisions must prove both callback shape and call-site ownership—not merely rename <code>onMount</code>.</td>
+              </tr>
+              <tr>
+                <td>Effect-bundle <code>error</code> now runs as the queued error arm of the effect phase and receives the original thrown value.</td>
+                <td>Writes in the error handler are valid imperative-phase writes; errors that recover before apply do not call the error arm. Effect-phase throws still escalate to a boundary.</td>
+                <td>Update effect fixtures and guidance. Do not flag writes in an effect-bundle error arm as owned-scope writes.</td>
+              </tr>
+              <tr>
+                <td>Active optimistic overrides now deliberately report <code>isPending === false</code>.</td>
+                <td><code>isPending</code> cannot be generated as a generic “Saving…” flag for an optimistic action. User-decreed optimistic state is considered settled.</td>
+                <td>Resource/action recommendations must use co-written optimistic status data or a separate <code>createOptimistic(false)</code> flag for mutation affordances.</td>
+              </tr>
+              <tr>
+                <td>Uncaught reactive errors now emit <code>REACTIVITY_HALTED</code> and permanently stop later writes/flushes; <code>resetErrorHalt()</code> is exposed for test/dev tooling.</td>
+                <td>A diagnostic run can poison the remaining verification process after one uncaught error.</td>
+                <td>Run diagnostic scenarios in isolated processes/roots or reset the halt state between controlled test captures.</td>
+              </tr>
+              <tr>
+                <td><code>dom-expressions</code> packages moved under the <code>@dom-expressions</code> scope; SLD was renamed to Tagged JSX.</td>
+                <td>Most Solid users are insulated by <code>@solidjs/*</code>, but direct dependencies/imports need migration: runtime, JSX plugin, hyperscript, and tagged-JSX packages.</td>
+                <td>Add optional direct-dependency decisions to config/import normalization; keep them gated on proven direct usage.</td>
+              </tr>
+              <tr>
+                <td><code>createErrorBoundary</code>/<code>createLoadingBoundary</code> now infer <code>Accessor&lt;T | U&gt;</code>; <code>createProjection</code> seed inference was corrected.</td>
+                <td>These are type-surface fixes, not source migrations.</td>
+                <td>Pin beta.17 in typecheck fixtures and avoid adding compensating casts that beta.17 no longer needs.</td>
+              </tr>
+              <tr>
+                <td>Large runtime hardening across async iterators, thenables, <code>latest</code>/<code>isPending</code>, nested boundaries, stores, reconcile, lazy SSR, streaming, and hydration.</td>
+                <td>No new general AST rewrite follows, but beta.15-based verification could have produced false regressions or missed failures.</td>
+                <td>Expand real-repository verification with SSR/hydration, nested Loading/Errored, optimistic refresh, array holes/symbol keys, and async rejection cases.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout idea">
+            <h3 style="margin-top:0">Net result</h3>
+            <p>The first-release scope does not need to grow dramatically. The main additions are three diagnostic codes, ownership-aware <code>onSettled</code> handling, correct optimistic pending guidance, direct <code>dom-expressions</code> package moves, and a tougher verification matrix. The beta.15 decisions about imports, JSX ownership, control flow, stores, resources, DOM, and the <code>batch</code>/<code>flush</code> distinction still stand.</p>
+          </div>
+        </section>
+
+        <section id="workflow">
+          <h2>Proposed top-down workflow</h2>
+          <p>The important change is that edits do not begin until the workflow has captured the original package evidence. Each later stage consumes that snapshot and emits decisions.</p>
+
+          <div class="workflow">
+            <div class="stage">
+              <div class="number">0</div>
+              <div class="name">Preflight contract</div>
+              <div class="detail">Select compatibility target and mode; require a clean worktree; identify workspace/package roots; record available package manager and checks.</div>
+              <div class="output">Output: run manifest</div>
+            </div>
+            <div class="stage">
+              <div class="number">1</div>
+              <div class="name">Inventory &amp; profile</div>
+              <div class="detail">Read package/config/source evidence without edits. Classify package role and <strong>Target Profile</strong>. Inventory Solid APIs, JSX modes, renderer imports, and semantic migration clusters.</div>
+              <div class="output">Output: immutable evidence snapshot</div>
+            </div>
+            <div class="stage">
+              <div class="number">2</div>
+              <div class="name">Package &amp; module normalization</div>
+              <div class="detail">Apply role-aware dependency changes, config changes, import path moves, and proven direct API renames against the captured profile.</div>
+              <div class="output">Output: normalized dependency/import graph</div>
+            </div>
+            <div class="stage">
+              <div class="number">3</div>
+              <div class="name">Renderer &amp; JSX migration</div>
+              <div class="detail">Move renderer-owned JSX types, preserve renderer-neutral public types, and apply local-safe JSX/component shape changes.</div>
+              <div class="output">Output: renderer-correct source</div>
+            </div>
+            <div class="stage">
+              <div class="number">4</div>
+              <div class="name">Runtime decisions</div>
+              <div class="detail">Handle safe lifecycle/store/reactivity patterns. Use compatibility rewrites where they preserve behavior. Do not guess at effects, resources, ownership, or public API intent.</div>
+              <div class="output">Output: mechanically migrated program</div>
+            </div>
+            <div class="stage">
+              <div class="number">5</div>
+              <div class="name">Semantic audit</div>
+              <div class="detail">Scan the post-transform tree for unresolved sites. Add deduplicated, coded <strong>Review Markers</strong> and populate the report with evidence and suggested choices.</div>
+              <div class="output">Output: explicit review queue</div>
+            </div>
+            <div class="stage">
+              <div class="number">6</div>
+              <div class="name">Verification loop</div>
+              <div class="detail">Install if authorized; format; typecheck; test; build; capture Solid 2 diagnostics; check idempotency; rerun after fixes.</div>
+              <div class="output">Output: verified or blocked report</div>
+            </div>
+          </div>
+
+          <div class="callout idea">
+            <h3 style="margin-top:0">First technical spike: can recipe stages share an artifact?</h3>
+            <p>
+              The ideal workflow writes a run manifest in stage 1 and every later package reads it. Validate this against Codemod workflow capabilities before building the analyzer. If artifact passing is unavailable, keep the conceptual phase but implement profile inference as deterministic shared helpers from the nearest package/config files, and generate the consolidated report in a wrapper command around the recipe.
+            </p>
+          </div>
+
+          <h3>Workflow invariants</h3>
+          <ul>
+            <li>No edit may depend on evidence that an earlier edit has already destroyed; inventory is captured first.</li>
+            <li>Every edit records a decision code and source rule, even if the user sees only the diff.</li>
+            <li>Every ambiguous site has a stable fallback: leave source intact, add a Review Marker, record evidence.</li>
+            <li>Every transform is idempotent independently and in the composed workflow.</li>
+            <li>Already-migrated and mixed 1.x/2.x code is valid input.</li>
+            <li>Library public APIs are preserved unless the user explicitly enables breaking public API edits.</li>
+            <li>The report distinguishes “transformed”, “review required”, “diagnostic required”, “skipped”, and “verified”.</li>
+          </ul>
+        </section>
+
+        <section id="modes">
+          <h2>Execution modes</h2>
+          <div class="grid three">
+            <div class="card">
+              <span class="badge proof">Audit</span>
+              <h3>Inventory only</h3>
+              <p>Classify packages and sites, estimate scope, and produce a report. No source edits. This is valuable before adopting a beta target or planning a monorepo migration.</p>
+            </div>
+            <div class="card">
+              <span class="badge safe">Safe migration · default</span>
+              <h3>Mechanical + review</h3>
+              <p>Apply only proven edits and compatibility-preserving transformations. Add Review Markers for intent-dependent work. This should be the first reliable release.</p>
+            </div>
+            <div class="card">
+              <span class="badge review">Future</span>
+              <h3>Best-effort AI</h3>
+              <p>Resolve selected semantic sites using whole-project context. It should consume the safe migration report, be explicit opt-in, and never rewrite review-only categories.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="decision-model">
+          <h2>The decision is the unit of design</h2>
+          <p>Before implementing a rule, write its decision record. This prevents the old monolith from reappearing inside smaller folders.</p>
+
+          <dl class="decision-template">
+            <div><dt>Decision code</dt><dd>Stable identifier, e.g. <code>S2-IMPORT-001</code>.</dd></div>
+            <div><dt>Solid source</dt><dd>Docs section and compatibility-manifest revision.</dd></div>
+            <div><dt>Trigger</dt><dd>Exact syntax and binding provenance that creates a candidate.</dd></div>
+            <div><dt>Required evidence</dt><dd>Facts that must be proven locally or from package profile.</dd></div>
+            <div><dt>Classification</dt><dd>Direct safe, proof-required, compatibility, semantic, or diagnostic-only.</dd></div>
+            <div><dt>Action</dt><dd>Rewrite, remove, import edit, marker, or report-only.</dd></div>
+            <div><dt>Fallback</dt><dd>What happens when evidence is absent or contradictory.</dd></div>
+            <div><dt>Side effects</dt><dd>Imports, dependency changes, comments, formatting, public API impact.</dd></div>
+            <div><dt>Idempotency</dt><dd>How already-migrated output is recognized.</dd></div>
+            <div><dt>Verification</dt><dd>Fixture matrix plus type/runtime/diagnostic checks.</dd></div>
+          </dl>
+
+          <h3>Five useful classifications</h3>
+          <table>
+            <thead><tr><th>Class</th><th>Meaning</th><th>Default behavior</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td class="status safe">Direct safe</td><td>One documented meaning, proven binding, no intent needed</td><td>Rewrite</td><td><code>solid-js/web</code> → <code>@solidjs/web</code></td></tr>
+              <tr><td class="status proof">Safe with proof</td><td>Safe only when provenance and local shape satisfy constraints</td><td>Rewrite or fall back to marker</td><td><code>Index</code> → <code>For keyed={false}</code></td></tr>
+              <tr><td class="status compat">Compatibility rewrite</td><td>Preserves old behavior using an explicit Solid 2 adapter</td><td>Rewrite and report follow-up opportunity</td><td>Path setter → <code>setStore(storePath(...))</code></td></tr>
+              <tr><td class="status review">Semantic site</td><td>Multiple valid replacements depend on application intent</td><td>Leave source; mark and explain</td><td><code>createComputed</code> three-way choice</td></tr>
+              <tr><td class="status diagnostic">Diagnostic only</td><td>Static syntax is insufficient; runtime knows the violation</td><td>Capture diagnostic in verification</td><td><code>STRICT_READ_UNTRACKED</code></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="catalog">
+          <h2>Initial migration decision catalog</h2>
+          <p>This is the top-down backlog suggested by the migration guide, RFCs, and the beta.16/17 changelogs. “V1” means a good candidate for the first safe release.</p>
+
+          <h3>Package, imports, and configuration</h3>
+          <table>
+            <thead><tr><th>Decision</th><th>Classification</th><th>Proposed behavior</th><th>Release</th></tr></thead>
+            <tbody>
+              <tr><td>Old Solid subpaths</td><td class="status safe">Direct safe</td><td>Move <code>web</code>, <code>h</code>, <code>html</code>, and <code>universal</code> to <code>@solidjs/*</code>; move store exports to <code>solid-js</code>. Cover imports, exports, dynamic imports, and require literals.</td><td>V1</td></tr>
+              <tr><td>Direct <code>dom-expressions</code> dependencies/imports</td><td class="status proof">Proven direct usage</td><td>Map direct consumers to <code>@dom-expressions/runtime</code>, <code>@dom-expressions/babel-plugin-jsx</code>, <code>@dom-expressions/hyperscript</code>, or <code>@dom-expressions/tagged-jsx</code>. Do nothing when the dependency is only transitive through Solid.</td><td>V1 optional</td></tr>
+              <tr><td><code>sld-dom-expressions</code> / SLD APIs</td><td class="status proof">Direct dependency + API shape</td><td>Move package usage to <code>@dom-expressions/tagged-jsx</code> and rename proven runtime/type APIs to Tagged JSX equivalents; mark custom integrations.</td><td>V1 narrow</td></tr>
+              <tr><td>Dependency versions</td><td class="status proof">Profile + policy</td><td>Read ranges from Compatibility Manifest. Place runtime/renderer packages by package role; preserve peer dependency intent for published libraries.</td><td>V1</td></tr>
+              <tr><td><code>jsxImportSource</code></td><td class="status proof">Profile required</td><td>Web → <code>@solidjs/web</code>; hyperscript → <code>@solidjs/h</code>; custom renderer → its package; renderer-neutral package may require no JSX setting.</td><td>V1</td></tr>
+              <tr><td>Mixed renderer evidence</td><td class="status review">Semantic site</td><td>Do not choose a renderer. Report conflicting imports/config and request package-level decision.</td><td>V1 marker</td></tr>
+              <tr><td>Tooling packages</td><td class="status proof">Role-aware</td><td>Update known integrations only when compatibility manifest declares them; do not mirror dependency groups blindly.</td><td>V1 narrow</td></tr>
+            </tbody>
+          </table>
+
+          <h3>JSX and renderer-owned types</h3>
+          <table>
+            <thead><tr><th>Decision</th><th>Classification</th><th>Proposed behavior</th><th>Release</th></tr></thead>
+            <tbody>
+              <tr><td><code>JSX</code> / intrinsic helpers imported from <code>solid-js</code></td><td class="status proof">Usage + profile</td><td>Move renderer-specific uses to the renderer package. Preserve aliases and type-only imports.</td><td>V1</td></tr>
+              <tr><td>Renderer-neutral <code>JSX.Element</code></td><td class="status proof">Public type analysis</td><td>Replace with <code>Element</code> from <code>solid-js</code> only when the type is truly renderer-neutral.</td><td>V1 conservative</td></tr>
+              <tr><td>Custom renderer module augmentation</td><td class="status review">Semantic site</td><td>Identify required <code>jsx-runtime</code>/<code>jsx-dev-runtime</code> ownership; do not assume web.</td><td>V1 marker</td></tr>
+              <tr><td>Public library signatures</td><td class="status review">API preservation</td><td>Prefer renderer-neutral types; flag any rewrite that changes exported contracts.</td><td>V1 marker</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Control flow and component shapes</h3>
+          <table>
+            <thead><tr><th>Decision</th><th>Classification</th><th>Proposed behavior</th><th>Release</th></tr></thead>
+            <tbody>
+              <tr><td><code>Suspense</code> → <code>Loading</code></td><td class="status safe">Direct safe</td><td>Binding-aware rename in imports, namespace members, and JSX tags.</td><td>V1</td></tr>
+              <tr><td><code>ErrorBoundary</code> → <code>Errored</code></td><td class="status proof">Callback shape</td><td>Rename; update fallback callback error reads to accessor form only when safely attributable.</td><td>V1</td></tr>
+              <tr><td><code>Index</code> → <code>For keyed={false}</code></td><td class="status proof">Solid binding + literal shape</td><td>Rename component and add literal <code>keyed={false}</code>; preserve child accessor/index semantics.</td><td>V1</td></tr>
+              <tr><td><code>SuspenseList</code> → <code>Reveal</code></td><td class="status proof">Literal props</td><td>Map <code>forwards</code> to default sequential, <code>together</code> to <code>order="together"</code>, and <code>tail="collapsed"</code> to <code>collapsed</code>. Mark backwards/dynamic/unsupported props.</td><td>V1</td></tr>
+              <tr><td><code>Context.Provider</code></td><td class="status proof">Context provenance</td><td>Rewrite to context-as-provider when the object is provably from <code>createContext</code>; handle aliases and local shadowing.</td><td>V1</td></tr>
+              <tr><td>Throwing <code>useContext</code> wrappers</td><td class="status review">Public API site</td><td>Suggest removal, but preserve exported wrapper functions by default under Public API Preserving Migration.</td><td>Later / marker</td></tr>
+              <tr><td><code>createDynamic(source, props)</code></td><td class="status review">Shape choice</td><td>Choose stable <code>dynamic(source)</code> component or <code>createComponent(dynamic(source), props)</code> based on local use; only rewrite exact safe patterns.</td><td>V1 narrow</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Reactivity, effects, and lifecycle</h3>
+          <table>
+            <thead><tr><th>Decision</th><th>Classification</th><th>Proposed behavior</th><th>Release</th></tr></thead>
+            <tbody>
+              <tr><td><code>batch(fn)</code></td><td class="status proof">Synchronous observation analysis</td><td>Remove wrapper when no immediate committed read/DOM dependence exists. Use <code>flush(fn)</code> only at a proven Flush Boundary. Mark ambiguous sites.</td><td>V1 conservative</td></tr>
+              <tr><td><code>onMount</code></td><td class="status proof">Lifecycle shape + owner</td><td>Rename to <code>onSettled</code>; combine directly nested <code>onCleanup</code> into a returned cleanup only when established from an owned component scope. Mark nested primitive creation, invalid returns, and out-of-band cleanup (<code>SETTLED_CLEANUP_UNOWNED</code>).</td><td>V1</td></tr>
+              <tr><td>Single-callback <code>createEffect</code></td><td class="status review">Effect Split</td><td>Do not mechanically split arbitrary code. Mark with reads/writes/cleanup evidence and proposed compute/apply partition.</td><td>V1 marker</td></tr>
+              <tr><td><code>createEffect(on(...))</code></td><td class="status proof">Recognized helper form</td><td>Convert explicit dependency helper into split effect; carry <code>defer</code> to effect options.</td><td>V1 candidate</td></tr>
+              <tr><td>Effect-bundle <code>error</code> arm</td><td class="status proof">Phase-aware analysis</td><td>Treat the handler as queued imperative effect-phase code that receives the original thrown value. Allow writes there; distinguish compute errors it handles from throws produced by the effect/apply arm itself.</td><td>V1 fixtures</td></tr>
+              <tr><td><code>createMemo(fn, initial)</code></td><td class="status proof">Prev usage + type shape</td><td>Convert initial value to a default <code>prev</code> parameter only if <code>prev</code> is used and the transformation is type-preserving; otherwise drop only with proof.</td><td>V1 narrow</td></tr>
+              <tr><td><code>createComputed</code></td><td class="status review">Three-way semantic choice</td><td>Classify candidate as readonly derivation, side effect, or writable derived state. Rewrite only syntactically unmistakable cases.</td><td>Later / narrow V1</td></tr>
+              <tr><td>Owned writes / top-level reads</td><td class="status diagnostic">Diagnostic-driven</td><td>Prefer Solid diagnostic capture. Static scan may provide hints, but must not add <code>ownedWrite</code> automatically.</td><td>V1 verification</td></tr>
+              <tr><td><code>createRoot</code> lifetime</td><td class="status review">Ownership intent</td><td>Flag roots that may have relied on implicit detachment; suggest <code>runWithOwner(null, ...)</code> only when global lifetime is established.</td><td>V1 marker</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Stores</h3>
+          <table>
+            <thead><tr><th>Decision</th><th>Classification</th><th>Proposed behavior</th><th>Release</th></tr></thead>
+            <tbody>
+              <tr><td><code>mergeProps</code> → <code>merge</code></td><td class="status safe">Direct rename + caveat</td><td>Rename binding. Record possible behavioral impact where later sources may deliberately contain <code>undefined</code>.</td><td>V1</td></tr>
+              <tr><td><code>splitProps</code> → <code>omit</code></td><td class="status proof">Binding usage</td><td>Rest-only patterns can become <code>omit</code>. Selected/rest dual use requires reconstruction or a compatibility helper; do not pretend it is a rename.</td><td>V1 narrow</td></tr>
+              <tr><td><code>produce</code> wrapper</td><td class="status safe">Exact wrapper</td><td>Remove <code>produce</code> from a store setter callback; clean import.</td><td>V1</td></tr>
+              <tr><td>Path-style store setters</td><td class="status compat">Compatibility rewrite</td><td>Wrap exact old path arguments with <code>storePath(...)</code>. Prefer this behavior-preserving step before any draft-style refactor.</td><td>V1</td></tr>
+              <tr><td><code>reconcile</code></td><td class="status proof">Target + key semantics</td><td>Move reconciliation into the draft setter and map options to the new key argument only with proof.</td><td>V1 narrow</td></tr>
+              <tr><td><code>unwrap</code> → <code>snapshot</code></td><td class="status safe">Direct rename</td><td>Rename when the imported binding is Solid store <code>unwrap</code>.</td><td>V1</td></tr>
+              <tr><td><code>createSelector</code></td><td class="status review">Data-model choice</td><td>Projection/store design depends on how selection is consumed. Mark unless a tightly scoped common pattern is proven.</td><td>Later</td></tr>
+              <tr><td><code>createMutable</code> / <code>modifyMutable</code></td><td class="status review">Whole cluster rewrite</td><td>Requires introducing setter ownership and rewriting writes. Treat as a Semantic Migration Site.</td><td>Later</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Async, actions, and transitions</h3>
+          <table>
+            <thead><tr><th>Decision</th><th>Classification</th><th>Proposed behavior</th><th>Release</th></tr></thead>
+            <tbody>
+              <tr><td><code>createResource</code></td><td class="status review">Resource Cluster</td><td>Inventory creation, reads, loading/error checks, refetches, mutations, and boundaries together. Avoid call-site-only rewriting.</td><td>V1 marker</td></tr>
+              <tr><td><code>resource.loading</code></td><td class="status review">Boundary placement</td><td>Suggest <code>Loading</code> for initial readiness and <code>isPending</code> for revalidation. Placement depends on which boundary owns the read.</td><td>V1 marker</td></tr>
+              <tr><td><code>resource.error</code></td><td class="status review">Structural error flow</td><td>Move toward <code>Errored</code> or effect error handling; do not replace property access locally.</td><td>V1 marker</td></tr>
+              <tr><td><code>refetch</code> / <code>mutate</code></td><td class="status review">Mutation intent</td><td>Propose <code>refresh</code> and action/optimistic patterns as a connected migration, not independent renames.</td><td>V1 marker</td></tr>
+              <tr><td><code>startTransition</code> / <code>useTransition</code></td><td class="status review">UX intent</td><td>Built-in transitions change the shape. Record pending UI and mutation sites; route read/revalidation pending UI to Loading/isPending and mutation workflows to actions/optimistic state.</td><td>V1 marker</td></tr>
+              <tr><td>Optimistic “Saving…” state</td><td class="status review">UX intent</td><td>Do not generate <code>isPending</code>: active optimistic overrides intentionally mask pending. Recommend co-written status data or a separate optimistic boolean.</td><td>V1 marker guidance</td></tr>
+              <tr><td><code>action()</code> called from owned scope</td><td class="status diagnostic">Diagnostic-driven</td><td>Capture <code>ACTION_CALLED_IN_OWNED_SCOPE</code>; statically flag obvious component/computation invocations, but leave relocation to human intent.</td><td>V1 verification</td></tr>
+              <tr><td><code>from</code> / <code>observable</code></td><td class="status review">Known gap</td><td>Async iterable and effect adapters differ by direction; standard Observable output has no drop-in replacement.</td><td>Review-only</td></tr>
+            </tbody>
+          </table>
+
+          <h3>DOM and directives</h3>
+          <table>
+            <thead><tr><th>Decision</th><th>Classification</th><th>Proposed behavior</th><th>Release</th></tr></thead>
+            <tbody>
+              <tr><td><code>classList</code></td><td class="status proof">Attribute composition</td><td>Merge into <code>class</code> using object/array form while preserving existing static/dynamic class values.</td><td>V1</td></tr>
+              <tr><td><code>attr:</code> / <code>bool:</code></td><td class="status proof">DOM attribute map</td><td>Rewrite only against a curated HTML/SVG/MathML table; preserve custom-element semantics and string booleans.</td><td>V1 narrow</td></tr>
+              <tr><td><code>on:</code> / <code>oncapture:</code></td><td class="status review">Listener options</td><td>Simple standard events may become camelCase handlers; capture/options require ref callbacks and cleanup design.</td><td>V1 marker</td></tr>
+              <tr><td><code>use:</code> directives</td><td class="status review">Directive Migration</td><td>Call-site conversion may be local, but directive definitions need the two-phase owned/unowned pattern. Treat the cluster as semantic unless trivial and proven.</td><td>V1 marker</td></tr>
+              <tr><td><code>/*@once*/</code></td><td class="status review">Intent required</td><td>Most should become normal reactive JSX; form state may need default props; rare true snapshots need narrow <code>untrack</code>.</td><td>V1 marker</td></tr>
+              <tr><td><code>clearDelegatedEvents</code></td><td class="status proof">Root ownership</td><td>Remove only when render-root disposal already owns lifecycle; otherwise report missing root disposal.</td><td>V1 narrow</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="topology">
+          <h2>Package topology: evolve the scaffold without over-splitting</h2>
+          <p>Keep the current published packages, add explicit beginning/end capabilities, and create internal rule groups rather than publishing a package per RFC.</p>
+
+          <pre><code>solid-v2-migration-recipe
+├── solid-v2-analyze                 # new: preflight, inventory, target profiles
+├── solid-v2-json-config             # existing: manifest-driven config/dependencies
+├── solid-v2-imports                 # existing: module paths + proven names
+├── solid-v2-jsx-types               # existing: renderer-owned vs neutral types
+├── solid-v2-jsx-shapes              # existing: control flow, context, class/DOM
+├── solid-v2-runtime-safe            # existing, internally grouped:
+│   ├── reactivity-lifecycle
+│   ├── stores
+│   ├── async-candidates
+│   └── compatibility-rewrites
+├── solid-v2-review-markers          # existing: post-transform semantic audit
+└── solid-v2-verify                  # new: idempotency/checks/diagnostics/report
+
+@solid-codemod/shared
+├── compatibility-manifest
+├── package-and-target-profile
+├── binding-provenance
+├── import-edit-transaction
+├── decision-and-marker-codes
+└── report-schema</code></pre>
+
+          <div class="callout warning">
+            <h3 style="margin-top:0">Do not build a large shared framework first</h3>
+            <p>Extract shared helpers only after the same proven need appears in two focused rules. The first vertical slice should establish the minimal contracts—decision records, binding provenance, import edits, and profile lookup—then grow shared code from tested usage.</p>
+          </div>
+
+          <h3>Compatibility Manifest</h3>
+          <p>A checked-in manifest should make beta drift visible and testable:</p>
+          <pre><code>{
+  "target": "solid-2.0.0-beta.17",
+  "solidCommit": "a51cac193386507f27dd95546f6d567fab4ff6d3",
+  "packages": {
+    "solid-js": "2.0.0-beta.17",
+    "@solidjs/web": "2.0.0-beta.17",
+    "@dom-expressions/runtime": "0.50.0-next.17",
+    "@dom-expressions/babel-plugin-jsx": "0.50.0-next.17",
+    "@dom-expressions/hyperscript": "0.50.0-next.17",
+    "@dom-expressions/tagged-jsx": "0.50.0-next.17"
+  },
+  "importMoves": { "solid-js/web": "@solidjs/web" },
+  "diagnosticCodes": [
+    "STRICT_READ_UNTRACKED",
+    "REACTIVE_WRITE_IN_OWNED_SCOPE",
+    "ACTION_CALLED_IN_OWNED_SCOPE",
+    "SETTLED_CLEANUP_UNOWNED",
+    "REACTIVITY_HALTED"
+  ],
+  "rulesetVersion": 1
+}</code></pre>
+          <p class="muted small">Exact schema is an implementation decision. The important property is that code, fixtures, and reports all point to the same versioned policy.</p>
+        </section>
+
+        <section id="markers">
+          <h2>Make review markers actionable and machine-readable</h2>
+          <p>A generic file-level <code>TODO(solid-2)</code> is easy to add but hard to resolve. Use stable decision codes and one concise local instruction, while keeping richer evidence in the report.</p>
+
+          <pre><code>// TODO(solid-2 S2-EFFECT-001): Split this effect into tracked compute and untracked apply phases.
+// Evidence: reads [userId, store.user]; side effects [fetch, setTitle]; cleanup [abort].
+
+// TODO(solid-2 S2-RESOURCE-001): Migrate this Resource Cluster as one unit.
+// Report: resource "user" has loading, error, refetch, and mutate consumers.</code></pre>
+
+          <ul>
+            <li>Deduplicate by decision code and AST anchor.</li>
+            <li>Prefer the narrowest statement-level marker; use file-level summaries only for dispersed clusters.</li>
+            <li>Never rewrite or duplicate an existing marker on rerun.</li>
+            <li>Include a suggested verification action, not an asserted replacement, for semantic sites.</li>
+            <li>Generate JSON alongside HTML so follow-on tools can consume unresolved sites.</li>
+          </ul>
+
+          <h3>Map runtime diagnostics into the same report</h3>
+          <table>
+            <thead><tr><th>Solid diagnostic</th><th>Migration meaning</th><th>Workflow response</th></tr></thead>
+            <tbody>
+              <tr><td><code>REACTIVE_WRITE_IN_OWNED_SCOPE</code></td><td>Write must move, become derivation/action, or rarely use ownedWrite</td><td>Record runtime site; never auto-add <code>ownedWrite</code></td></tr>
+              <tr><td><code>ACTION_CALLED_IN_OWNED_SCOPE</code></td><td>Action invocation belongs in an imperative scope, not component/computation execution</td><td>Record the call and owner; do not automatically relocate behavior</td></tr>
+              <tr><td><code>STRICT_READ_UNTRACKED</code></td><td>Read belongs in JSX/compute or explicit one-time <code>untrack</code></td><td>Record owner/node and suggest local choices</td></tr>
+              <tr><td><code>PENDING_ASYNC_UNTRACKED_READ</code></td><td>Async read is outside a retryable tracked scope</td><td>Connect to Resource Cluster / Loading boundary review</td></tr>
+              <tr><td><code>ASYNC_OUTSIDE_LOADING_BOUNDARY</code></td><td>Root mount is deferred without explicit fallback</td><td>Informational unless the UX requires partial/fallback mount</td></tr>
+              <tr><td><code>CLEANUP_IN_FORBIDDEN_SCOPE</code></td><td>Return cleanup from <code>onSettled</code> or tracked effect</td><td>Often safely fixable after runtime location is known</td></tr>
+              <tr><td><code>SETTLED_CLEANUP_UNOWNED</code></td><td>Returned cleanup has no owner lifecycle when <code>onSettled</code> fires out of band</td><td>Move setup helper to an owned scope or make the callback one-shot without cleanup</td></tr>
+              <tr><td><code>REACTIVITY_HALTED</code></td><td>An uncaught error escaped all boundaries and halted later scheduling</td><td>Stop that verification scenario; isolate/reset before continuing and require boundary/error-flow review</td></tr>
+              <tr><td><code>NO_OWNER_*</code> / disposed owner</td><td>Lifecycle and leak risk</td><td>Require ownership review and disposal test</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="verification">
+          <h2>Verification should be designed with the workflow</h2>
+
+          <h3>Rule fixture matrix</h3>
+          <table>
+            <thead><tr><th>Dimension</th><th>Required cases</th></tr></thead>
+            <tbody>
+              <tr><td>Binding provenance</td><td>Direct import, alias, namespace, re-export, shadowed local, unrelated same-name identifier</td></tr>
+              <tr><td>Migration state</td><td>Pure 1.x, mixed 1.x/2.x, already migrated, second run</td></tr>
+              <tr><td>Syntax</td><td>TS, TSX, JS, JSX; comments; multiline; type-only imports; module strings</td></tr>
+              <tr><td>Collisions</td><td>Existing destination import, destination local name, multiple import declarations, namespace collisions</td></tr>
+              <tr><td>Package profile</td><td>Web app, hyperscript, custom renderer, published library, renderer package, tests/tooling only</td></tr>
+              <tr><td>Confidence boundary</td><td>Positive safe case, nearest ambiguous case, explicit negative case, marker deduplication</td></tr>
+              <tr><td>Beta.17 runtime semantics</td><td>Owned-scope action calls, owned/unowned onSettled cleanup, effect error arm, optimistic pending mask, uncaught-error halt/reset</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Composed workflow tests</h3>
+          <ol>
+            <li>Workspace fixtures that require several packages in sequence—not only isolated rule fixtures.</li>
+            <li>Snapshot the decision report as well as transformed files.</li>
+            <li>Run the complete recipe twice and assert a clean second diff.</li>
+            <li>Assert no remaining removed import paths or direct-safe API names.</li>
+            <li>Assert every known semantic candidate is either transformed or represented by exactly one marker/report entry.</li>
+            <li>Run error-producing diagnostic scenarios in isolated processes/roots or call the test/dev <code>resetErrorHalt()</code> between controlled captures so one uncaught error cannot invalidate later checks.</li>
+          </ol>
+
+          <h3>Real-repository proving loop</h3>
+          <p>Use the supporting repositories in increasing difficulty, with clean pinned commits:</p>
+          <ol>
+            <li><strong>test</strong> — tiny controlled app; prove the orchestration and report.</li>
+            <li><strong>powerchat</strong> — application profile and async/UI behavior.</li>
+            <li><strong>solid-router</strong> — library/public API and renderer interactions.</li>
+            <li><strong>solid-primitives</strong> — ownership, lifecycle, primitive internals, broad package matrix.</li>
+            <li><strong>kobalte</strong> — large component library, directives, polymorphism, event and type complexity.</li>
+          </ol>
+
+          <h3>Definition of done for a release</h3>
+          <ul>
+            <li>All rule and workflow fixtures pass, including idempotency.</li>
+            <li>Workflow metadata validates and every package declares the same target ruleset.</li>
+            <li>At least one web app and one published library complete the Verification Loop.</li>
+            <li>No unexplained Solid 2 error diagnostics remain; warnings are resolved or recorded.</li>
+            <li>SSR/hydration checks cover nested Loading/Errored boundaries, async rejections/thenables, lazy modules, and post-hydration refresh.</li>
+            <li>Every Review Marker has a stable code and corresponding report entry.</li>
+            <li>The root documentation describes the actual recipe and its safety boundary.</li>
+          </ul>
+        </section>
+
+        <section id="roadmap">
+          <h2>Recommended implementation roadmap</h2>
+          <p>Build vertical slices through the workflow. Each slice should leave the recipe runnable and more truthful than before.</p>
+
+          <div class="roadmap">
+            <div class="slice">
+              <h3>Workflow contract and source-of-truth</h3>
+              <p>Write the beta.17 Compatibility Manifest, Target Profile evidence rules, decision schema, marker format, run/report schema, and corrected Flush Boundary definition. Include direct <code>@dom-expressions/*</code> mappings and the new diagnostic codes. Update the stale root README.</p>
+              <p><strong>Exit:</strong> metadata tests assert the seven conceptual stages, manifest revision, and package responsibilities.</p>
+            </div>
+            <div class="slice">
+              <h3>End-to-end tracer bullet</h3>
+              <p>Use one web app fixture. Analyze its profile, migrate <code>solid-js/web</code> to <code>@solidjs/web</code>, update package/config from the manifest, emit a decision report, and prove a clean second run.</p>
+              <p><strong>Exit:</strong> one complete migration path—not just a transform unit test—works.</p>
+            </div>
+            <div class="slice">
+              <h3>Module and renderer normalization</h3>
+              <p>Finish import paths, dependency roles, JSX config, renderer-owned type imports, collision handling, and renderer-neutral <code>Element</code> cases.</p>
+              <p><strong>Exit:</strong> web, hyperscript, custom-renderer, and library profiles have explicit fixture coverage.</p>
+            </div>
+            <div class="slice">
+              <h3>Local-safe JSX shapes</h3>
+              <p>Implement Loading/Errored, Index/For, literal Reveal mappings, Context providers, class composition, and conservative attributes. Add binding and shadowing helpers only as repeated needs emerge.</p>
+              <p><strong>Exit:</strong> all direct-safe and proof-required JSX fixtures pass in isolation and composed order.</p>
+            </div>
+            <div class="slice">
+              <h3>Runtime-safe and compatibility layer</h3>
+              <p>Implement produce removal, path setter compatibility, unwrap/snapshot, rest-only splitProps, lifecycle cleanup shapes, memo initial-prev patterns, and conservative batch classification.</p>
+              <p><strong>Exit:</strong> no rule rewrites an ambiguous semantic site merely to make the fixture green.</p>
+            </div>
+            <div class="slice">
+              <h3>Semantic audit and diagnostics</h3>
+              <p>Add effect, resource, transition, root ownership, directives, once markers, createMutable/selector, and unsupported DOM scans. Integrate Solid <code>DEV.diagnostics</code> capture.</p>
+              <p><strong>Exit:</strong> the report is a complete migration queue rather than a collection of generic TODOs.</p>
+            </div>
+            <div class="slice">
+              <h3>Real-repository hardening and beta drift</h3>
+              <p>Run the proving loop, classify failures by decision code, expand fixtures before fixes, and add a manifest update procedure for each Solid beta.</p>
+              <p><strong>Exit:</strong> release evidence includes representative app and library migrations with known residual work.</p>
+            </div>
+          </div>
+
+          <h3>Explicitly defer from the first safe release</h3>
+          <ul>
+            <li>General automatic effect splitting.</li>
+            <li>Whole Resource Cluster rewrites and automatic optimistic action design.</li>
+            <li>General <code>createComputed</code>, <code>createMutable</code>, or <code>createSelector</code> redesign.</li>
+            <li>Automatic directive-definition restructuring.</li>
+            <li>Automatic <code>ownedWrite: true</code> insertion.</li>
+            <li>Best-Effort AI Migration.</li>
+          </ul>
+        </section>
+
+        <section id="next">
+          <h2>Immediate next steps</h2>
+          <p>If we start tomorrow, these are the highest-leverage decisions and artifacts—in order.</p>
+          <ol>
+            <li><strong>Resolve the <code>batch</code>/<code>flush</code> glossary contradiction</strong> and add three decision cases: remove wrapper, proven flush boundary, ambiguous review.</li>
+            <li><strong>Write <code>compatibility/solid-2.0.0-beta.17.json</code></strong> pinned to <code>a51cac19</code>, with Solid and <code>@dom-expressions</code> package ranges, import moves, known direct renames, removed APIs, and diagnostic codes.</li>
+            <li><strong>Define Target Profile evidence</strong> for web, hyperscript, custom renderer, and renderer-neutral library; include conflict and unknown states.</li>
+            <li><strong>Spike workflow artifact passing</strong> to decide whether analysis state can be shared natively or needs a wrapper command/shared inference.</li>
+            <li><strong>Define the decision/report schema</strong> and stable code families: CONFIG, IMPORT, TYPE, JSX, REACT, STORE, ASYNC, DOM, OWNER.</li>
+            <li><strong>Build one composed workspace fixture</strong> representing a small Solid 1 web app, and assert transformed files plus report plus idempotency.</li>
+            <li><strong>Implement the tracer rules</strong>: web dependency/config, <code>solid-js/web</code> import move, and <code>Suspense</code> → <code>Loading</code>.</li>
+            <li><strong>Update the recipe metadata tests</strong> to test stage contracts instead of only the current six package names/order.</li>
+            <li><strong>Update the root README</strong> to stop claiming the removed monolithic package is current.</li>
+            <li><strong>Only then reintroduce fixture groups package by package</strong>, converting each old expectation into an explicit decision record first.</li>
+          </ol>
+
+          <div class="callout idea">
+            <h3 style="margin-top:0">Best first milestone</h3>
+            <p><strong>“Audit and safely migrate a minimal web app, then explain every action.”</strong> That milestone forces the workflow, Target Profile, Compatibility Manifest, import/config coordination, report schema, and idempotency to exist before the harder semantic rules can muddy the architecture.</p>
+          </div>
+        </section>
+
+        <section id="questions">
+          <h2>Open product and architecture decisions</h2>
+          <table>
+            <thead><tr><th>Question</th><th>Recommended default</th><th>Why it matters</th></tr></thead>
+            <tbody>
+              <tr><td>What exact Solid target does a release support?</td><td>One pinned beta ruleset per codemod release</td><td>The API is still changing; unversioned rules will become contradictory.</td></tr>
+              <tr><td>Can a workflow stage persist analysis state?</td><td>Spike before analyzer implementation</td><td>This determines whether Target Profile is captured once or recomputed deterministically.</td></tr>
+              <tr><td>Should JSON/config run before source transforms?</td><td>Yes, but only after immutable inventory</td><td>Dependency/type context should be normalized early without erasing original evidence.</td></tr>
+              <tr><td>Are compatibility rewrites considered success?</td><td>Yes, labeled as compatibility and reported</td><td><code>storePath</code> can preserve behavior while leaving a later idiomatic cleanup.</td></tr>
+              <tr><td>Where do machine reports live in user repos?</td><td>Configurable; default hidden generated directory</td><td>Reports should not unexpectedly pollute published packages or be committed by default.</td></tr>
+              <tr><td>Can markers alter public source?</td><td>Yes in safe mode, with an option for report-only audit</td><td>Some users want a searchable queue; others require zero-comment source changes.</td></tr>
+              <tr><td>How are checks discovered?</td><td>Inventory package scripts, do not invent commands</td><td>Monorepos differ; verification must reflect actual project contracts.</td></tr>
+              <tr><td>When is public API breakage permitted?</td><td>Never by default</td><td>Library migrations need a strong Public API Preserving Migration guarantee.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="sources">
+          <h2>Sources examined</h2>
+          <ul>
+            <li><a href="../.repos/solid/documentation/solid-2.0/MIGRATION.md">Solid 2.0 beta migration guide</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/README.md">Solid 2.0 RFC index</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/01-reactivity-batching-effects.md">RFC 01 — Reactivity, batching, and effects</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/02-signals-derived-ownership.md">RFC 02 — Signals, ownership, and context</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/03-control-flow.md">RFC 03 — Control flow</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/04-stores.md">RFC 04 — Stores</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/05-async-data.md">RFC 05 — Async data</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/06-actions-optimistic.md">RFC 06 — Actions and optimistic updates</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/07-dom.md">RFC 07 — DOM</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/08-dev-diagnostics.md">RFC 08 — Dev diagnostics</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/09-typescript-jsx.md">RFC 09 — TypeScript and JSX ownership</a></li>
+            <li><a href="../.repos/solid/packages/solid/CHEATSHEET.md">Solid 2.0 package cheatsheet</a></li>
+            <li><a href="../.repos/solid/packages/solid/CHANGELOG.md">solid-js beta.16/17 changelog</a>, <a href="../.repos/solid/packages/solid-signals/CHANGELOG.md">signals changelog</a>, and <a href="../.repos/solid/packages/solid-web/CHANGELOG.md">web changelog</a></li>
+            <li><a href="../CONTEXT.md">Codemod domain glossary</a> and the current package workflows/fixtures</li>
+          </ul>
+        </section>
+
+        <footer>
+          Updated from the local Solid checkout at <code>a51cac193386507f27dd95546f6d567fab4ff6d3</code> (<code>2.0.0-beta.17</code>) after comparing it with beta.15 at <code>a4ca10b7</code>. This plan intentionally treats the beta revision as part of the migration contract.
+        </footer>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

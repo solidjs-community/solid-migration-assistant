@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solid 2 Codemod vs Hand-Migrated Branches</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090d12;--panel:#111823;--panel2:#172131;--line:#29364b;--text:#e8eef8;--muted:#9baac0;--green:#58d69a;--blue:#74a8ff;--amber:#f2c467;--red:#ff7d87;--violet:#b69aff;--sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 8% 0,rgba(116,168,255,.15),transparent 31rem),radial-gradient(circle at 92% 6%,rgba(182,154,255,.12),transparent 28rem),var(--bg);color:var(--text);font:15px/1.58 var(--sans)}
+    main{width:min(1180px,calc(100% - 40px));margin:auto;padding:54px 0 86px}h1{max-width:980px;margin:12px 0 15px;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-.04em}h2{margin:52px 0 18px;font-size:28px;letter-spacing:-.025em}h3{margin:0 0 8px;font-size:18px}p{margin:8px 0}code,pre{font-family:var(--mono)}code{color:#dbe7ff}pre{margin:14px 0 0;padding:15px 17px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#080c12;color:#d5dfef;font-size:12px;line-height:1.55}
+    .hero{padding-bottom:34px;border-bottom:1px solid var(--line)}.eyebrow{color:var(--blue);font:700 12px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase}.lede{max-width:960px;color:var(--muted);font-size:18px}.meta{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:23px;color:var(--muted);font:12px var(--mono)}
+    .verdict{display:grid;grid-template-columns:auto 1fr;gap:22px;margin-top:34px;padding:24px;border:1px solid rgba(242,196,103,.48);border-radius:14px;background:linear-gradient(135deg,rgba(242,196,103,.13),rgba(242,196,103,.03))}.mark{display:grid;place-items:center;width:82px;height:82px;border-radius:50%;background:rgba(242,196,103,.14);color:var(--amber);font:800 12px var(--mono);text-align:center}.verdict h2{margin:0 0 6px;font-size:25px}.verdict p{color:#cbd5e5}
+    .grid{display:grid;gap:15px}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{padding:20px;border:1px solid var(--line);border-radius:12px;background:rgba(17,24,35,.9)}.card p,.card li{color:var(--muted)}.metric{margin-bottom:7px;color:var(--amber);font:760 27px/1 var(--mono)}.metric.green{color:var(--green)}.metric.red{color:var(--red)}.metric.blue{color:var(--blue)}.label{color:var(--muted);font:700 11px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+    table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(17,24,35,.83)}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--panel2);color:#bfcae0;font:700 11px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase}td{color:#cbd5e5}tr:last-child td{border-bottom:0}.pass{color:var(--green);font-weight:760}.warn{color:var(--amber);font-weight:760}.fail{color:var(--red);font-weight:760}
+    .pill{display:inline-block;padding:3px 7px;border:1px solid currentColor;border-radius:99px;font:700 10px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase}.critical{color:var(--red)}.high{color:var(--amber)}.good{color:var(--green)}.info{color:var(--blue)}.finding{margin:0 0 15px;padding:21px;border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:10px;background:rgba(17,24,35,.92)}.finding.critical{border-left-color:var(--red)}.finding.good{border-left-color:var(--green)}.finding.info{border-left-color:var(--blue)}.finding-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.evidence{margin-top:11px;color:var(--muted)}
+    ul,ol{padding-left:22px}li{margin:7px 0}.callout{margin:18px 0;padding:16px 18px;border:1px solid rgba(116,168,255,.34);border-radius:10px;background:rgba(116,168,255,.09);color:#cbd8ec}.foot{margin-top:58px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}@media(max-width:850px){.two,.three,.verdict{grid-template-columns:1fr}main{width:min(100% - 24px,1180px);padding-top:30px}table{display:block;overflow-x:auto}}
+  </style>
+</head>
+<body><main>
+  <header class="hero">
+    <div class="eyebrow">Golden-branch comparison · 2026-07-14</div>
+    <h1>The hand migrations are architectural rewrites, not larger search-and-replace patches</h1>
+    <p class="lede">This analysis compares the current codemod output against the existing Solid 2 migration branches for Solid Router and Solid Primitives. Router provides a clean same-base comparison. Primitives provides a broader package-by-package migration history, but its long-running branch and intentional Solid 1 exclusions require a scoped comparison rather than a raw tree verdict.</p>
+    <div class="meta"><span>router hand target: origin/next @ 6290ee6</span><span>primitives hand target: upstream/next @ 887474c</span><span>primitives local snapshot: dev/presence-migration @ 52e361a</span><span>refs refreshed before analysis</span></div>
+  </header>
+
+  <section class="verdict">
+    <div class="mark">DESIGN GAP</div>
+    <div><h2>The codemod covers syntax surfaces; the successful migrations encode project decisions.</h2><p>Mechanical import, renderer, lifecycle, class, and test-setup edits do match in a small set of files. The decisive differences are dependency topology, public API redesign, async and ownership semantics, package scoping, test strategy, and intentional deletion. Those decisions need explicit workflow phases and AI/manual escalation rather than more global AST patterns.</p></div>
+  </section>
+
+  <h2>Comparison integrity</h2>
+  <table>
+    <thead><tr><th>Repository</th><th>Codemod source/output</th><th>Hand-migrated reference</th><th>Comparison quality</th></tr></thead>
+    <tbody>
+      <tr><td><strong>solid-router</strong></td><td>Solid 1 <code>e54fc4a</code> plus the current codemod patch in <code>/tmp/solid-router-codemod-2026-07-14-e54fc4a3</code>.</td><td><code>origin/next</code> at <code>6290ee6</code>, exactly 14 commits ahead of the same base.</td><td class="pass">Strong apples-to-apples migration comparison.</td></tr>
+      <tr><td><strong>solid-primitives</strong></td><td>Canonical Solid 1 main <code>453ec58</code> plus the current codemod patch in <code>/tmp/solid-primitives-codemod-trial-2026-07-14</code>.</td><td>Latest official <code>upstream/next</code> at <code>887474c</code>, beta.17. It diverged at <code>ea386c4</code>: main has 54 later commits; next has 1,039 branch-side commits.</td><td class="warn">Useful for semantic and package-level decisions, not raw patch equivalence.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">The checked-out Primitives <code>dev/presence-migration</code> branch is not the latest hand migration: it is beta.15, has two local-only presence commits, and is 211 commits behind official <code>upstream/next</code>. The report uses official beta.17 <code>next</code> as the primary reference and uses the local branch only to trace the presence migration.</div>
+
+  <h2>Scale and overlap</h2>
+  <div class="grid three">
+    <div class="card"><div class="metric blue">14 / 15</div><div class="label">Router path overlap</div><p>Four codemod files exactly match hand output; nine exist but differ; two codemod files were deleted by hand.</p></div>
+    <div class="card"><div class="metric red">4 exact</div><div class="label">Router exact files</div><p><code>lifecycle.ts</code>, both renderer import files, and <code>test/setup.ts</code>.</p></div>
+    <div class="card"><div class="metric green">226 / 226</div><div class="label">Router hand tests</div><p>Hand branch typecheck, tests, and build were rerun and pass.</p></div>
+    <div class="card"><div class="metric blue">199 / 230</div><div class="label">Primitives path overlap</div><p>Most codemod-touched paths were also touched somewhere on the long-running hand branch.</p></div>
+    <div class="card"><div class="metric red">8 exact</div><div class="label">Primitives exact files</div><p>Only eight codemod outputs match the current hand branch byte-for-byte.</p></div>
+    <div class="card"><div class="metric amber">31 removed</div><div class="label">Primitives absent paths</div><p>The hand branch deleted or reorganized 31 paths that the codemod still rewrote.</p></div>
+  </div>
+  <table>
+    <thead><tr><th>Patch</th><th>Files</th><th>Insertions</th><th>Deletions</th><th>Interpretation</th></tr></thead>
+    <tbody>
+      <tr><td>Router codemod</td><td>15</td><td>42</td><td>77</td><td>Mechanical surface rewrite.</td></tr>
+      <tr><td>Router hand branch</td><td>38</td><td>1,070</td><td>1,178</td><td>Runtime, data-flow, tests, dependencies, docs, and release work.</td></tr>
+      <tr><td>Primitives codemod</td><td>230</td><td>805</td><td>1,082</td><td>Broad source rewrite with almost no manifest migration.</td></tr>
+      <tr><td>Primitives next from common base</td><td>1,344</td><td>107,499</td><td>22,530</td><td>Long-lived product branch: package migrations, new packages, tooling, site, releases, and unrelated evolution.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Router: exact migration decisions the codemod missed</h2>
+  <table>
+    <thead><tr><th>Area</th><th>Codemod output</th><th>Hand-migrated branch</th><th>Lesson</th></tr></thead>
+    <tbody>
+      <tr><td>Dependency graph</td><td class="fail">Leaves Solid 1 dev/peer dependencies and lockfile unchanged.</td><td class="pass">Pins renderer/runtime/compiler, adds <code>@solidjs/web</code> to dev and peer dependencies, removes store external, regenerates lockfile.</td><td>Library manifests need dev + peer policy, not application-only dependency pinning.</td></tr>
+      <tr><td><code>splitProps</code></td><td class="fail"><code>const [, rest] = omit(props, [keys])</code>, which is invalid.</td><td class="pass"><code>const rest = omit(props, "href", ...)</code>, then normalizes class values deliberately.</td><td>This is a semantic rewrite with destructuring and downstream-use preconditions.</td></tr>
+      <tr><td>Async compatibility layer</td><td class="fail">Keeps and partially rewrites <code>src/data/createAsync.ts</code>.</td><td class="pass">Deletes the obsolete 192-line implementation and its dedicated tests; the data API is rebuilt around the Solid 2 model.</td><td>Deletion/replacement can be safer than translating an obsolete abstraction.</td></tr>
+      <tr><td>Cache tracking</td><td class="fail">Retains removed <code>getListener</code> and <code>startTransition</code> paths.</td><td class="pass">Uses <code>getObserver</code>, Solid 2 signal ownership semantics, and revised cache invalidation.</td><td>Binding renames are insufficient where scheduling semantics changed.</td></tr>
+      <tr><td>Router transitions</td><td class="fail">Adds transition wrappers to old logic and leaves removed APIs.</td><td class="pass">Reworks canonical location state, navigation intent, pending state, error clearing, batching, and same-target suppression.</td><td>This is an algorithm migration and should be an AI/manual step with behavior tests.</td></tr>
+      <tr><td>Context rendering</td><td class="fail">Leaves <code>.Provider</code> forms.</td><td class="pass">Renders context objects directly throughout the router tree.</td><td>Validator must cover aliased/local context symbols, not one fixture shape.</td></tr>
+      <tr><td>Tests</td><td class="fail">Renames boundaries but preserves obsolete helpers and expectations.</td><td class="pass">Deletes obsolete async suites, adds client-navigation coverage, introduces async-root helpers, and updates scheduling assertions.</td><td>Migration acceptance needs test evolution, not only “old tests still compile.”</td></tr>
+      <tr><td>Public API</td><td>Preserves the old surface accidentally.</td><td>Adds deprecation aliases, pending submission state, and revised route preload compatibility.</td><td>Public-library migrations require an API compatibility decision ledger.</td></tr>
+    </tbody>
+  </table>
+  <article class="finding good"><div class="finding-head"><span class="pill good">Verified hand result</span><h3>Router next is behaviorally coherent</h3></div><p>The refreshed hand branch was run locally: direct typecheck passed, all 226 current tests passed, TypeScript production compilation passed, and Rollup built <code>dist/index.js</code>. By contrast, the dependency-repaired codemod output retained 56 type errors and failed 65 of 237 legacy tests.</p></article>
+  <article class="finding info"><div class="finding-head"><span class="pill info">Version caveat</span><h3>Do not copy Router's beta.7 JSX configuration blindly</h3></div><p>Router <code>next</code> remains on Solid beta.7 and keeps <code>jsxImportSource: "solid-js"</code>. The beta.17 documentation and Primitives beta.17 branch use <code>@solidjs/web</code>. The codemod's renderer ownership direction is therefore newer than this one Router setting, even though its broader Router migration is invalid.</p></article>
+
+  <h2>Primitives: package migration versus global source rewrite</h2>
+  <table>
+    <thead><tr><th>Area</th><th>Codemod output</th><th>Hand-migrated branch</th><th>Lesson</th></tr></thead>
+    <tbody>
+      <tr><td>Migration unit</td><td class="fail">Rewrites 229 source files globally; only one excluded demo manifest changes.</td><td class="pass">Migrates packages individually, with per-package runtime/renderer dev and peer ranges, version bumps, tests, docs, and release changes.</td><td>The workflow's unit must be a classified workspace package, not the repository root.</td></tr>
+      <tr><td>Partial migration</td><td>Attempts files in every package and emits blockers after editing.</td><td>Explicitly leaves <code>fetch</code>, <code>immutable</code>, <code>db-store</code>, <code>graphql</code>, and <code>resource</code> on Solid 1 and excludes them from root Solid 2 test globs.</td><td>Discovery should produce an inclusion/exclusion graph before mutation.</td></tr>
+      <tr><td>Directive APIs</td><td class="fail">Changes JSX call sites only, producing malformed object callbacks, duplicate refs, and definitions that still expect <code>(element, accessor)</code>.</td><td class="pass">For migrated packages such as mutation-observer, redesigns the exported function itself into a ref factory and updates lifecycle, SSR guards, docs, types, and examples.</td><td>Definition + export + call sites form one migration transaction.</td></tr>
+      <tr><td>Lifecycle</td><td class="fail">A narrow <code>onMount</code> rewrite can corrupt cleanup syntax.</td><td class="pass">Uses <code>onSettled</code> where appropriate, preserves returned cleanup, and guards unsupported server behavior.</td><td>Lifecycle migration needs control-flow and cleanup-shape analysis.</td></tr>
+      <tr><td>Effects</td><td class="warn">Adds 135 TODO markers and largely preserves one-function effects.</td><td class="pass">Manually separates compute/apply functions and returned cleanup. Presence is a concrete example with four semantic effect rewrites.</td><td>Markers are a safe stop, but AI/manual reasoning is required to complete the migration.</td></tr>
+      <tr><td>Props and bindings</td><td class="fail">Can emit <code>const merge = merge(...)</code>.</td><td class="pass">Renames the local to <code>merged</code>, updates Solid 2 merge types, and redesigns class composition around <code>JSX.ClassValue</code>.</td><td>Every import rename must be binding- and scope-aware.</td></tr>
+      <tr><td>Stores</td><td>Adds <code>storePath</code> broadly as compatibility scaffolding.</td><td>Uses no <code>storePath</code>; migrated library code prefers semantic setters, <code>snapshot</code>, and package-specific redesigns.</td><td>Compatibility helpers may be acceptable for applications but should not silently become a library's public/internal architecture.</td></tr>
+      <tr><td>Repository shape</td><td>Rewrites 31 paths that the hand branch later removed or reorganized.</td><td>Deletes obsolete dev demos and modules as package APIs evolve.</td><td>Dead-code/package-removal decisions should precede AST migration.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Residual syntax: why the hand branch is not a global validator oracle</h2>
+  <table>
+    <thead><tr><th>Form in latest Primitives next</th><th>Observed count</th><th>Interpretation</th></tr></thead>
+    <tbody>
+      <tr><td><code>solid-js/web</code></td><td>9</td><td>Some are aliases/config or belong to packages still on Solid 1.</td></tr>
+      <tr><td><code>solid-js/store</code></td><td>16</td><td>Includes explicitly unmigrated packages and development-only examples.</td></tr>
+      <tr><td><code>use:</code></td><td>9</td><td>Several dev/example call sites lag behind ref-factory API redesigns.</td></tr>
+      <tr><td><code>classList=</code></td><td>12</td><td>Primarily dev/demo surfaces; beta.17 docs still say to migrate these.</td></tr>
+      <tr><td><code>&lt;Index&gt;</code></td><td>6 textual matches</td><td>Includes examples and strings; AST context matters.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">This confirms a workflow rule: validate only the package/file set declared in scope, while separately reporting excluded legacy islands. A repository-wide “no old token anywhere” check produces both false positives and pressure to mutate intentionally unmigrated code.</div>
+
+  <h2>What the codemod already gets right</h2>
+  <div class="grid two">
+    <div class="card"><h3>Exact Router matches</h3><ul><li><code>src/lifecycle.ts</code></li><li><code>src/routers/Router.ts</code></li><li><code>src/routers/StaticRouter.ts</code></li><li><code>test/setup.ts</code></li></ul><p>These are narrow renderer/lifecycle/test-setup shapes with little application-specific state reasoning.</p></div>
+    <div class="card"><h3>Useful broad coverage</h3><ul><li>Renderer import movement</li><li>Many store import and snapshot conversions</li><li>Intrinsic class conversion</li><li>Some <code>Index</code> conversions</li><li>Conservative effect/store blockers</li><li>Idempotent Router output</li></ul><p>The mechanical layer is worth retaining as one phase after project classification.</p></div>
+  </div>
+
+  <h2>Changes this comparison should drive in the codemod plan</h2>
+  <ol>
+    <li><strong>Add a project and package discovery phase.</strong> Build a graph of workspaces, applications, publishable libraries, examples, tests, dev-only surfaces, peer ranges, and intentionally excluded Solid 1 islands.</li>
+    <li><strong>Create a migration manifest before editing.</strong> For each package, record target beta tuple, renderer, compiler, peer policy, public API compatibility, SSR mode, and validation commands.</li>
+    <li><strong>Split mechanical AST work from semantic recipes.</strong> Imports and proven JSX forms can be deterministic. Effects, async data, ownership, router transitions, directive APIs, and library prop utilities require recipe-specific preconditions or AI/manual work.</li>
+    <li><strong>Migrate symbol families transactionally.</strong> A directive migration must update its definition, exported type, imports, call sites, documentation examples, tests, and ref composition together.</li>
+    <li><strong>Support deletion and redesign outcomes.</strong> The correct Router migration deleted an obsolete async layer; the correct Primitives branch deleted many dev modules. “Translate every file” must not be the only outcome.</li>
+    <li><strong>Make dependency/config migration role-aware.</strong> Handle dev and peer dependencies, lockfiles, bundler externals, compiler module names, and beta-version-specific JSX ownership. The Primitives beta.17 branch uses plugin <code>3.0.0-next.5</code>, not the codemod's global <code>next.4</code> pin.</li>
+    <li><strong>Use hand branches as decision corpora.</strong> Extract focused before/after fixtures from individual migration commits instead of using entire current trees as exact golden output.</li>
+    <li><strong>Validate in layers.</strong> Parse → residual AST checks → package graph → typecheck → build → focused behavior → full package tests. Enforce node failure independently of the current workflow runner's exit code.</li>
+  </ol>
+
+  <h2>Validation and retained evidence</h2>
+  <div class="grid two">
+    <div class="card"><h3>Router</h3><p>Hand branch validation was rerun successfully: typecheck, 226 tests, production TypeScript compilation, and Rollup build. The support checkout remained clean.</p><p>Codemod evidence: <code>/tmp/solid-router-codemod-2026-07-14-e54fc4a3/.evidence</code>.</p></div>
+    <div class="card"><h3>Primitives</h3><p>The official beta.17 <code>next</code> tree is retained at <code>/tmp/solid-primitives-hand-next-2026-07-14</code>. A fresh 100-workspace install was attempted, but registry timeouts prevented a complete local build/test gate; no green claim is made from that attempt.</p><p>Codemod evidence: <code>/tmp/solid-primitives-codemod-trial-2026-07-14/.trial-evidence</code>.</p></div>
+  </div>
+
+  <div class="foot">Bottom line: keep the current deterministic transforms as a narrow mechanical phase. The hand branches show that successful Solid 2 migration is organized around package classification, explicit compatibility decisions, semantic redesign, deletion, and behavior tests. Those belong in the workflow before the codemod can generalize beyond its Kanban fixture.</div>
+</main></body></html>

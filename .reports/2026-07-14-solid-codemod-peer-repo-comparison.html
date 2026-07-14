@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid 2 Codemod · Peer Repository Comparison</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071018;
+      --panel: #0d1822;
+      --panel-2: #111f2c;
+      --text: #edf5f7;
+      --muted: #9db0bd;
+      --line: #223443;
+      --cyan: #50d9d1;
+      --blue: #73a9ff;
+      --amber: #f2c46b;
+      --red: #ff818a;
+      --green: #78dfa7;
+      --violet: #bd9cff;
+      --mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(80, 217, 209, .12), transparent 32rem),
+        radial-gradient(circle at 92% 12%, rgba(115, 169, 255, .10), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font: 15px/1.62 var(--sans);
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre { font-family: var(--mono); }
+    code {
+      padding: .12rem .34rem;
+      border: 1px solid rgba(115, 169, 255, .20);
+      border-radius: 5px;
+      background: rgba(115, 169, 255, .08);
+      color: #d8e8ff;
+      font-size: .91em;
+    }
+    main { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 96px; }
+    header { max-width: 1040px; margin-bottom: 34px; }
+    .eyebrow {
+      margin-bottom: 14px;
+      color: var(--cyan);
+      font: 750 12px/1.3 var(--mono);
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1 { max-width: 1000px; margin: 0; font-size: clamp(38px, 6vw, 76px); line-height: .98; letter-spacing: -.045em; }
+    .lede { max-width: 930px; margin: 24px 0 0; color: #c1d0d8; font-size: clamp(17px, 2vw, 22px); line-height: 1.46; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .meta span, .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(13, 24, 34, .72);
+      color: var(--muted);
+      font: 700 11px/1.25 var(--mono);
+    }
+    .verdict {
+      display: grid;
+      grid-template-columns: 104px 1fr;
+      gap: 24px;
+      margin: 34px 0 28px;
+      padding: 28px;
+      border: 1px solid rgba(242, 196, 107, .48);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(242, 196, 107, .14), rgba(13, 24, 34, .86));
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .24);
+    }
+    .verdict-mark {
+      display: grid;
+      place-items: center;
+      width: 94px;
+      height: 94px;
+      border: 1px solid rgba(242, 196, 107, .48);
+      border-radius: 50%;
+      background: rgba(242, 196, 107, .10);
+      color: var(--amber);
+      font: 850 12px/1.3 var(--mono);
+      letter-spacing: .06em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .verdict h2 { margin: 1px 0 8px; font-size: clamp(24px, 3vw, 34px); line-height: 1.12; letter-spacing: -.02em; }
+    .verdict p { margin: 0; max-width: 940px; color: #c9d6dc; font-size: 17px; }
+    .metrics, .grid-2, .grid-3, .benchmarks { display: grid; gap: 16px; }
+    .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 18px 0 50px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3, .benchmarks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      padding: 21px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(155deg, rgba(17, 31, 44, .92), rgba(9, 17, 25, .92));
+    }
+    .card h3 { margin: 0 0 9px; font-size: 17px; }
+    .card p { margin: 0; color: var(--muted); }
+    .metric { color: var(--text); font: 800 clamp(27px, 3vw, 40px)/1 var(--mono); letter-spacing: -.04em; }
+    .metric.cyan { color: var(--cyan); }
+    .metric.green { color: var(--green); }
+    .metric.amber { color: var(--amber); }
+    .metric.red { color: var(--red); }
+    .label { margin: 10px 0 5px; color: #d9e6eb; font-weight: 760; }
+    section { margin-top: 58px; scroll-margin-top: 24px; }
+    section > h2 { margin: 0 0 10px; font-size: clamp(27px, 3vw, 40px); line-height: 1.12; letter-spacing: -.028em; }
+    section > .intro { max-width: 880px; margin: 0 0 22px; color: var(--muted); font-size: 16px; }
+    .callout {
+      margin: 20px 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(115, 169, 255, .38);
+      border-radius: 11px;
+      background: rgba(115, 169, 255, .08);
+      color: #cbd8e8;
+    }
+    .callout.warn { border-color: rgba(242, 196, 107, .42); background: rgba(242, 196, 107, .08); }
+    .architecture {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr);
+      align-items: stretch;
+      gap: 14px;
+      margin: 22px 0;
+    }
+    .arch-card {
+      position: relative;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+    .arch-card.good { border-color: rgba(120, 223, 167, .46); }
+    .arch-card.bad { border-color: rgba(255, 129, 138, .46); }
+    .arch-card h3 { margin: 0 0 8px; font-size: 19px; }
+    .arch-card ul { margin-bottom: 0; }
+    .versus { display: grid; place-items: center; color: var(--muted); font: 800 11px var(--mono); text-transform: uppercase; }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      overflow: hidden;
+      background: rgba(13, 24, 34, .88);
+    }
+    th, td { padding: 13px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    th {
+      background: var(--panel-2);
+      color: #c2d1db;
+      font: 800 11px/1.35 var(--mono);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    td { color: #c7d3da; }
+    tbody tr:hover td { background: rgba(80, 217, 209, .025); }
+    .good-text { color: var(--green); font-weight: 750; }
+    .warn-text { color: var(--amber); font-weight: 750; }
+    .bad-text { color: var(--red); font-weight: 750; }
+    .info-text { color: var(--blue); font-weight: 750; }
+    .benchmark { min-height: 260px; }
+    .benchmark .name { color: var(--cyan); font: 800 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .benchmark h3 { margin: 9px 0 8px; font-size: 22px; }
+    .benchmark ul { padding-left: 19px; color: var(--muted); }
+    .benchmark li { margin: 6px 0; }
+    .finding {
+      margin-bottom: 14px;
+      padding: 21px 22px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--amber);
+      border-radius: 11px;
+      background: rgba(13, 24, 34, .90);
+    }
+    .finding.critical { border-left-color: var(--red); }
+    .finding.good { border-left-color: var(--green); }
+    .finding.info { border-left-color: var(--blue); }
+    .finding-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+    .finding h3 { margin: 0; font-size: 19px; }
+    .finding p { margin: 9px 0 0; color: #c4d1d8; }
+    .pill {
+      display: inline-block;
+      padding: 3px 7px;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      font: 800 10px/1.2 var(--mono);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .pill.p0 { color: var(--red); }
+    .pill.p1 { color: var(--amber); }
+    .pill.p2 { color: var(--blue); }
+    .pill.keep { color: var(--green); }
+    .evidence { color: var(--muted); font-size: 13px; }
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: 22px 0;
+    }
+    .stage {
+      position: relative;
+      min-height: 155px;
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    .stage:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      z-index: 2;
+      top: 50%;
+      right: -18px;
+      width: 25px;
+      color: var(--cyan);
+      font: 800 18px var(--mono);
+      text-align: center;
+    }
+    .stage .num { color: var(--cyan); font: 800 11px var(--mono); }
+    .stage h3 { margin: 7px 0; font-size: 16px; }
+    .stage p { margin: 0; color: var(--muted); font-size: 13px; }
+    .roadmap { display: grid; gap: 14px; }
+    .roadmap-item {
+      display: grid;
+      grid-template-columns: 90px minmax(0, 1fr) minmax(260px, .55fr);
+      gap: 18px;
+      padding: 21px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(13, 24, 34, .88);
+    }
+    .roadmap-item h3 { margin: 0 0 6px; }
+    .roadmap-item p { margin: 0; color: var(--muted); }
+    .exit { padding-left: 17px; border-left: 1px solid var(--line); color: #cbd7dd; }
+    .exit strong { display: block; margin-bottom: 5px; color: var(--green); font: 800 11px var(--mono); text-transform: uppercase; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 7px 0; }
+    .footnotes { margin-top: 70px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    .footnotes p { max-width: 1030px; }
+    @media (max-width: 980px) {
+      .metrics, .benchmarks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .pipeline { grid-template-columns: 1fr; }
+      .stage:not(:last-child)::after { content: "↓"; top: auto; right: 50%; bottom: -20px; }
+      .roadmap-item { grid-template-columns: 72px 1fr; }
+      .exit { grid-column: 2; padding: 14px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 760px) {
+      main { width: min(100% - 24px, 1240px); padding-top: 34px; }
+      .verdict, .architecture, .grid-2, .grid-3, .metrics, .benchmarks { grid-template-columns: 1fr; }
+      .versus { min-height: 34px; }
+      .verdict-mark { width: 72px; height: 72px; }
+      .roadmap-item { grid-template-columns: 1fr; }
+      .exit { grid-column: 1; }
+      table { display: block; overflow-x: auto; }
+      th, td { min-width: 155px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Repository benchmark · 14 July 2026</div>
+    <h1>Solid has the right migration philosophy—and two competing implementations.</h1>
+    <p class="lede">A source-level comparison with the i18n codemod, the React codemod suite, and the current migrations template. The conclusion is less “copy this repo” than “combine the strongest operating model from each.”</p>
+    <div class="meta">
+      <span>Solid: fresh-solid-v2-rewrite @ a4ab4e9 + dirty worktree</span>
+      <span>i18n: main @ 31b0d47 + 2 modified files</span>
+      <span>React: main @ 634f86a · clean</span>
+      <span>Template: main @ 8de7d4a · clean</span>
+    </div>
+  </header>
+
+  <section class="verdict">
+    <div class="verdict-mark">Research<br>prototype</div>
+    <div>
+      <h2>Ahead on domain reasoning and fixture breadth; behind on executable coherence and delivery engineering.</h2>
+      <p>The recommended end state is React’s focused packages plus thin recipe, i18n’s modular internals and parameterized workflow where complexity warrants them, and the template’s CI/operational gates—while retaining Solid’s unusually strong distinction between safe mechanical migration and semantic migration sites.</p>
+    </div>
+  </section>
+
+  <div class="metrics">
+    <div class="card"><div class="metric cyan">104</div><div class="label">Solid fixture pairs</div><p>More than i18n’s 23, but many belong to six intentionally non-executable packages.</p></div>
+    <div class="card"><div class="metric red">6 / 8</div><div class="label">Solid package transforms are no-ops</div><p>The published-style recipe is structurally valid but behaviorally empty.</p></div>
+    <div class="card"><div class="metric amber">18 / 20</div><div class="label">Working source fixtures green</div><p>Two newly added cases fail in the current first-pass checkout.</p></div>
+    <div class="card"><div class="metric green">333</div><div class="label">React fixture pairs</div><p>Backed by suite CI, release automation, and 264 metric assertions.</p></div>
+  </div>
+
+  <section id="scope">
+    <h2>What was compared</h2>
+    <p class="intro">The peers were selected for different reasons, so repository size is not treated as a quality score. Counts exclude dependencies, Git data, support repos, and report artifacts. Peer test suites were inspected but not rerun; Solid validation was rerun in an isolated Windows mirror because the WSL checkout has only a Windows Node runtime available.</p>
+    <div class="benchmarks">
+      <article class="card benchmark">
+        <div class="name">i18n-codemod</div>
+        <h3>Deep, stateful transform</h3>
+        <ul>
+          <li>One codemod with a 33-file, 6.3k-line internal pipeline.</li>
+          <li>Sharded and regular workflows, rich parameters, workspace semantic analysis.</li>
+          <li>Writes message catalogs, serializes mutation with a mutex, optionally uses LLM key generation.</li>
+          <li>Useful model for modular internals—not for silent error handling or default AI dependence.</li>
+        </ul>
+      </article>
+      <article class="card benchmark">
+        <div class="name">react-codemod</div>
+        <h3>Mature suite + recipe</h3>
+        <ul>
+          <li>27 self-contained codemods and a thin React 19 recipe.</li>
+          <li>333 fixture pairs; 264 include expected transform metrics.</li>
+          <li>Root CI, frozen install, Changesets, tagging, and registry publishing.</li>
+          <li>Best structural analogue for Solid’s intended phase packages.</li>
+        </ul>
+      </article>
+      <article class="card benchmark">
+        <div class="name">migrations-template</div>
+        <h3>Current operating baseline</h3>
+        <ul>
+          <li>Gated commit, AI, and publish steps; all expansive actions default off.</li>
+          <li>Semantic analysis in the sample, metrics fixtures, idempotency policy, and agent <code>SKILL.md</code>.</li>
+          <li>Multi-OS fixture CI plus workflow validation before OIDC publication.</li>
+          <li>A process reference, not evidence that its four-case sample is production ready.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section id="split-brain">
+    <h2>The decisive difference: one design, another executable</h2>
+    <p class="intro">The root documentation is honest about this split, but the repository still exposes both paths as first-class packages. That makes root tests, recipe semantics, and release intent internally contradictory.</p>
+    <div class="architecture">
+      <article class="arch-card good">
+        <span class="pill keep">Executable worktree</span>
+        <h3><code>solid-v2-first-pass</code></h3>
+        <ul>
+          <li>Untracked package: zero files exist at <code>HEAD</code>.</li>
+          <li>1,455-line source transform plus config and validation scripts.</li>
+          <li>24 fixture pairs across config, source, and validation.</li>
+          <li>Hardcoded Vite/npm/beta.17 application profile.</li>
+        </ul>
+      </article>
+      <div class="versus">versus</div>
+      <article class="arch-card bad">
+        <span class="pill p0">Committed recipe</span>
+        <h3>Six focused phase packages</h3>
+        <ul>
+          <li>Correct conceptual boundaries and a thin ordered recipe.</li>
+          <li>All six scripts are explicit <code>async () =&gt; null</code> no-ops.</li>
+          <li>80 fixture pairs specify desired behavior but currently fail when behavior is expected.</li>
+          <li>The shared package exports nothing and only tests that its scaffold loads.</li>
+        </ul>
+      </article>
+    </div>
+    <div class="callout warn"><strong>Recommendation:</strong> keep the focused-package architecture as the destination, but make only implemented packages runnable or publishable. Port the first-pass tracer bullet into those packages one proven rule cluster at a time; do not maintain a monolith and a duplicate recipe indefinitely.</div>
+  </section>
+
+  <section id="numbers">
+    <h2>Quantitative snapshot</h2>
+    <p class="intro">These counts describe repository shape, not correctness. They are most useful for spotting missing operating machinery and the mismatch between fixtures and executable transforms.</p>
+    <table>
+      <thead>
+        <tr><th>Repository</th><th>Transform / support source</th><th>Codemod manifests</th><th>Fixture pairs</th><th>Metric fixtures</th><th>Workflow CI files</th><th>Agent skill</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Solid</strong></td><td>11 files · 1,671 lines</td><td>8</td><td>104</td><td class="bad-text">0</td><td class="bad-text">0</td><td class="bad-text">No</td></tr>
+        <tr><td><strong>i18n</strong></td><td>33 files · 6,293 lines</td><td>1</td><td>23</td><td>0 fixture files; 1 runtime metric atom</td><td class="bad-text">0</td><td>No</td></tr>
+        <tr><td><strong>React</strong></td><td>35 files · 11,577 lines</td><td>27</td><td>333</td><td class="good-text">264</td><td class="good-text">2</td><td>No</td></tr>
+        <tr><td><strong>Template</strong></td><td>1 file · 442 lines</td><td>1</td><td>4</td><td class="good-text">3</td><td class="good-text">2</td><td class="good-text">Yes</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="scorecard">
+    <h2>Capability scorecard</h2>
+    <p class="intro">Solid’s strengths are concentrated in migration semantics and research. Its weaknesses cluster around source organization, symbol provenance, and the path from local experiment to trustworthy release.</p>
+    <table>
+      <thead>
+        <tr><th>Dimension</th><th>Solid</th><th>i18n</th><th>React</th><th>Template / takeaway</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Domain model</strong></td>
+          <td class="good-text">Best in group: safe mechanical migration, semantic sites, review markers, target profiles, compatibility manifests.</td>
+          <td>Domain concepts exist in types and processors, but not as an explicit migration contract.</td>
+          <td>Package names and docs define narrow transformations.</td>
+          <td>Keep Solid’s vocabulary; turn it into workflow state and report output.</td>
+        </tr>
+        <tr>
+          <td><strong>Implementation topology</strong></td>
+          <td class="bad-text">One 1,455-line executable source file alongside six no-op focused packages.</td>
+          <td>Large behavior, but decomposed into patterns, processors, catalogs, library adapters, and generators.</td>
+          <td class="good-text">Focused, self-contained packages composed by a recipe.</td>
+          <td>Adopt React between packages and i18n within a complex package.</td>
+        </tr>
+        <tr>
+          <td><strong>Symbol provenance</strong></td>
+          <td class="bad-text">Import-aware in selected helpers, but many global text passes still key on names. Current collision fixture proves the leak.</td>
+          <td>Workspace semantic analysis is enabled during shard discovery; the transform uses selectors and AST nodes.</td>
+          <td>Most transforms are deliberately narrow and import-oriented; complex cases have dedicated fixtures.</td>
+          <td>Use AST bindings or <code>definition()</code>/<code>references()</code> whenever origin changes safety.</td>
+        </tr>
+        <tr>
+          <td><strong>Ambiguity policy</strong></td>
+          <td class="good-text">Stable coded blockers and a separate validator; avoids pretending all effects are mechanical.</td>
+          <td>Optional AI review handles semantic residue, but transform exceptions are logged and converted to no-op.</td>
+          <td>Focused transforms largely avoid mixed safety levels.</td>
+          <td>Keep Solid’s blocking markers; add structured findings and make AI explicitly opt-in.</td>
+        </tr>
+        <tr>
+          <td><strong>Workflow parameterization</strong></td>
+          <td class="bad-text">No parameters; target profile is hardcoded rather than discovered or selected.</td>
+          <td class="good-text">Library, sharding, catalog paths, excludes, scripts, PR size, AI review, and secrets.</td>
+          <td>Simple transforms need little parameterization; recipe provides stable order.</td>
+          <td>Add only migration-relevant params: target profile, compatibility profile, fail-on-review, optional semantic phase.</td>
+        </tr>
+        <tr>
+          <td><strong>Test evidence</strong></td>
+          <td class="warn-text">Broad fixtures and real-repo trials, but current gates are red and recipe fixtures exercise no behavior.</td>
+          <td>23 rich stateful cases across three i18n libraries; no repository CI.</td>
+          <td class="good-text">333 cases, negative fixtures, metrics, root CI.</td>
+          <td>Keep corpus trials; add deterministic suite gates and metric assertions.</td>
+        </tr>
+        <tr>
+          <td><strong>Postconditions</strong></td>
+          <td>Dedicated validator throws on known blockers, but it is regex-based and the README documents unreliable workflow exit propagation.</td>
+          <td class="bad-text">Top-level catches can turn transform failures into a silent no-op.</td>
+          <td>Package tests and CI are the main contract; recipes remain thin.</td>
+          <td>Validate parse, imports, types, blocker budget, and touched-file invariants outside the transform itself.</td>
+        </tr>
+        <tr>
+          <td><strong>Observability</strong></td>
+          <td class="bad-text">No metric atoms, no metric fixtures, no machine-readable Migration Report.</td>
+          <td>Counts i18n strings with cardinalities.</td>
+          <td class="good-text">264 fixture-level metric expectations.</td>
+          <td>Emit per-rule applied/skipped/blocked counts and assert them in fixtures.</td>
+        </tr>
+        <tr>
+          <td><strong>CI and release</strong></td>
+          <td class="bad-text">No GitHub workflow, stale lockfile for the working package, no release path.</td>
+          <td class="bad-text">No GitHub workflow; uses <code>npx codemod@latest</code>.</td>
+          <td class="good-text">Frozen install, tests, types, Changesets, tags, registry publish.</td>
+          <td>Start with CI only; add publishing after the migration contract is green.</td>
+        </tr>
+        <tr>
+          <td><strong>Agent operations</strong></td>
+          <td>Strong <code>CONTEXT.md</code>; no package <code>SKILL.md</code>.</td>
+          <td>Workflow prompts are detailed but tightly couple operations to its hosted flow.</td>
+          <td>Contributor docs and package READMEs, no skill files.</td>
+          <td class="good-text">Template shows a safe operational skill with validation between graph nodes.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="validation">
+    <h2>Current Solid validation: evidence, not inference</h2>
+    <p class="intro">The source tree was mirrored to a Windows-local temporary directory so the available Windows Node runtime could execute it without WSL UNC-path failures. The mirror was created from the current dirty worktree. A non-frozen install was used only after the frozen install failed.</p>
+    <div class="grid-3">
+      <div class="card"><div class="metric red">FAIL</div><div class="label">Frozen install</div><p><code>solid-v2-first-pass/package.json</code> is not represented in <code>pnpm-lock.yaml</code>; CI-style installation stops immediately.</p></div>
+      <div class="card"><div class="metric red">FAIL</div><div class="label">Root type check</div><p>The first-pass package passes, but phase packages fail in dependency declarations after resolving their <code>latest</code> toolchain.</p></div>
+      <div class="card"><div class="metric amber">22 / 24</div><div class="label">First-pass fixtures reached</div><p>3/3 config, 18/20 source, and 1/1 validator fixtures pass. The aggregate package exits 1.</p></div>
+    </div>
+    <div style="height:16px"></div>
+    <table>
+      <thead><tr><th>Check</th><th>Result</th><th>Interpretation</th></tr></thead>
+      <tbody>
+        <tr><td><code>pnpm install --frozen-lockfile</code></td><td class="bad-text">Exit 1</td><td>The executable package is untracked and the lockfile is stale for its two dev dependencies.</td></tr>
+        <tr><td>First-pass TypeScript</td><td class="good-text">Pass</td><td>The active source, config, and validator scripts type-check with <code>skipLibCheck</code>.</td></tr>
+        <tr><td>Root <code>check-types</code></td><td class="bad-text">Exit 1</td><td>Six scaffold packages lack the first-pass compiler guard and collide with ambient JSSG/DOM declarations.</td></tr>
+        <tr><td>First-pass config fixtures</td><td class="good-text">3 / 3</td><td>The narrow Vite/npm JSON profile is internally consistent for its current cases.</td></tr>
+        <tr><td>First-pass source fixtures</td><td class="bad-text">18 / 20</td><td><code>fixture-name-collisions</code> is rewritten despite local definitions; <code>renamed-store-workflow</code> emits a nested <code>flush</code> and formatting drift.</td></tr>
+        <tr><td>First-pass validator fixture</td><td class="good-text">1 / 1</td><td>Only the clean path is fixture-tested; negative failure modes are not represented as fixture cases.</td></tr>
+        <tr><td>Imports phase package</td><td class="bad-text">1 / 9</td><td>The sole passing case is the no-op fixture; eight expected migrations fail because the script is intentionally empty.</td></tr>
+        <tr><td>Recipe metadata</td><td class="good-text">3 / 3</td><td>Order and textual delegation are correct, but the tests do not assert that delegated codemods implement behavior.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">The two current red source fixtures were added after the latest checked-in HTML trial reports. This report therefore uses the live fixture run as the current unit-level truth and treats earlier integration reports as historical checkpoints rather than proof that the present source has identical failures.</div>
+  </section>
+
+  <section id="strengths">
+    <h2>What Solid should preserve</h2>
+    <div class="grid-2">
+      <article class="finding good">
+        <div class="finding-head"><span class="pill keep">Keep</span><h3>The safety vocabulary is a real architectural asset</h3></div>
+        <p><code>CONTEXT.md</code> distinguishes safe mechanical work, semantic sites, review-only sites, target profiles, role-aware dependency migration, verification loops, and migration reports. None of the comparison repos makes this contract as explicit.</p>
+      </article>
+      <article class="finding good">
+        <div class="finding-head"><span class="pill keep">Keep</span><h3>Review markers are deterministic and idempotent</h3></div>
+        <p>Coded <code>TODO(solid-2 ...)</code> markers are safer than speculative rewrites and more auditable than i18n’s catch-and-return-null behavior. They should become structured blockers, not disappear.</p>
+      </article>
+      <article class="finding good">
+        <div class="finding-head"><span class="pill keep">Keep</span><h3>The fixture inventory is already a valuable migration spec</h3></div>
+        <p>The 80 fixtures attached to the phase packages encode a wide Solid 2 surface. They are useful red specifications; the mistake would be treating their presence as implementation progress.</p>
+      </article>
+      <article class="finding good">
+        <div class="finding-head"><span class="pill keep">Keep</span><h3>Real-repository trials expose semantic closure</h3></div>
+        <p>Kanban, Solid Primitives, and Solid Router trials test what snapshot suites cannot: dependency topology, type/build closure, runtime behavior, and whether a mechanical patch matches a successful hand migration.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="gaps">
+    <h2>Highest-leverage gaps</h2>
+    <p class="intro">These are ordered by how much false confidence they can create, not by implementation effort.</p>
+    <article class="finding critical">
+      <div class="finding-head"><span class="pill p0">P0</span><h3>Make one architecture executable</h3></div>
+      <p>Today the thin recipe composes empty packages while the working implementation is an untracked monolith. Hide the recipe until a stage is real, or port the tracer bullet into phase packages and delete the duplicate path. Package metadata must never imply behavior that its script cannot perform.</p>
+      <p class="evidence">Peer signal: React’s recipe delegates only to independently runnable packages; its metadata test also resolves package existence.</p>
+    </article>
+    <article class="finding critical">
+      <div class="finding-head"><span class="pill p0">P0</span><h3>Establish a reproducible green floor</h3></div>
+      <p>Commit the working package, update the lockfile, pin TypeScript/JSSG/Codemod CLI versions, fix the two red first-pass cases, and either implement or exclude no-op packages from the root green gate. Add CI for frozen install, type checks, fixture tests, and workflow validation.</p>
+      <p class="evidence">Current evidence: frozen install fails; root types fail; first-pass source is 18/20; imports is 1/9.</p>
+    </article>
+    <article class="finding critical">
+      <div class="finding-head"><span class="pill p0">P0</span><h3>Move safety decisions from names to bindings</h3></div>
+      <p>The failing local-name collision fixture proves that import-aware helpers do not protect the whole global text pipeline. Use AST nodes and binding provenance for every rule whose safety depends on symbol origin. Enable workspace semantic analysis only for phases that truly need cross-file definitions or references.</p>
+      <p class="evidence">Borrow from i18n’s selector-oriented decomposition and the template’s semantic-analysis requirement; retain fail-closed behavior.</p>
+    </article>
+    <article class="finding">
+      <div class="finding-head"><span class="pill p1">P1</span><h3>Turn the domain model into a workflow graph</h3></div>
+      <p>Add discovery/classification before edits, then deterministic transforms, structured validation/reporting, an opt-in semantic/AI phase, and project-level verification. <code>Target Profile</code> and <code>Compatibility Manifest</code> should become actual inputs/state instead of glossary-only concepts.</p>
+    </article>
+    <article class="finding">
+      <div class="finding-head"><span class="pill p1">P1</span><h3>Measure transformations and blockers</h3></div>
+      <p>Add metric atoms per rule family and cardinality for applied, skipped, ambiguous, and blocked sites. Store <code>metrics.json</code> expectations beside fixtures. Generate a machine-readable Migration Report with evidence and required verification.</p>
+    </article>
+    <article class="finding info">
+      <div class="finding-head"><span class="pill p2">P2</span><h3>Add publishing machinery only after correctness gates</h3></div>
+      <p>Use React’s release flow and the template’s workflow validation, agent skill, and gated publish parameters. Avoid copying “publish first” boilerplate into a repository whose primary contract is still red.</p>
+    </article>
+  </section>
+
+  <section id="target">
+    <h2>Recommended target architecture</h2>
+    <p class="intro">The key is staged evidence. Each phase should either produce safe edits, a structured blocker, or no change—never silent partial success.</p>
+    <div class="pipeline">
+      <article class="stage"><div class="num">01</div><h3>Discover</h3><p>Workspace/package roles, package manager, Solid/compiler/renderer versions, target profile, SSR, public-library boundaries.</p></article>
+      <article class="stage"><div class="num">02</div><h3>Transform</h3><p>Focused JSON/import/type/JSX/runtime packages. AST and binding-aware. Each package independently runnable and tested.</p></article>
+      <article class="stage"><div class="num">03</div><h3>Validate + report</h3><p>Parse touched files, validate imports and blocker budget, emit rule metrics and a Migration Report. Fail closed.</p></article>
+      <article class="stage"><div class="num">04</div><h3>Resolve semantics</h3><p>Optional AI/manual work queues for resource clusters, effects, ownership, lifecycle, and public API decisions.</p></article>
+      <article class="stage"><div class="num">05</div><h3>Verify</h3><p>Install, types, build, unit/E2E, diagnostics, and second-pass hashes. Compare supported corpora against expected outcomes.</p></article>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Package boundaries</h3>
+        <p>Use React’s focused-package + thin-recipe pattern. Inside a genuinely complex phase, use i18n’s internal split into selectors, processors, domain types, and emitters. Move helpers into <code>@solid-codemod/shared</code> only after two implemented packages need the same stable behavior.</p>
+      </div>
+      <div class="card">
+        <h3>Workflow defaults</h3>
+        <p>Deterministic edits and validation run by default. AI, per-step commits, branch pushes, and PR creation remain off unless explicitly enabled. A review marker is a blocker when the selected completion policy requires a closed migration.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <h2>Recommended execution order</h2>
+    <div class="roadmap">
+      <article class="roadmap-item">
+        <div><span class="pill p0">P0 · now</span></div>
+        <div><h3>Choose and green the executable path</h3><p>Track <code>solid-v2-first-pass</code>; fix collision and nested-flush regressions; pin tool versions; update lockfile; make frozen install and root checks pass. Remove recipe visibility or implement its first real phase.</p></div>
+        <div class="exit"><strong>Exit criterion</strong>Fresh clone + frozen install + root CI passes; every advertised codemod changes at least one positive fixture and preserves a no-op fixture.</div>
+      </article>
+      <article class="roadmap-item">
+        <div><span class="pill p0">P0 · next</span></div>
+        <div><h3>Extract imports/config as the first tracer-bullet phases</h3><p>They are the safest boundaries and already have 24 specifications. Port implementation from first-pass, add binding-aware selectors, and make the recipe temporarily contain only these green packages.</p></div>
+        <div class="exit"><strong>Exit criterion</strong>Focused packages pass fixtures, metrics, workflow validation, and a small Vite app trial independently and through the recipe.</div>
+      </article>
+      <article class="roadmap-item">
+        <div><span class="pill p1">P1</span></div>
+        <div><h3>Add discovery, structured blockers, and corpus gates</h3><p>Materialize Target Profile and Compatibility Manifest; emit a Migration Report; run Kanban automatically and Router/Primitives as expected-blocker corpora with stable budgets.</p></div>
+        <div class="exit"><strong>Exit criterion</strong>No workflow success when syntax/import/blocker postconditions fail; one- and two-pass hashes are tested; blocker counts are explainable.</div>
+      </article>
+      <article class="roadmap-item">
+        <div><span class="pill p1">P1</span></div>
+        <div><h3>Port JSX/runtime rule clusters incrementally</h3><p>Split by safety class and provenance needs. Keep semantic effect/resource/ownership work out of safe packages; feed it into an explicit review queue.</p></div>
+        <div class="exit"><strong>Exit criterion</strong>Each cluster has positive, negative, collision, alias, formatting, and idempotency fixtures plus a real-project acceptance case.</div>
+      </article>
+      <article class="roadmap-item">
+        <div><span class="pill p2">P2</span></div>
+        <div><h3>Operationalize and publish</h3><p>Add package skills, contributor policy, Changesets/tagging, multi-OS CI where relevant, registry publishing, and opt-in AI/PR workflow nodes.</p></div>
+        <div class="exit"><strong>Exit criterion</strong>A tagged recipe can be installed from scratch, produces a truthful report, and is blocked from publication unless every declared package contract passes.</div>
+      </article>
+    </div>
+  </section>
+
+  <section id="borrow">
+    <h2>Borrow selectively</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="good-text">Adopt</h3>
+        <ul>
+          <li><strong>React:</strong> independent packages, thin recipe, fixture metrics, frozen CI, Changesets/release path.</li>
+          <li><strong>i18n:</strong> internal modules by concern, selector-first entry, parameter schemas, serial execution when side effects require it.</li>
+          <li><strong>Template:</strong> semantic-analysis rule, idempotency policy, gated AI/commit/publish, workflow validation, package skill.</li>
+          <li><strong>Solid:</strong> domain language, fail-closed review markers, compatibility/target concepts, corpus verification.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="bad-text">Do not copy blindly</h3>
+        <ul>
+          <li>i18n’s catch-and-return-null failure path or AI review as a substitute for deterministic correctness.</li>
+          <li><code>@latest</code> tool execution in a migration product that needs replayable output.</li>
+          <li>Template publishing machinery before a green correctness contract.</li>
+          <li>React’s raw package count as a goal; split only where packages are independently useful and testable.</li>
+          <li>Fixture volume as a readiness metric when the attached transform is a no-op.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="evidence">
+    <h2>Evidence map</h2>
+    <div class="grid-3">
+      <div class="card"><h3>Solid source</h3><p><a href="../CONTEXT.md">Domain language</a><br><a href="../codemods/solid-v2-first-pass/scripts/source.ts">First-pass source</a><br><a href="../codemods/solid-v2-migration-recipe/workflow.yaml">Recipe workflow</a><br><a href="../codemods/solid-v2-imports/scripts/codemod.ts">Example no-op phase</a></p></div>
+      <div class="card"><h3>Peer source</h3><p><a href="../../../repos/i18n-codemod/workflow.yaml">i18n sharded workflow</a><br><a href="../../../repos/i18n-codemod/src/lib/codemod-i18n.ts">i18n pipeline</a><br><a href="../../../repos/react-codemod/codemods/react-19-migration-recipe/workflow.yaml">React recipe</a><br><a href="../../../repos/migrations-template/.github/workflows/code-quality.yml">Template CI</a></p></div>
+      <div class="card"><h3>Recorded Solid trials</h3><p><a href="2026-07-14-solid-primitives-router-codemod-trials.html">Primitives + Router trial</a><br><a href="2026-07-14-codemod-vs-hand-migrated-branches.html">Codemod vs hand migrations</a><br><a href="2026-07-14-expanded-kanban-codemod-migration-trial.html">Expanded Kanban trial</a></p></div>
+    </div>
+  </section>
+
+  <div class="footnotes">
+    <p><strong>Epistemic status.</strong> All repository-shape claims and Solid validation results were checked against the live filesystem on 14 July 2026. Solid’s working package and this report are untracked; the report therefore evaluates the worktree, not only commit <code>a4ab4e9</code>. i18n had two existing modified source files, so its architecture was inspected as found. React and migrations-template were clean. Peer test suites were not executed, and no claim in this report depends on them currently being green. React’s current recipe metadata also shows a package/codemod version mismatch (0.1.4 vs 0.1.5), a useful reminder that CI machinery is a control, not proof of perfection.</p>
+    <p><strong>Validation environment.</strong> The original WSL path could not run nested pnpm scripts with the available Windows-only Node runtime. A source mirror under <code>C:\Users\devag\AppData\Local\Temp\solid-codemod-validate-ZLGOV4</code> was used. The first install used <code>--frozen-lockfile</code> and failed; a non-frozen install in that disposable mirror enabled the remaining checks. No source files in the live repository were modified for validation.</p>
+  </div>
+</main>
+</body>
+</html>

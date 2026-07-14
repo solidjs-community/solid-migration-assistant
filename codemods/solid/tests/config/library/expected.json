@@ -1,0 +1,14 @@
+{
+  "name": "component-library",
+  "dependencies": {
+    "solid-js": "2.0.0-beta.17"
+  },
+  "peerDependencies": {
+    "solid-js": "^2.0.0-beta.17",
+    "@solidjs/web": "^2.0.0-beta.17"
+  },
+  "devDependencies": {
+    "solid-js": "2.0.0-beta.17",
+    "@solidjs/web": "2.0.0-beta.17"
+  }
+}

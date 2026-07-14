@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: "1"
+
+nodes:
+  - id: migrate-config
+    name: Pin the Solid 2 beta.17 Vite toolchain
+    type: automatic
+    steps:
+      - name: "Update package and TypeScript configuration"
+        js-ast-grep:
+          js_file: scripts/config.ts
+          base_path: "."
+          language: "json"
+          include:
+            - "**/package.json"
+            - "**/tsconfig*.json"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"
+
+  - id: migrate-source
+    name: Rewrite imports and proven runtime semantics
+    type: automatic
+    depends_on: [migrate-config]
+    steps:
+      - name: "Update renderer, store, effect, and deferred setter usage"
+        js-ast-grep:
+          js_file: scripts/source.ts
+          base_path: "."
+          language: "tsx"
+          include:
+            - "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"
+
+  - id: validate-source
+    name: Reject incomplete Solid 2 output
+    type: automatic
+    depends_on: [migrate-source]
+    steps:
+      - name: "Fail when blockers or legacy source forms remain"
+        js-ast-grep:
+          js_file: scripts/validate.ts
+          base_path: "."
+          language: "tsx"
+          include:
+            - "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"

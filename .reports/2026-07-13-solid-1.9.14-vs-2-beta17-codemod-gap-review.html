@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid 1.9.14 → 2.0 beta.17 Codemod Gap Review</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5c667d;
+      --paper: #f5f7fb;
+      --panel: #ffffff;
+      --line: #dce2ec;
+      --accent: #4666e5;
+      --accent-soft: #e9edff;
+      --p0: #b42318;
+      --p0-soft: #fff0ee;
+      --p1: #b54708;
+      --p1-soft: #fff5e8;
+      --p2: #175cd3;
+      --p2-soft: #eef5ff;
+      --good: #067647;
+      --good-soft: #eafbf3;
+      --code: #111827;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 15px/1.58 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(1180px, calc(100% - 40px)); margin: 38px auto 72px; }
+    header, section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; }
+    header { padding: 34px 38px; box-shadow: 0 18px 48px rgba(23, 32, 51, .08); }
+    section { margin-top: 20px; padding: 28px 32px; }
+    h1 { margin: 6px 0 10px; font-size: clamp(30px, 5vw, 48px); line-height: 1.08; letter-spacing: -.035em; }
+    h2 { margin: 0 0 15px; font-size: 24px; letter-spacing: -.015em; }
+    h3 { margin: 24px 0 7px; font-size: 17px; }
+    p { margin: 8px 0 14px; }
+    a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    code { color: var(--code); background: #eef1f6; border-radius: 5px; padding: 2px 5px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { overflow: auto; margin: 12px 0; padding: 16px 18px; border-radius: 10px; background: #111827; color: #f9fafb; }
+    pre code { color: inherit; background: transparent; padding: 0; }
+    ul, ol { margin: 8px 0 14px; padding-left: 23px; }
+    li + li { margin-top: 7px; }
+    .eyebrow { margin: 0; color: var(--accent); font-weight: 760; text-transform: uppercase; letter-spacing: .11em; font-size: 12px; }
+    .lede { max-width: 890px; color: var(--muted); font-size: 18px; }
+    .verdict { border-left: 5px solid var(--p0); background: var(--p0-soft); padding: 16px 18px; border-radius: 9px; font-weight: 650; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+    .card { border: 1px solid var(--line); border-radius: 12px; padding: 17px 18px; background: #fbfcfe; }
+    .card p:last-child { margin-bottom: 0; }
+    .ref { color: var(--muted); font-size: 13px; }
+    .tag { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+    .p0 { color: var(--p0); background: var(--p0-soft); }
+    .p1 { color: var(--p1); background: var(--p1-soft); }
+    .p2 { color: var(--p2); background: var(--p2-soft); }
+    .good { color: var(--good); background: var(--good-soft); }
+    .finding { border-top: 1px solid var(--line); padding-top: 17px; margin-top: 17px; }
+    .finding h3 { margin-top: 0; display: flex; align-items: center; gap: 9px; }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0 4px; font-size: 14px; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 11px 12px; }
+    th { color: #344054; background: #f7f9fc; font-size: 12px; letter-spacing: .03em; text-transform: uppercase; }
+    .compact td:first-child { width: 20%; font-weight: 720; }
+    .priority td:first-child { width: 7%; }
+    .priority td:nth-child(2) { width: 30%; font-weight: 700; }
+    .timeline { counter-reset: step; list-style: none; padding-left: 0; }
+    .timeline li { position: relative; padding: 4px 0 18px 42px; border-left: 2px solid var(--line); margin-left: 14px; }
+    .timeline li::before { counter-increment: step; content: counter(step); position: absolute; left: -15px; top: 0; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: white; background: var(--accent); font-size: 12px; font-weight: 800; }
+    .timeline li:last-child { border-left-color: transparent; }
+    .note { color: var(--muted); font-size: 13px; }
+    @media (max-width: 760px) {
+      main { width: min(100% - 22px, 1180px); margin-top: 16px; }
+      header, section { padding: 23px 20px; border-radius: 12px; }
+      .grid { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Adversarial compatibility review · 2026-07-13</p>
+    <h1>Solid 1.9.14 → 2.0 beta.17<br>Codemod Gap Review</h1>
+    <p class="lede">Three parallel reviews compared the exact local upstream trees, then challenged <code>solid-v2-first-pass</code> from public-API, runtime-semantics, and codemod-engineering perspectives.</p>
+    <p class="verdict">Verdict: the current workflow is a useful, behavior-verified <strong>Kanban profile</strong>, but it is not safe to run as a general Solid 1→2 migration. Several automatic rules can corrupt valid code, and many removed APIs pass through until compilation or runtime failure.</p>
+    <div class="grid">
+      <div class="card">
+        <span class="tag good">Solid 1</span>
+        <h3><code>.repos/solid</code></h3>
+        <p><strong>1.9.14</strong> at <code>d2f81d546d5d</code>, branch <code>main</code>.</p>
+      </div>
+      <div class="card">
+        <span class="tag p2">Solid 2</span>
+        <h3><code>.repos/solid2</code></h3>
+        <p><strong>2.0.0-beta.17</strong> at <code>a51cac193386</code>, branch <code>next</code>, intentionally pinned to the codemod target.</p>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2>Exact compatibility map</h2>
+    <table class="compact">
+      <thead><tr><th>Area</th><th>Solid 1.9.14</th><th>Solid 2 beta.17</th><th>Migration consequence</th></tr></thead>
+      <tbody>
+        <tr><td>Packaging</td><td><code>solid-js</code> includes <code>./store</code>, <code>./web</code>, <code>./h</code>, <code>./html</code>, and <code>./universal</code>.</td><td>Core exports only <code>.</code>; renderer and signals are separate packages.</td><td>A complete profile must classify every used subpath, not just replace <code>solid-js/web</code>.</td></tr>
+        <tr><td>Compiler / JSX</td><td>Preset emits <code>solid-js/web</code>; built-ins include <code>Suspense</code>, <code>Index</code>, <code>ErrorBoundary</code>.</td><td>Preset emits <code>@solidjs/web</code>; built-ins include <code>Loading</code>, <code>Repeat</code>, <code>Errored</code>.</td><td>Runtime, renderer, JSX types, and compiler must move atomically.</td></tr>
+        <tr><td>Effects</td><td>One callback; optional second argument is an initial/previous value.</td><td>Compute and apply callbacks are separate; a missing apply callback throws in development.</td><td>Arity alone is not a rename. Old two-argument effects can silently acquire a different meaning.</td></tr>
+        <tr><td>Signals</td><td>A function passed to <code>createSignal</code> is stored as a value.</td><td>A function first argument is treated as a computation.</td><td>Function-valued signals require an extra thunk or a blocking classification.</td></tr>
+        <tr><td>Writes</td><td>Signal/store setters are synchronously visible to reads.</td><td>Writes are microtask-batched until <code>flush()</code>.</td><td>All same-turn observation boundaries need analysis, not one hard-coded persistence pattern.</td></tr>
+        <tr><td>Stores</td><td>Path setters and <code>produce</code>, <code>unwrap</code>, mutable helpers live under <code>solid-js/store</code>.</td><td>Draft-first setter; <code>storePath</code> compatibility helper; <code>snapshot</code>/<code>deep</code>; no <code>solid-js/store</code> export.</td><td>Every store export needs an explicit compatibility classification.</td></tr>
+        <tr><td>Lifecycle</td><td><code>onMount</code> runs by root completion and nests <code>onCleanup</code>.</td><td><code>onSettled</code> is scheduled after settling and returns cleanup; nested primitives are forbidden.</td><td>Ownership, timing, async settlement, and cleanup shape must be proven.</td></tr>
+        <tr><td>Control flow</td><td><code>Index</code>, <code>Suspense</code>, <code>ErrorBoundary</code>, <code>SuspenseList</code>.</td><td><code>For keyed={false}</code>, <code>Loading</code>, <code>Errored</code>, <code>Reveal</code>.</td><td>Paired JSX AST transforms and connected async clusters are required.</td></tr>
+        <tr><td>DOM classes</td><td>Static <code>class</code> plus <code>classList</code>.</td><td>One <code>class</code> prop supporting strings, arrays, and objects.</td><td>Values must be composed; renaming the attribute creates duplicate props.</td></tr>
+        <tr><td>Types</td><td><code>JSX</code> and <code>JSXElement</code> exported from core.</td><td>DOM JSX ownership belongs to <code>@solidjs/web</code>; renderer-neutral surface uses <code>Element</code>.</td><td>Type migration depends on renderer and whether a type is public or DOM-facing.</td></tr>
+        <tr><td>Diagnostics</td><td>Fewer ownership/strict-read runtime checks.</td><td>New codes cover missing effect callbacks, forbidden writes/scopes, cleanup ownership, strict reads, and halted reactivity.</td><td>Passing UI tests is insufficient without a dev diagnostic gate.</td></tr>
+      </tbody>
+    </table>
+    <p class="ref">Primary evidence: <a href="../.repos/solid/packages/solid/src/index.ts">Solid 1 core exports</a>, <a href="../.repos/solid2/packages/solid/src/index.ts">Solid 2 core exports and removal list</a>, <a href="../.repos/solid2/documentation/solid-2.0/MIGRATION.md">beta.17 migration guide</a>.</p>
+  </section>
+
+  <section>
+    <h2>Release-blocking findings</h2>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> Unresolved effects are still executable</h3>
+      <p>The codemod adds <code>S2-EFFECT-001</code> but preserves the unsupported call. Beta.17 throws <code>MISSING_EFFECT_FN</code>; a comment is not a safe migrated result. Old two-argument <code>createEffect</code> and <code>createMemo</code> calls are even more dangerous because the second argument changes meaning and is not marked.</p>
+      <p class="ref"><a href="../codemods/solid-v2-first-pass/scripts/source.ts">source.ts:188–203, 286–290</a> · <a href="../.repos/solid2/packages/solid-signals/src/signals.ts">beta.17 signals.ts:343–456</a></p>
+    </article>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> Removed API imports pass through after the package upgrade</h3>
+      <p><code>createResource</code>, <code>createSelector</code>, <code>createComputed</code>, <code>on</code>, transitions, async boundaries, context-provider shapes, and numerous renderer helpers have no automatic rewrite or blocking inventory. The workflow can upgrade dependencies and emit code that cannot typecheck.</p>
+      <p class="ref"><a href="../.repos/solid2/packages/solid/src/index.ts">Solid 2 removal list: lines 133–164</a></p>
+    </article>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> Store import classification can emit entirely invalid imports</h3>
+      <p>Everything except four named helpers is assumed movable from <code>solid-js/store</code> to <code>solid-js</code>. Still-used removed helpers are deliberately left under a subpath that beta.17 does not export. Aliases can cause live imports to be deleted.</p>
+      <pre><code>import { produce as mutate } from "solid-js/store";
+setBoard(mutate(draft =&gt; { draft.done = true; }));
+// Current result: the import is dropped because usage detection searches produce(.</code></pre>
+      <p class="ref"><a href="../codemods/solid-v2-first-pass/scripts/source.ts">source.ts:26–31, 73–85, 119–127</a> · <a href="../.repos/solid2/packages/solid/package.json">beta.17 package exports</a></p>
+    </article>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> Identifier names substitute for binding proof</h3>
+      <p>Local functions named <code>setBoard</code>, <code>createEffect</code>, <code>batch</code>, <code>onMount</code>, <code>Index</code>, or <code>persistCards</code> can be rewritten even when unrelated to Solid. Conversely, aliases and ordinary store names such as <code>setState</code> are missed.</p>
+      <pre><code>const setBoard = (...args: unknown[]) =&gt; log(args);
+setBoard("theme", "dark");
+// Current rule can introduce storePath into unrelated application code.</code></pre>
+    </article>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> <code>classList</code> rewrite corrupts the canonical composition case</h3>
+      <p>A global text replacement turns <code>classList={{...}}</code> into <code>class={{...}}</code>. With an existing static class, the result contains duplicate <code>class</code> attributes. The expanded fixture currently blesses this invalid shape.</p>
+      <pre><code>&lt;div class="card" classList={{ active: enabled() }} /&gt;
+// Required beta.17 shape:
+&lt;div class={["card", { active: enabled() }]} /&gt;</code></pre>
+      <p class="ref"><a href="../codemods/solid-v2-first-pass/scripts/source.ts">source.ts:310</a> · <a href="../.repos/solid2/documentation/solid-2.0/MIGRATION.md">MIGRATION.md:618–625</a></p>
+    </article>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> <code>Index</code> conversion can create mismatched JSX</h3>
+      <p>The opener only matches a narrow <code>each</code>-only form, while every closing <code>&lt;/Index&gt;</code> is replaced globally. A valid <code>fallback</code>, spread, or nested expression can leave <code>&lt;Index&gt;...&lt;/For&gt;</code>.</p>
+      <p class="ref"><a href="../codemods/solid-v2-first-pass/scripts/source.ts">source.ts:301–307</a> · <a href="../.repos/solid/packages/solid/web/test/index.spec.tsx">Solid 1 fallback tests</a></p>
+    </article>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> Package profile decisions do not constrain source or tsconfig changes</h3>
+      <p>The package gate is evaluated per <code>package.json</code>, but every source file and every tsconfig in the target is transformed independently. In a web+library monorepo, a library can remain on Solid 1 while its imports and JSX source are changed to Solid 2 packages that were never installed.</p>
+      <p class="ref"><a href="../codemods/solid-v2-first-pass/scripts/config.ts">config.ts:21–30, 73–79</a> · <a href="../codemods/solid-v2-first-pass/workflow.yaml">workflow.yaml:10–38</a></p>
+    </article>
+
+    <article class="finding">
+      <h3><span class="tag p0">P0</span> Function-valued signals silently change meaning</h3>
+      <p>Solid 1 stores a function first argument as a value. Beta.17 treats it as a computation. The codemod has no detector, so handler signals can become derived signals without a type error.</p>
+      <pre><code>// Solid 1 value signal
+createSignal&lt;() =&gt; string&gt;(() =&gt; "clicked");
+// Solid 2 value signal needs an extra thunk
+createSignal&lt;() =&gt; string&gt;(() =&gt; () =&gt; "clicked");</code></pre>
+    </article>
+  </section>
+
+  <section>
+    <h2>Important semantic holes</h2>
+    <div class="grid">
+      <div class="card"><span class="tag p1">P1</span><h3>Deferred observations</h3><p>Only one literal <code>setBoard</code> adjacency is recognized. Signals, other stores, DOM measurement, navigation, downloads, and indirect serialization remain vulnerable to stale reads.</p></div>
+      <div class="card"><span class="tag p1">P1</span><h3>Hidden effect dependencies</h3><p><code>deep(board.cards)</code> tracks the store, but any signal/store read inside <code>persistCards</code> becomes untracked in the apply phase. Helper call graphs need proof or inlining.</p></div>
+      <div class="card"><span class="tag p1">P1</span><h3>Lifecycle legality and timing</h3><p>The text rule proves one cleanup shape, not ownership, absence of nested primitives, or equivalence between mount completion and graph settlement.</p></div>
+      <div class="card"><span class="tag p1">P1</span><h3>Context and root ownership</h3><p>Default-less context changes from optional to throwing; <code>createRoot</code>'s detached-owner argument changes shape. Neither is classified.</p></div>
+      <div class="card"><span class="tag p1">P1</span><h3>JSX type coverage</h3><p><code>import type</code>, <code>JSX</code>, <code>JSXElement</code>, JSX runtime subpaths, re-exports, and public library surfaces are not handled.</p></div>
+      <div class="card"><span class="tag p1">P1</span><h3>No diagnostic gate</h3><p>Playwright can pass while beta.17 emits ownership, strict-read, missing-owner, or forbidden-scope diagnostics. Migration acceptance needs dev diagnostic capture.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What is actually proven today</h2>
+    <p><span class="tag good">Proven</span> The exact Kanban profile migrates to beta.17, typechecks, builds, passes 11 unchanged browser behaviors in development and production, and is idempotent.</p>
+    <p><span class="tag p0">Not proven</span> Binding safety, arbitrary identifiers, removed-API completeness, workspaces, libraries, custom renderers, SSR/hydration, JSONC, aliasing, import declaration variants, diagnostics, or connected async clusters.</p>
+    <p>The package should be named and presented as a <strong>Kanban/Vite CSR proving profile</strong> until the blocking analysis gates exist.</p>
+  </section>
+
+  <section>
+    <h2>Recommended next sequence</h2>
+    <ol class="timeline">
+      <li><strong>Disable unsafe automatic rules.</strong> Remove automatic mixed-class <code>classList</code> conversion and regex-paired <code>Index</code> conversion until AST-paired fixtures pass.</li>
+      <li><strong>Add a pre-mutation blocking inventory.</strong> Detect every removed import and incompatible effect/memo signature before changing package versions. A TODO cannot count as executable success.</li>
+      <li><strong>Create a beta.17 compatibility manifest.</strong> Classify every Solid 1 core, store, renderer, compiler, and type export as move, rename, deterministic rewrite, semantic cluster, or unsupported/manual.</li>
+      <li><strong>Make package profiling a shared artifact.</strong> Source, tsconfig, package, renderer, and compiler decisions must consume the same workspace/package closure.</li>
+      <li><strong>Replace text identity with binding-aware AST rules.</strong> Prove import provenance, local aliases, store tuple bindings, JSX component identity, and introduced-name collisions.</li>
+      <li><strong>Add behavior and diagnostic verification.</strong> Capture beta.17 diagnostics, same-turn observation contracts, lifecycle timing, SSR/hydration, and public declaration compatibility.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Prioritized fixture matrix</h2>
+    <table class="priority">
+      <thead><tr><th>#</th><th>Fixture</th><th>Required assertion</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Web + library + custom-renderer workspace</td><td>Only files in the proven web package closure change; package, source, compiler, and tsconfig decisions agree.</td></tr>
+        <tr><td>2</td><td>Complete store export compatibility matrix</td><td>Every 1.9.14 store export maps to a beta.17 export, deterministic transform, or explicit blocker—never an invalid import.</td></tr>
+        <tr><td>3</td><td>Aliases, shadowing, and introduced-name collisions</td><td>No live binding is deleted; unrelated local identifiers are untouched; helper imports cannot collide.</td></tr>
+        <tr><td>4</td><td><code>Index</code> fallback, spreads, nested expressions, local component</td><td>Only proven Solid <code>Index</code> nodes change; props and paired tags remain valid.</td></tr>
+        <tr><td>5</td><td>DOM class composition and custom component props</td><td>Existing class values compose correctly; component-specific <code>classList</code> props are not guessed.</td></tr>
+        <tr><td>6</td><td>Effect/memo signature matrix</td><td>One-, two-, and three-argument legacy forms become a valid rewrite or a blocking candidate.</td></tr>
+        <tr><td>7</td><td>Function-valued signals and deferred observations</td><td>Handler values retain identity; every proven same-turn read boundary is preserved or blocked.</td></tr>
+        <tr><td>8</td><td>Import declaration forms</td><td>Cover <code>import type</code>, aliases, namespaces, re-exports, runtime subpaths, requires, comments, and unrelated strings.</td></tr>
+        <tr><td>9</td><td>Lifecycle ownership/timing</td><td>Only legal direct cleanup shapes migrate; nested primitives, unowned calls, and async settlement differences become candidates.</td></tr>
+        <tr><td>10</td><td>End-to-end workflow and second run</td><td>Web, library, SSR, and store-heavy fixtures typecheck/build/test; rerun is byte-for-byte clean; diagnostics are allowlist-clean.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Evidence index</h2>
+    <ul>
+      <li><a href="../.repos/solid/packages/solid/package.json">Solid 1.9.14 package surface</a></li>
+      <li><a href="../.repos/solid2/packages/solid/package.json">Solid 2 beta.17 package surface</a></li>
+      <li><a href="../.repos/solid2/packages/solid/src/index.ts">Solid 2 root exports and explicit removal notes</a></li>
+      <li><a href="../.repos/solid2/packages/solid-signals/src/signals.ts">Solid 2 signal/effect contracts</a></li>
+      <li><a href="../.repos/solid2/packages/solid-signals/src/store/store.ts">Solid 2 store setter contract</a></li>
+      <li><a href="../.repos/solid2/documentation/solid-2.0/">Solid 2 design and migration documentation</a></li>
+      <li><a href="../codemods/solid-v2-first-pass/scripts/source.ts">Current source transform</a></li>
+      <li><a href="../codemods/solid-v2-first-pass/scripts/config.ts">Current configuration transform</a></li>
+      <li><a href="../codemods/solid-v2-first-pass/tests/">Current fixture suite</a></li>
+    </ul>
+    <p class="note">All findings were produced from the pinned local worktrees. The Solid 2 worktree intentionally remains at beta.17 even though <code>origin/next</code> has advanced.</p>
+  </section>
+</main>
+</body>
+</html>

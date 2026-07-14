@@ -1,48 +1,53 @@
-# Solid Codemod
+# Solid 2 codemod
 
-Safe, review-friendly codemods for moving Solid 1.x projects toward Solid 2.
+This repository is building a behavior-verified Solid 1 to Solid 2 migration workflow. The first executable slice lives in [`codemods/solid-v2-first-pass`](codemods/solid-v2-first-pass) and is validated against the Solid 1 Kanban application in [`.repos/kanban`](.repos/kanban).
 
-This repository currently ships `solid-codemod`, a Codemod package that applies local-safe migrations and leaves behavior-sensitive changes as `TODO(solid-2)` review markers. It is designed to reduce upgrade toil without pretending that semantic Solid 2 changes can always be automated.
+## Current executable scope
 
-## What It Handles
+Version one targets npm-based Vite 6 client applications and the exact Solid beta.17 toolchain used by the local upstream checkout. It automates:
 
-- Solid package and import path moves, including renderer packages such as `@solidjs/web`.
-- Safe API renames such as `Suspense` to `Loading`, `ErrorBoundary` to `Errored`, and `mergeProps` to `merge`.
-- Local JSX shape updates for supported `Index`, `SuspenseList`, `ErrorBoundary`, context provider, and `classList` cases.
-- `package.json` and JSX config updates for Solid 2-compatible package ranges and import sources.
-- Review markers for migrations that need application intent, tests, or runtime diagnostics.
+- runtime, renderer, and Vite plugin dependency pins;
+- TypeScript JSX import-source migration;
+- renderer and store import moves;
+- legacy path-style store setters via `storePath`;
+- deep-tracked persistence effect splitting;
+- same-tick and explicit batch boundaries via `flush`;
+- serialization-safe `unwrap` replacement and draft-first `produce` removal;
+- lifecycle conversion from `onMount`/`onCleanup` to `onSettled`; and
+- proven `Index`, `classList`, and renderer-owned JSX type migrations.
 
-See [`codemods/solid-codemod/README.md`](codemods/solid-codemod/README.md) for the detailed rule list and limits.
+The older phase-oriented packages remain design scaffolds and are still no-ops. Unsupported one-argument effects receive a coded review marker instead of being silently treated as migrated.
 
-## Run Locally
+## Run the first pass
 
-```bash
-pnpm install
-cd codemods/solid-codemod
-pnpm test
-pnpm check-types
-codemod run -w workflow.yaml --dry-run --target /path/to/solid-app
-codemod run -w workflow.yaml --target /path/to/solid-app
+```sh
+codemod workflow run \
+  -w ./codemods/solid-v2-first-pass \
+  -t /path/to/vite-solid-app
 ```
 
-Always run codemods on a clean Git worktree so you can inspect the diff and revert safely if needed.
+The first pass does not mutate lockfiles or install dependencies. For the npm profile, regenerate the dependency graph after reviewing the codemod diff:
 
-## Repository Layout
-
-```text
-codemods/solid-codemod/   Solid 1.x to 2 codemod package
-CONTEXT.md                Project terminology and migration language
-.reports/                 Research notes and migration reports
-.repos/                   Local research fixtures and upstream references
+```sh
+rm -rf node_modules package-lock.json
+npm install
+npm run typecheck
+npm run build
 ```
 
-## Development
+## Develop and verify
 
-```bash
-cd codemods/solid-codemod
-pnpm test
-pnpm check-types
-codemod workflow validate -w workflow.yaml
+```sh
+codemod jssg test -l json \
+  ./codemods/solid-v2-first-pass/scripts/config.ts \
+  ./codemods/solid-v2-first-pass/tests/config
+
+codemod jssg test -l tsx \
+  ./codemods/solid-v2-first-pass/scripts/source.ts \
+  ./codemods/solid-v2-first-pass/tests/source
+
+codemod workflow validate \
+  -w ./codemods/solid-v2-first-pass/workflow.yaml
 ```
 
-The goal is a safe mechanical migration first. Anything that requires broader program intent should be surfaced clearly for review instead of rewritten blindly.
+Always run migrations on a clean worktree and review the resulting diff before regenerating the lockfile.

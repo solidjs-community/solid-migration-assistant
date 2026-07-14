@@ -1,0 +1,10 @@
+{
+  "name": "fixture",
+  "dependencies": {
+    "solid-js": "1.9.14"
+  },
+  "devDependencies": {
+    "vite": "6.4.3",
+    "vite-plugin-solid": "2.11.12"
+  }
+}

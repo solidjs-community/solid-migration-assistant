@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solid 2 Codemod — Open-source Application Corpus</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121a2d;
+      --panel-2: #17213a;
+      --text: #edf2ff;
+      --muted: #9eabc7;
+      --line: #2a3858;
+      --blue: #77a8ff;
+      --green: #57d39b;
+      --amber: #ffc96b;
+      --red: #ff7e8a;
+      --purple: #c19cff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 80% 0%, #182951 0, var(--bg) 42rem);
+      color: var(--text);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(1220px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 80px; }
+    h1, h2, h3 { line-height: 1.16; letter-spacing: -0.02em; }
+    h1 { max-width: 850px; margin: 10px 0 18px; font-size: clamp(38px, 6vw, 68px); }
+    h2 { margin: 52px 0 16px; font-size: 28px; }
+    h3 { margin: 0 0 8px; font-size: 18px; }
+    p { margin: 0 0 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: #0c1426; color: #dce6ff; }
+    .eyebrow { color: var(--blue); font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+    .lede { max-width: 900px; color: #c5d0e8; font-size: 19px; }
+    .muted { color: var(--muted); }
+    .callout {
+      margin: 28px 0;
+      padding: 22px 24px;
+      border: 1px solid #743a48;
+      border-left: 5px solid var(--red);
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255,126,138,.12), rgba(18,26,45,.9));
+    }
+    .callout strong { color: #ffdce0; }
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(140px, 1fr)); gap: 12px; margin: 30px 0; }
+    .metric, .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(18,26,45,.88);
+      box-shadow: 0 14px 40px rgba(0,0,0,.16);
+    }
+    .metric { padding: 18px; }
+    .metric .value { display: block; margin-bottom: 5px; font-size: 28px; font-weight: 800; }
+    .metric .label { color: var(--muted); font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .card { padding: 20px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; background: rgba(18,26,45,.9); }
+    th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { position: sticky; top: 0; background: #17213a; color: #bdc9e3; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    .pill { display: inline-block; margin: 1px 3px 1px 0; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 750; white-space: nowrap; }
+    .pass { color: #bdf6da; background: rgba(87,211,155,.16); border: 1px solid rgba(87,211,155,.35); }
+    .fail { color: #ffd2d6; background: rgba(255,126,138,.15); border: 1px solid rgba(255,126,138,.35); }
+    .warn { color: #ffe5b5; background: rgba(255,201,107,.14); border: 1px solid rgba(255,201,107,.35); }
+    .info { color: #d9c9ff; background: rgba(193,156,255,.14); border: 1px solid rgba(193,156,255,.35); }
+    ol.priorities { margin: 0; padding-left: 22px; }
+    ol.priorities li { margin: 0 0 18px; padding-left: 7px; }
+    .bar-row { display: grid; grid-template-columns: 180px 1fr 50px; gap: 12px; align-items: center; margin: 10px 0; }
+    .bar { height: 11px; overflow: hidden; border-radius: 999px; background: #0b1325; }
+    .bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--purple), var(--blue)); }
+    .foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); }
+    @media (max-width: 900px) {
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 140px 1fr 42px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Corpus trial · 14 July 2026</div>
+  <h1>The first pass is useful, but no real app is migration-ready yet.</h1>
+  <p class="lede">Two discovery agents qualified and cloned ten Solid 1.x application checkouts representing nine unique open-source projects. A separate migration team ran one frozen, fixture-tested codemod snapshot against five diverse apps. The transform made meaningful changes, but direct validation rejected every output.</p>
+
+  <div class="callout">
+    <strong>Key result:</strong> all five workflow commands exited <code>0</code>, while the authoritative validator exited <code>1</code>. The workflow exit code still masks incomplete migrations and cannot be used as a CI success signal.
+  </div>
+
+  <section class="metrics" aria-label="Corpus metrics">
+    <div class="metric"><span class="value">5 / 5</span><span class="label">actual codemod runs</span></div>
+    <div class="metric"><span class="value" style="color:var(--red)">0 / 5</span><span class="label">validator-clean outputs</span></div>
+    <div class="metric"><span class="value">377</span><span class="label">files rejected by validation</span></div>
+    <div class="metric"><span class="value">3 / 5</span><span class="label">byte-exact second passes</span></div>
+    <div class="metric"><span class="value">672</span><span class="label">files changed on first passes</span></div>
+  </section>
+
+  <h2>Selected corpus results</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Application</th><th>Baseline</th><th>First pass</th><th>Direct validator</th><th>Second pass</th><th>Post-migration result</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><a href="https://github.com/n-ce/ytify">ytify</a><br><span class="muted">Solid 1.9.13 · PWA</span></td>
+          <td><span class="pill warn">invalid</span><br>No committed lockfile; dependencies unavailable.</td>
+          <td>32 files<br><span class="muted">+133 / −106</span></td>
+          <td><span class="pill fail">17 files</span><br>001×13 · 002×3 · 008×1</td>
+          <td><span class="pill pass">exact</span></td>
+          <td>npm peer conflict with <code>solid-sortablejs</code>; build unavailable.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/Nerimity/nerimity-web">Nerimity Web</a><br><span class="muted">Solid ^1.9.14 · chat SPA</span></td>
+          <td><span class="pill warn">partial</span><br>Frozen install hit registry timeout; baseline build passed.</td>
+          <td>208 files<br><span class="muted">+784 / −1,077</span></td>
+          <td><span class="pill fail">117 files</span><br>001×54 · 002×61 · 008×1 · 010×1</td>
+          <td><span class="pill fail">not idempotent</span><br>14 later store rewrites in one file.</td>
+          <td>Fresh install passed; build failed with 36 errors, including malformed transformed <code>createEffect</code> syntax.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/OpenListTeam/OpenList-Frontend">OpenList Frontend</a><br><span class="muted">Solid ^1.9.14 · file manager</span></td>
+          <td><span class="pill warn">invalid</span><br>Registry timeouts; lint/build retries capped.</td>
+          <td>9 files<br><span class="muted">+12 / −11</span></td>
+          <td><span class="pill fail">54 files</span><br>003×13 · 004×1 · 008×40</td>
+          <td><span class="pill pass">exact</span></td>
+          <td>Lock regeneration timed out; later checks are environmentally inconclusive.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/openaq/openaq-explorer">OpenAQ Explorer</a><br><span class="muted">Solid ^1.9.0 · SolidStart SSR</span></td>
+          <td><span class="pill warn">invalid</span><br>Node 24.14 below required 24.17 plus registry timeout.</td>
+          <td>48 files<br><span class="muted">+155 / −119</span></td>
+          <td><span class="pill fail">23 files</span><br>001×9 · 002×14</td>
+          <td><span class="pill pass">exact</span></td>
+          <td>Fresh install passed; build failed on removed <code>solid-js/web</code> API; 6 test files and 10 tests failed.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/PrimalHQ/primal-web-app">Primal Web App</a><br><span class="muted">Solid 1.9.9 · routed social SPA</span></td>
+          <td><span class="pill pass">valid</span><br>Clean npm install and production build passed.</td>
+          <td>375 files<br><span class="muted">+2,166 / −2,221</span></td>
+          <td><span class="pill fail">166 files</span><br>001×69 · 002×82 · 008×14 · 010×1</td>
+          <td><span class="pill fail">not idempotent</span><br>5 later store-setter files.</td>
+          <td>Lock resolution failed on Solid 1 ecosystem peers; transform also produced 1,205 trailing-whitespace errors.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="muted" style="margin-top:12px">Validation codes: 001 = explicit manual blocker; 002 = unsupported effect; 003 = residual <code>solid-js/store</code>; 004 = residual <code>Index</code>; 008 = removed Solid 1 export; 010 = unresolved cross-file provider.</p>
+
+  <h2>What the corpus exposed</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Semantic coverage is the limiting factor</h3>
+      <p>Manual blockers and unsupported effects account for 305 of 377 rejected files. This is not configuration cleanup; the next material gains require focused semantic recipes and AI-assisted review.</p>
+      <div class="bar-row"><span>Unsupported effects</span><div class="bar"><span style="width:100%"></span></div><b>160</b></div>
+      <div class="bar-row"><span>Manual blockers</span><div class="bar"><span style="width:91%"></span></div><b>145</b></div>
+      <div class="bar-row"><span>Removed exports</span><div class="bar"><span style="width:35%"></span></div><b>56</b></div>
+      <div class="bar-row"><span>Store imports</span><div class="bar"><span style="width:8%"></span></div><b>13</b></div>
+      <div class="bar-row"><span>Provider / Index</span><div class="bar"><span style="width:2%"></span></div><b>3</b></div>
+    </div>
+    <div class="card">
+      <h3>Correctness regressions are now concrete</h3>
+      <p>Nerimity gives a syntax regression fixture for effect rewriting. Nerimity and Primal both prove the store pass can defer transformations until pass two. Primal exposes a CRLF/printing defect that turns a focused migration into a noisy, invalid patch.</p>
+      <p>These should become reduced fixtures before expanding recipe coverage.</p>
+    </div>
+    <div class="card">
+      <h3>Dependency migration needs graph awareness</h3>
+      <p>Two apps could not resolve Solid 2 alongside Solid 1-only ecosystem peers. OpenAQ installed, but a consumer still depended on a removed renderer subpath. Updating only first-party manifest entries is not enough to produce an installable graph.</p>
+    </div>
+    <div class="card">
+      <h3>Baseline quality must remain explicit</h3>
+      <p>Only Primal had a completely valid baseline in this environment. Validator and idempotency findings remain valid for all apps, but build deltas for missing-lockfile, registry-timeout, or Node-engine cases are deliberately classified as inconclusive.</p>
+    </div>
+  </div>
+
+  <h2>Recommended next implementation order</h2>
+  <ol class="priorities">
+    <li><strong>Make validation failures propagate.</strong> The workflow must exit nonzero when its validator fails. Until then, keep the direct validator as the authoritative gate.</li>
+    <li><strong>Reduce and fix the two correctness bugs.</strong> Add a Nerimity-derived malformed-effect fixture, then fix the multi-pass store ordering seen in Nerimity and Primal.</li>
+    <li><strong>Preserve file trivia.</strong> Add CRLF fixtures and guarantee line-ending/trailing-whitespace stability before running on large Windows-authored codebases.</li>
+    <li><strong>Add repository discovery and a dependency migration manifest.</strong> Detect app/workspace roles, enumerate Solid ecosystem packages, classify peer compatibility, and stop before lock regeneration when the graph is known-incompatible.</li>
+    <li><strong>Build focused semantic recipes from the 305-file majority.</strong> Cluster <code>S2-VALIDATE-001</code> blocker subtypes and <code>S2-VALIDATE-002</code> effect shapes, automate only high-confidence groups, and route the rest through structured AI review.</li>
+    <li><strong>Promote this corpus to a pinned canary suite.</strong> Keep exact SHAs, a frozen codemod snapshot, direct validation, second-pass hashing, and baseline/post command symmetry. Use the reserve apps to test desktop and directive-heavy paths next.</li>
+  </ol>
+
+  <h2>Discovery inventory</h2>
+  <p>Ten clean checkouts were cloned under <code>.repos/oss-migration-corpus</code>, representing nine unique repositories because RelaGit was independently selected by both discovery lanes.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Repository</th><th>Solid</th><th>Platform / stress area</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://github.com/n-ce/ytify">n-ce/ytify</a></td><td>1.9.13</td><td>Vite PWA</td><td><span class="pill info">tested</span></td></tr>
+        <tr><td><a href="https://github.com/Nerimity/nerimity-web">Nerimity/nerimity-web</a></td><td>^1.9.14</td><td>Large chat SPA</td><td><span class="pill info">tested</span></td></tr>
+        <tr><td><a href="https://github.com/OpenListTeam/OpenList-Frontend">OpenListTeam/OpenList-Frontend</a></td><td>^1.9.14</td><td>File manager, residual APIs</td><td><span class="pill info">tested</span></td></tr>
+        <tr><td><a href="https://github.com/openaq/openaq-explorer">openaq/openaq-explorer</a></td><td>^1.9.0</td><td>SolidStart SSR</td><td><span class="pill info">tested</span></td></tr>
+        <tr><td><a href="https://github.com/PrimalHQ/primal-web-app">PrimalHQ/primal-web-app</a></td><td>1.9.9</td><td>Large routed social SPA</td><td><span class="pill info">tested</span></td></tr>
+        <tr><td><a href="https://github.com/CarrotRub/Fit-Launcher">CarrotRub/Fit-Launcher</a></td><td>^1.9.6</td><td>Tauri desktop UI</td><td><span class="pill warn">reserve</span></td></tr>
+        <tr><td><a href="https://github.com/relagit/relagit">relagit/relagit</a></td><td>^1.9.4</td><td>Electron, directives, classList</td><td><span class="pill warn">reserve · cloned twice</span></td></tr>
+        <tr><td><a href="https://github.com/rcourtman/Pulse">rcourtman/Pulse</a></td><td>^1.8.0</td><td>Very large full-stack UI and tests</td><td><span class="pill warn">reserve</span></td></tr>
+        <tr><td><a href="https://github.com/riatelab/magrit">riatelab/magrit</a></td><td>^1.9.12</td><td>Directive-heavy web/Electron app</td><td><span class="pill warn">reserve</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Method and evidence</h2>
+  <div class="card">
+    <p>The frozen snapshot passed 6 configuration fixtures, 31 source fixtures, 1 clean validator fixture, 5 expected validator failures, and TypeScript checking before corpus execution. Each trial used a disposable copy, preserved the discovery checkout, captured the first patch, invoked the validator directly, reran the workflow for byte-level idempotency, and attempted lock/install/build/test checks when the baseline allowed it.</p>
+    <p><a href="file:///tmp/solid2-oss-corpus-2026-07-14/matrix.json">Corpus matrix</a> · <a href="file:///tmp/solid2-oss-corpus-2026-07-14/SUMMARY.md">Detailed Markdown report</a> · <a href="file:///tmp/solid2-oss-corpus-2026-07-14/evidence/">Per-app evidence directory</a></p>
+    <p><a href="../.repos/oss-migration-corpus/.discovery-lane-a.json">Discovery lane A inventory</a> · <a href="../.repos/oss-migration-corpus/lane-b-inventory.json">Discovery lane B inventory</a></p>
+  </div>
+
+  <div class="foot">No discovery checkout, support repository, codemod source, git index, or commit was changed by the migration trials. All mutated apps live only under <code>/tmp/solid2-oss-corpus-2026-07-14/apps</code>.</div>
+</main>
+</body>
+</html>

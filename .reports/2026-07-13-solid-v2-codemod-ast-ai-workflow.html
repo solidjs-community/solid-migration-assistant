@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid 2 Codemod — AST → AI workflow plan</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #15202b;
+      --muted: #607080;
+      --paper: #f5f7f4;
+      --card: #fff;
+      --line: #d8ded8;
+      --blue: #315f91;
+      --blue-soft: #e9f1fa;
+      --green: #23745a;
+      --green-soft: #e7f5ef;
+      --amber: #986018;
+      --amber-soft: #fff2d9;
+      --violet: #674f9b;
+      --violet-soft: #f0ebfa;
+      --red: #a13d3d;
+      --red-soft: #fbeaea;
+      --shadow: 0 14px 40px rgba(21, 32, 43, .08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 88% 2%, rgba(49, 95, 145, .14), transparent 30rem),
+        var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    a { color: var(--blue); text-underline-offset: .18em; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code { font-size: .91em; }
+    .shell { display: grid; grid-template-columns: 258px minmax(0, 1fr); max-width: 1520px; margin: 0 auto; }
+    aside {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 30px 22px;
+      overflow: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(245, 247, 244, .91);
+      backdrop-filter: blur(14px);
+    }
+    .brand { margin-bottom: 22px; color: var(--blue); font-weight: 800; letter-spacing: -.02em; }
+    nav a { display: block; padding: 7px 10px; border-radius: 8px; color: var(--muted); font-size: .88rem; text-decoration: none; }
+    nav a:hover { color: var(--ink); background: var(--blue-soft); }
+    main { min-width: 0; padding: 62px clamp(28px, 6vw, 90px) 120px; }
+    article { max-width: 1160px; margin: 0 auto; }
+    .eyebrow { margin: 0 0 10px; color: var(--blue); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3, h4 { line-height: 1.16; letter-spacing: -.025em; }
+    h1 { max-width: 980px; margin: 0; font-size: clamp(2.7rem, 5vw, 5.35rem); }
+    h2 { margin: 76px 0 20px; font-size: clamp(1.8rem, 3vw, 2.8rem); }
+    h3 { margin: 34px 0 12px; font-size: 1.35rem; }
+    h4 { margin: 20px 0 8px; font-size: 1.04rem; }
+    .lede { max-width: 900px; margin: 24px 0 30px; color: var(--muted); font-size: 1.24rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 44px; }
+    .pill, .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: .79rem;
+      font-weight: 700;
+    }
+    .hero, .card, .callout { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); }
+    .hero { padding: clamp(24px, 4vw, 42px); }
+    .hero h2 { margin-top: 0; }
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card { padding: 22px; }
+    .card h3, .card h4 { margin-top: 0; }
+    .card p:last-child, .callout p:last-child { margin-bottom: 0; }
+    .callout { margin: 24px 0; padding: 22px 24px; box-shadow: none; }
+    .callout.blue { border-color: #a8bdd6; background: var(--blue-soft); }
+    .callout.green { border-color: #95c9b5; background: var(--green-soft); }
+    .callout.amber { border-color: #dfb878; background: var(--amber-soft); }
+    .callout.red { border-color: #dea0a0; background: var(--red-soft); }
+    .callout.violet { border-color: #b9a9da; background: var(--violet-soft); }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 20px 0 32px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      font-size: .9rem;
+    }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { background: #edf1ed; color: #3d4954; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    pre {
+      overflow: auto;
+      margin: 18px 0;
+      border: 1px solid #cbd3dc;
+      border-radius: 12px;
+      background: #17222d;
+      padding: 18px;
+      color: #eef5fb;
+      font-size: .84rem;
+      line-height: 1.55;
+    }
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: .37rem; }
+    .muted { color: var(--muted); }
+    .small { font-size: .85rem; }
+    .status { white-space: nowrap; font-weight: 780; }
+    .ast { color: var(--green); background: var(--green-soft); }
+    .ai { color: var(--violet); background: var(--violet-soft); }
+    .gate { color: var(--amber); background: var(--amber-soft); }
+    .verify { color: var(--blue); background: var(--blue-soft); }
+    .stop { color: var(--red); background: var(--red-soft); }
+    .pipeline { display: grid; gap: 12px; margin: 28px 0 38px; }
+    .node {
+      display: grid;
+      grid-template-columns: 70px 190px minmax(0, 1fr) 170px;
+      gap: 18px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      padding: 17px 20px;
+    }
+    .node .num { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 50%; color: white; background: var(--blue); font-weight: 850; }
+    .node .name { font-weight: 800; }
+    .node .detail { color: #36434f; }
+    .node .out { color: var(--muted); font-size: .84rem; }
+    .branch { border-left: 5px solid var(--violet); }
+    .decision {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 24px;
+      margin: 22px 0;
+      padding: 23px;
+      border-left: 5px solid var(--blue);
+      border-radius: 0 14px 14px 0;
+      background: var(--blue-soft);
+    }
+    .decision dt { font-weight: 800; }
+    .decision dd { margin: 2px 0 12px; color: var(--muted); }
+    .roadmap { counter-reset: slice; }
+    .slice { position: relative; margin: 0 0 15px 22px; border-left: 2px solid var(--line); padding: 0 0 27px 34px; }
+    .slice::before {
+      counter-increment: slice;
+      content: counter(slice);
+      position: absolute;
+      left: -18px;
+      top: 0;
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      font-weight: 800;
+    }
+    .slice h3 { margin-top: 0; }
+    footer { margin-top: 70px; border-top: 1px solid var(--line); padding-top: 24px; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      nav { display: flex; flex-wrap: wrap; gap: 3px; }
+      main { padding-top: 44px; }
+      .grid.two, .grid.three, .decision { grid-template-columns: 1fr; }
+      .node { grid-template-columns: 58px minmax(0, 1fr); }
+      .node .detail, .node .out { grid-column: 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">Solid 2 codemod</div>
+      <nav>
+        <a href="#correction">Correction</a>
+        <a href="#constraints">Codemod constraints</a>
+        <a href="#variants">Workflow variants</a>
+        <a href="#workflow">Guided workflow</a>
+        <a href="#decisions">Decision routing</a>
+        <a href="#handoff">AST → AI contract</a>
+        <a href="#yaml">Workflow YAML</a>
+        <a href="#sharding">Campaign sharding</a>
+        <a href="#testing">Testing</a>
+        <a href="#beta17">Beta.17 impact</a>
+        <a href="#roadmap">Next steps</a>
+        <a href="#sources">Sources</a>
+      </nav>
+    </aside>
+
+    <main>
+      <article>
+        <p class="eyebrow">Corrected top-down plan · 13 July 2026</p>
+        <h1>Build a Codemod workflow where AST narrows the problem and AI resolves only bounded semantic residue.</h1>
+        <p class="lede">
+          This report replaces the workflow portion of the earlier plan with an executable Codemod design: v1 workflow nodes, JSSG and ast-grep steps, manual triggers, state, AI handoffs, deterministic receipts, validation, and Campaign sharding.
+        </p>
+        <div class="meta">
+          <span class="pill">Solid target: 2.0.0-beta.17</span>
+          <span class="pill">Solid commit: a51cac19</span>
+          <span class="pill">Codemod source reviewed: eaeb7a9</span>
+          <span class="pill">Default path: deterministic AST</span>
+          <span class="pill">AI path: explicit + reviewable</span>
+        </div>
+
+        <section id="correction" class="hero">
+          <h2>The corrected product model</h2>
+          <p>
+            The previous report described a migration decision pipeline, but not the concrete Codemod execution model. The product should be a Codemod package with named workflows. Its core loop is:
+          </p>
+          <p><strong>inventory → deterministic transforms → residual classification → approval → bounded AI edits → deterministic verification → report.</strong></p>
+          <p>
+            AST is not merely one implementation detail. It is the control plane for AI: it proves safe rewrites, emits stable markers for uncertain sites, builds candidate manifests, and later verifies that AI touched only the intended semantic clusters.
+          </p>
+          <div class="callout green">
+            <strong>Recommended first milestone:</strong> one runnable guided workflow that migrates imports deterministically, detects one ambiguous reactive-ownership case, hands only that case to AI, rejects out-of-scope edits, and produces a truthful completion report.
+          </div>
+        </section>
+
+        <section id="constraints">
+          <h2>Design against Codemod as it exists</h2>
+          <div class="grid three">
+            <div class="card">
+              <h3>Nodes are transaction boundaries</h3>
+              <p>Nodes form a dependency DAG. Steps within a node run sequentially. A failed task discards its diff, so each mutating node should end with the verification that proves those edits.</p>
+            </div>
+            <div class="card">
+              <h3>AI is a step, not a node type</h3>
+              <p>A node is automatic or manual. An <code>ai</code> action is one step inside it. The workflow must create approval by putting AI behind a node-level manual trigger.</p>
+            </div>
+            <div class="card">
+              <h3>No generic step outputs</h3>
+              <p><code>steps.*.outputs</code> is not wired. Handoffs must use changed files, target-local artifacts, or workflow state—not imagined output variables.</p>
+            </div>
+          </div>
+
+          <table>
+            <thead><tr><th>Capability</th><th>Use it for</th><th>Do not assume</th></tr></thead>
+            <tbody>
+              <tr><td><code>js-ast-grep</code></td><td>Conditional transforms, binding-aware logic, workspace semantic analysis, cross-file edits, metrics, and candidate generation.</td><td>That every symbol resolves; null results and incomplete indexing must become review cases.</td></tr>
+              <tr><td><code>ast-grep</code></td><td>Small declarative find/replace and deterministic cleanup.</td><td>Cross-file or intent-sensitive reasoning.</td></tr>
+              <tr><td><code>ai</code></td><td>Agentic edits for a bounded residual set identified by AST.</td><td>File scoping, structured outputs, edit approval, or a proposed diff during dry-run.</td></tr>
+              <tr><td><code>run</code></td><td>Baseline capture, package-manager commands, diff guards, receipts, and final validation.</td><td>That workflow schema validation proves the referenced command exists.</td></tr>
+              <tr><td>Shared state</td><td>Small JSON-compatible routing values, progress, and shard arrays.</td><td>Large report/artifact storage. Keep rich evidence in target-local files.</td></tr>
+              <tr><td>Manual trigger</td><td>Pause before the AI mutation boundary.</td><td>Per-file approval, approval payloads, or a gate between two steps in one node.</td></tr>
+              <tr><td>Matrix + shard</td><td>Campaign/cloud fan-out into isolated task branches.</td><td>Safe parallel AI edits against one local checkout.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout red">
+            <strong>Runtime caveat:</strong> current source accepts several AI fields that are not enforced today, including <code>working_dir</code>, AI-local <code>env</code>, <code>dry_run</code>, and <code>timeout_ms</code>. The plan must not depend on them. The docs and schema also disagree on the default <code>max_steps</code>; set it explicitly.
+          </div>
+          <div class="callout amber">
+            <strong>Composition caveat:</strong> nested <code>codemod</code> steps are documented, but current nested execution flattens child nodes and appears not to forward the constructed child argument/environment map. Design the first production package as direct workflow steps. Treat nested packages as leaf-only reuse after an integration spike.
+          </div>
+        </section>
+
+        <section id="variants">
+          <h2>Ship three named workflows, not one overloaded graph</h2>
+          <div class="grid three">
+            <div class="card">
+              <span class="badge ast">Default</span>
+              <h3>safe</h3>
+              <p>Inventory, deterministic JSSG/ast-grep transforms, markers, validation, and report. No AI node and no pointless approval gate.</p>
+              <p><strong>Use:</strong> CI, conservative adopters, initial repository assessment.</p>
+            </div>
+            <div class="card">
+              <span class="badge ai">Local guided</span>
+              <h3>guided-ai</h3>
+              <p>The safe path plus a manual approval node and sequential AI domain nodes. Each AI node is paired with deterministic scope and behavior checks.</p>
+              <p><strong>Use:</strong> one application checkout with a human reviewing the plan and final diff.</p>
+            </div>
+            <div class="card">
+              <span class="badge gate">Cloud only</span>
+              <h3>campaign-ai</h3>
+              <p>Dependency-aware shard discovery, matrix tasks, task branches, draft PRs, and per-shard AI. It begins after the safe mechanical baseline is merged.</p>
+              <p><strong>Use:</strong> large monorepos and organization-scale rollout.</p>
+            </div>
+          </div>
+          <p class="muted small">Codemod supports multiple named workflows in one package. The CLI selects them with <code>--workflow-name</code>; keep <code>safe</code> as the default.</p>
+
+          <pre>solid-2/
+├── codemod.yaml
+├── workflows/
+│   ├── safe.yaml
+│   ├── guided-ai.yaml
+│   └── campaign-ai.yaml
+├── scripts/
+│   ├── inventory.ts
+│   ├── config.ts
+│   ├── imports-and-types.ts
+│   ├── jsx-shapes.ts
+│   ├── local-runtime.ts
+│   ├── classify-residuals.ts
+│   ├── verify-scope.ts
+│   └── shard-by-dependency.ts
+├── rules/
+│   └── cleanup.yml
+├── compatibility/
+│   └── solid-2.0.0-beta.17.json
+└── tests/
+    ├── transforms/
+    ├── composed/
+    ├── workflow/
+    └── ai-contract/</pre>
+          <p>
+            This intentionally disregards the current six-package split. Focused scripts remain independently testable, but orchestration lives in one package so the workflow DAG, params, state, markers, and AI contract are visible in one place.
+          </p>
+        </section>
+
+        <section id="workflow">
+          <h2>The guided AST → AI workflow</h2>
+          <p>Every mutating node owns its proof. Every dependency is explicit. The graph is linear locally because each stage consumes the exact diff and evidence produced by the prior stage.</p>
+          <div class="pipeline">
+            <div class="node">
+              <div class="num">0</div>
+              <div class="name">Preflight</div>
+              <div class="detail"><code>run</code> captures git status, package manager, workspace roots, existing diagnostics, test/typecheck commands, and the beta.17 compatibility-manifest hash. Baseline failures are recorded, not confused with codemod regressions.</div>
+              <div class="out">run.json<br>baseline.json</div>
+            </div>
+            <div class="node">
+              <div class="num">1</div>
+              <div class="name">AST inventory</div>
+              <div class="detail"><code>js-ast-grep</code> with workspace semantic analysis inventories Solid imports, symbol provenance, JSX mode, renderer usage, reactive owners, async/resource clusters, and candidate counts. It makes no source edits.</div>
+              <div class="out">inventory.json<br>metrics</div>
+            </div>
+            <div class="node">
+              <div class="num">2</div>
+              <div class="name">Mechanical migration</div>
+              <div class="detail">Ordered steps update config, imports/types, JSX shapes, and locally provable runtime APIs. A residual-classifier JSSG step inserts stable review markers and candidate manifests. A final <code>run</code> rejects new mechanical errors.</div>
+              <div class="out">source diff<br>candidate manifests</div>
+            </div>
+            <div class="node branch">
+              <div class="num">3</div>
+              <div class="name">Approve AI plan</div>
+              <div class="detail">A manual-triggered node prints the candidate summary, allowed file set, unresolved marker counts, verification commands, and expected AI cost/scope. Resuming means “allow these bounded semantic nodes to mutate this checkout.”</div>
+              <div class="out">manual trigger<br>no edits</div>
+            </div>
+            <div class="node branch">
+              <div class="num">4A</div>
+              <div class="name">AI: reactivity</div>
+              <div class="detail">Resolve only effect, lifecycle, ownership, store, and flush-boundary candidates. Then run a deterministic file-scope guard and targeted type/tests in the same node.</div>
+              <div class="out">receipt + verified diff</div>
+            </div>
+            <div class="node branch">
+              <div class="num">4B</div>
+              <div class="name">AI: async</div>
+              <div class="detail">Resolve only Resource Cluster, Loading/Errored boundary, action, transition, and optimistic-state candidates. Then enforce the candidate allowlist and async diagnostics.</div>
+              <div class="out">receipt + verified diff</div>
+            </div>
+            <div class="node branch">
+              <div class="num">4C</div>
+              <div class="name">AI: DOM/JSX</div>
+              <div class="detail">Resolve only directive, DOM, renderer, and public JSX-shape candidates. Ambiguous public API intent stays marked. Then run scope and renderer-specific checks.</div>
+              <div class="out">receipt + verified diff</div>
+            </div>
+            <div class="node">
+              <div class="num">5</div>
+              <div class="name">Deterministic closeout</div>
+              <div class="detail">JSSG re-inventories the final tree, proves marker/receipt consistency, applies trivial cleanup, and runs full typecheck, test, build, formatting check, and Solid diagnostics. It compares against the baseline rather than requiring a previously broken app to become perfect.</div>
+              <div class="out">summary.md<br>final.json</div>
+            </div>
+          </div>
+
+          <div class="callout blue">
+            <strong>Why three AI nodes?</strong> A failed task discards that node’s diff. Splitting reactivity, async, and DOM/JSX means a bad async attempt does not erase a previously verified reactivity migration. It also gives each prompt a smaller vocabulary, candidate set, and test surface.
+          </div>
+        </section>
+
+        <section id="decisions">
+          <h2>Route every migration decision to one execution primitive</h2>
+          <table>
+            <thead><tr><th>Evidence</th><th>Route</th><th>Examples</th><th>Failure behavior</th></tr></thead>
+            <tbody>
+              <tr><td>Imported binding is proven and replacement is unique.</td><td class="status ast">JSSG, workspace</td><td>Package moves, JSX type ownership, exported symbol rename.</td><td>Leave unchanged if provenance cannot resolve; emit a marker.</td></tr>
+              <tr><td>AST shape is exact and local behavior is invariant.</td><td class="status ast">JSSG, file</td><td>Narrow call-shape updates, exact JSX attribute rewrites, safe local wrappers.</td><td>No match means no edit; fixture must prove idempotency.</td></tr>
+              <tr><td>Simple syntax replacement with no branching.</td><td class="status ast">YAML ast-grep</td><td>Cleanup after a richer transform.</td><td>Never use as a substitute for binding provenance.</td></tr>
+              <tr><td>AST identifies a bounded cluster, but the replacement depends on local intent.</td><td class="status ai">AI after marker</td><td>Effects/ownership, Resource Cluster redesign, boundary placement, directives.</td><td>Retain marker if tests or evidence cannot prove a choice.</td></tr>
+              <tr><td>Choice changes public API, product behavior, or UX without evidence.</td><td class="status gate">Human decision</td><td>Renderer ownership conflict, optimistic UX, exposed component contract.</td><td>Report as unresolved; do not let AI guess.</td></tr>
+              <tr><td>Runtime diagnostic is required to observe the defect.</td><td class="status verify">Diagnostic loop</td><td>Untracked async reads, top-level reads, ownerless writes, lifecycle misuse.</td><td>Keep candidate open until the diagnostic disappears without new failures.</td></tr>
+            </tbody>
+          </table>
+
+          <dl class="decision">
+            <div><dt>Decision code</dt><dd>Stable family and rule, such as S2-ASYNC-RESOURCE-001.</dd></div>
+            <div><dt>AST anchor</dt><dd>File, span/fingerprint, binding source, and cluster identifier.</dd></div>
+            <div><dt>Proof required</dt><dd>The syntactic, semantic, or runtime evidence that permits mutation.</dd></div>
+            <div><dt>Executor</dt><dd>JSSG workspace, JSSG file, YAML rule, AI domain, or human.</dd></div>
+            <div><dt>Allowed files</dt><dd>Exact files or globs the executor may modify.</dd></div>
+            <div><dt>Acceptance checks</dt><dd>Targeted type/tests/diagnostics and scope guard.</dd></div>
+            <div><dt>Fallback</dt><dd>Leave source, retain marker, and record why evidence was insufficient.</dd></div>
+            <div><dt>Target revision</dt><dd>Compatibility-manifest version and Solid source commit.</dd></div>
+          </dl>
+        </section>
+
+        <section id="handoff">
+          <h2>The AST → AI handoff is a checked protocol</h2>
+          <p>Codemod does not attach previous step output or a file set to an AI step. Therefore the deterministic phase must make the handoff visible in the working tree.</p>
+          <div class="grid two">
+            <div class="card">
+              <h3>Stable source marker</h3>
+              <pre>// codemod:solid2-review
+// id: S2-ASYNC-RESOURCE-001:7f2a
+// cluster: user-resource
+// manifest: .solid2-codemod/candidates/async.json</pre>
+              <p>The marker is searchable, deduplicated by decision code + AST anchor, and remains until a verified decision resolves it.</p>
+            </div>
+            <div class="card">
+              <h3>Target-local candidate manifest</h3>
+              <pre>{
+  "domain": "async",
+  "target": "solid-2.0.0-beta.17",
+  "allowedFiles": ["src/user.tsx", "src/UserView.tsx"],
+  "candidates": [{
+    "id": "S2-ASYNC-RESOURCE-001:7f2a",
+    "evidence": ["resource.loading", "resource.error", "refetch"],
+    "checks": ["pnpm typecheck", "pnpm test UserView"]
+  }]
+}</pre>
+              <p>JSSG can write this inside the target without unrestricted filesystem capability; the default filesystem is sandboxed to the target directory.</p>
+            </div>
+          </div>
+
+          <h3>AI completion receipt</h3>
+          <p>
+            Every AI prompt must write <code>.solid2-codemod/ai/&lt;domain&gt;.json</code> with candidate IDs attempted, files changed, markers retained/removed, commands run, and their exit codes. A deterministic step immediately validates the receipt against the actual diff and manifest.
+          </p>
+          <div class="callout red">
+            This is not paperwork. In the current runtime, parent-agent handoff or a missing API key can print <code>[AI INSTRUCTIONS]</code>, skip built-in execution, and still return success. If the receipt is absent, the node fails. “Completed” can no longer silently mean “AI never ran.”
+          </div>
+
+          <h3>Prompt contract</h3>
+          <ol>
+            <li>Read the compatibility manifest and exactly one domain candidate manifest.</li>
+            <li>Modify only <code>allowedFiles</code>; AI has no native include/exclude field.</li>
+            <li>Resolve only listed marker IDs. Do not opportunistically modernize nearby code.</li>
+            <li>Preserve public API, reactive ownership, evaluation timing, and error/loading behavior unless the candidate explicitly authorizes a change.</li>
+            <li>Remove a marker only after its listed checks pass. Otherwise retain it and record the blocking evidence.</li>
+            <li>Write the completion receipt. The prose final response is only a log and is not machine-consumable.</li>
+          </ol>
+          <p class="muted small">
+            Keep Codemod’s default system prompt so target-root context is preserved. Set <code>max_steps</code> and a minimal tool list explicitly. Do not rely on AI-local timeout, working directory, environment, or dry-run fields until runtime tests prove them.
+          </p>
+        </section>
+
+        <section id="yaml">
+          <h2>Representative guided workflow YAML</h2>
+          <p>This is a design skeleton, not a claim that the scripts already exist. It deliberately uses current, documented v1 constructs and avoids templates, nested workflows, generic step outputs, container runtimes, and nested matrices.</p>
+          <pre>version: "1"
+
+params:
+  schema:
+    verify_command:
+      name: Verification command
+      type: string
+      default: "pnpm typecheck &amp;&amp; pnpm test"
+
+nodes:
+  - id: preflight
+    name: Capture baseline and target profile
+    steps:
+      - name: Capture baseline
+        run: node ./scripts/solid2-preflight.mjs
+
+  - id: inventory
+    name: Inventory Solid usage with AST
+    depends_on: [preflight]
+    steps:
+      - name: Build inventory
+        js-ast-grep:
+          js_file: scripts/inventory.ts
+          language: tsx
+          semantic_analysis: workspace
+          include: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"]
+          exclude: ["**/node_modules/**", "**/dist/**"]
+
+  - id: mechanical
+    name: Apply and prove deterministic migration
+    depends_on: [inventory]
+    steps:
+      - name: Update package and config
+        run: node ./scripts/solid2-config.mjs
+      - name: Rewrite imports and types
+        js-ast-grep:
+          js_file: scripts/imports-and-types.ts
+          language: tsx
+          semantic_analysis: workspace
+      - name: Rewrite exact JSX shapes
+        js-ast-grep:
+          js_file: scripts/jsx-shapes.ts
+          language: tsx
+          semantic_analysis: file
+      - name: Rewrite proven local runtime patterns
+        js-ast-grep:
+          js_file: scripts/local-runtime.ts
+          language: tsx
+          semantic_analysis: file
+      - name: Classify semantic residue and insert markers
+        js-ast-grep:
+          js_file: scripts/classify-residuals.ts
+          language: tsx
+          semantic_analysis: workspace
+      - name: Apply trivial cleanup
+        ast-grep:
+          config_file: rules/cleanup.yml
+      - name: Reject mechanical regressions
+        run: node ./scripts/solid2-verify.mjs mechanical
+
+  - id: approve-ai
+    name: Approve bounded semantic migration
+    depends_on: [mechanical]
+    trigger:
+      type: manual
+    steps:
+      - name: Print AI plan
+        run: node ./scripts/solid2-print-plan.mjs
+
+  - id: ai-reactivity
+    name: Resolve reactivity and ownership candidates
+    depends_on: [approve-ai]
+    steps:
+      - name: Resolve marked reactivity candidates
+        ai:
+          max_steps: 40
+          tools: [glob, str_replace_based_edit_tool, task_done]
+          prompt: |
+            Read .solid2-codemod/candidates/reactivity.json.
+            Modify only allowedFiles and only listed marker IDs.
+            Preserve ownership and evaluation timing.
+            Write .solid2-codemod/ai/reactivity.json.
+      - name: Prove scope, receipt, and behavior
+        run: node ./scripts/solid2-verify.mjs ai-reactivity
+
+  - id: ai-async
+    name: Resolve async and resource candidates
+    depends_on: [ai-reactivity]
+    steps:
+      - name: Resolve marked async candidates
+        ai:
+          max_steps: 40
+          tools: [glob, str_replace_based_edit_tool, task_done]
+          prompt: |
+            Read .solid2-codemod/candidates/async.json.
+            Modify only allowedFiles and only listed marker IDs.
+            Preserve readiness, error, revalidation, and mutation UX.
+            Write .solid2-codemod/ai/async.json.
+      - name: Prove scope, receipt, and behavior
+        run: node ./scripts/solid2-verify.mjs ai-async
+
+  - id: ai-dom
+    name: Resolve DOM, JSX, and directive candidates
+    depends_on: [ai-async]
+    steps:
+      - name: Resolve marked DOM and JSX candidates
+        ai:
+          max_steps: 40
+          tools: [glob, str_replace_based_edit_tool, task_done]
+          prompt: |
+            Read .solid2-codemod/candidates/dom-jsx.json.
+            Modify only allowedFiles and only listed marker IDs.
+            Do not guess renderer ownership or public API intent.
+            Write .solid2-codemod/ai/dom-jsx.json.
+      - name: Prove scope, receipt, and behavior
+        run: node ./scripts/solid2-verify.mjs ai-dom
+
+  - id: finalize
+    name: Verify and report the migration
+    depends_on: [ai-dom]
+    steps:
+      - name: Re-inventory final state
+        js-ast-grep:
+          js_file: scripts/final-inventory.ts
+          language: tsx
+          semantic_analysis: workspace
+      - name: Run full validation and write report
+        run: node ./scripts/solid2-verify.mjs final</pre>
+
+          <div class="callout amber">
+            The exact relative-path behavior of shell scripts must be confirmed in the first workflow spike. If <code>run</code> executes from the target rather than the package root, publish a stable package script entry point rather than copying helpers into the target. This is a runtime test, not a schema question.
+          </div>
+        </section>
+
+        <section id="sharding">
+          <h2>Campaign sharding is a second-stage product</h2>
+          <p>
+            Do not shard by arbitrary file count for Solid semantic work. Resource ownership, effects, exports, and JSX consumers cross file boundaries. Use a custom shard function to parse imports and group connected candidate files. The official shard API can use ast-grep and returns <code>_meta_files</code>, which becomes the authoritative file scope for downstream JSSG.
+          </p>
+          <div class="grid two">
+            <div class="card">
+              <h3>Phase A: merge the safe baseline</h3>
+              <p>Run config/import/type/locally-safe transforms as one reviewed baseline PR. This gives every semantic shard the same dependency and type environment.</p>
+            </div>
+            <div class="card">
+              <h3>Phase B: fan out residual clusters</h3>
+              <p>A <code>shard</code> step dry-runs the residual detector, writes shard objects to state, and a manual matrix node opens one draft PR per dependency-connected cluster.</p>
+            </div>
+          </div>
+          <pre>state:
+  schema:
+    semantic_shards:
+      type: array
+      items:
+        type: object
+
+nodes:
+  - id: evaluate-shards
+    name: Build semantic shards
+    steps:
+      - name: Group connected candidate files
+        shard:
+          method:
+            function: scripts/shard-by-dependency.ts
+          target: "."
+          output_state: semantic_shards
+          js-ast-grep:
+            js_file: scripts/classify-residuals.ts
+            language: tsx
+            semantic_analysis: workspace
+
+  - id: migrate-shard
+    name: Migrate semantic shard
+    depends_on: [evaluate-shards]
+    trigger:
+      type: manual
+    strategy:
+      type: matrix
+      from_state: semantic_shards
+    branch_name: "solid2-&#36;{{ matrix.name }}-&#36;{{ task.signature }}"
+    pull_request:
+      title: "refactor: migrate Solid 2 &#36;{{ matrix.name }}"
+      draft: true
+    steps:
+      - name: Apply shard-safe AST work
+        js-ast-grep:
+          js_file: scripts/shard-transform.ts
+          language: tsx
+          semantic_analysis: workspace
+      - name: Resolve shard residue
+        ai:
+          max_steps: 40
+          prompt: |
+            Work only on files listed for shard &#36;{{ matrix.name }}.
+            Resolve only its candidate manifest and write a receipt.
+      - name: Reject out-of-shard edits and run tests
+        run: node ./scripts/solid2-verify.mjs shard</pre>
+          <div class="callout violet">
+            <strong>Important:</strong> <code>_meta_files</code> automatically scopes downstream JSSG, but it does not natively scope AI. The prompt and post-AI diff guard must enforce the same list. Cloud task branches provide isolation; local parallel matrix AI does not.
+          </div>
+        </section>
+
+        <section id="testing">
+          <h2>Test the transforms, the workflow, and the AI contract separately</h2>
+          <table>
+            <thead><tr><th>Layer</th><th>Test</th><th>Pass condition</th></tr></thead>
+            <tbody>
+              <tr><td>JSSG rule</td><td>Single-file <code>input/expected</code> fixtures, collision cases, aliases, shadowing, no-op, and second run.</td><td>Exact expected output; idempotent; no unproven rewrite.</td></tr>
+              <tr><td>Cross-file semantic rule</td><td>Directory-snapshot fixtures using workspace analysis.</td><td>Definitions/references update together; current-file and cross-file writes are correct.</td></tr>
+              <tr><td>Residual classifier</td><td>Snapshot markers, candidate JSON, and JSSG metrics.</td><td>Stable IDs, no duplicate anchors, exact allowed-file closure.</td></tr>
+              <tr><td>Composed mechanical node</td><td>Run the real workflow against a temp app fixture with baseline errors.</td><td>No new errors; failed verification discards the mechanical diff.</td></tr>
+              <tr><td>AI contract</td><td>Synthetic candidate manifests, no-key/handoff simulation, out-of-scope edit, missing receipt, retained marker.</td><td>Only a valid receipt + scoped diff + passing checks completes.</td></tr>
+              <tr><td>End-to-end proving apps</td><td>Representative apps from <code>.repos</code>: web, SSR/hydration, store-heavy, async/resource, component library.</td><td>Build/type/tests and Solid diagnostics do not regress; unresolved items are truthful.</td></tr>
+              <tr><td>Workflow schema</td><td><code>npx codemod workflow validate</code> plus a real smoke run.</td><td>Both pass; schema validation alone is insufficient.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Required invariants</h3>
+          <ul>
+            <li>Safe mode never invokes or waits for AI.</li>
+            <li>A second complete run produces no additional source changes or duplicate markers.</li>
+            <li>Every removed marker is represented in a valid receipt and its acceptance checks passed.</li>
+            <li>Every AI-changed file belonged to that domain or shard allowlist.</li>
+            <li>Baseline failures are distinguished from newly introduced failures.</li>
+            <li>A skipped AI runtime cannot yield a green guided workflow.</li>
+            <li>Reports, metrics, candidate counts, and source markers agree.</li>
+          </ul>
+        </section>
+
+        <section id="beta17">
+          <h2>Beta.17 changes the compatibility data, not the workflow architecture</h2>
+          <p>
+            The local Solid checkout is now <code>a51cac193386507f27dd95546f6d567fab4ff6d3</code> (<code>2.0.0-beta.17</code>), advanced from beta.15. Keep the earlier decision catalog, but route it through the AST/AI protocol above.
+          </p>
+          <table>
+            <thead><tr><th>Beta.17 concern</th><th>Workflow consequence</th></tr></thead>
+            <tbody>
+              <tr><td>Coherent Solid and DOM-expression package set</td><td>Preflight pins and records one compatibility-manifest hash; config and import steps consume the same manifest.</td></tr>
+              <tr><td>Lifecycle and <code>onSettled</code> ownership</td><td>JSSG identifies callbacks/call sites; ambiguous ownership becomes a reactivity candidate for AI, not a blind rename.</td></tr>
+              <tr><td>Async, optimistic state, SSR/hydration, and error correctness</td><td>Async AI receives whole Resource Clusters and renderer/SSR tests, not isolated property accesses.</td></tr>
+              <tr><td>Additional structured diagnostics</td><td>Final verification maps diagnostic codes back to decision codes and candidate IDs.</td></tr>
+              <tr><td>Type-surface fixes since beta.15</td><td>Fixtures typecheck against beta.17; do not encode compensating casts for defects already fixed upstream.</td></tr>
+            </tbody>
+          </table>
+          <p>
+            The detailed Solid migration decision catalog and beta.15 → beta.17 audit remain in the <a href="./2026-07-13-solid-v2-codemod-top-down-plan.html">earlier top-down report</a>. This document supersedes its proposed execution/workflow model.
+          </p>
+        </section>
+
+        <section id="roadmap">
+          <h2>Implementation roadmap: tracer bullets through the real workflow</h2>
+          <div class="roadmap">
+            <div class="slice">
+              <h3>Prove Codemod runtime assumptions</h3>
+              <p>Create a throwaway v1 workflow that verifies shell working directory, target-local file handoff, JSSG state APIs, <code>$STATE_OUTPUTS</code>, manual resume, failure diff discard, AI no-key/handoff behavior, and the current CLI version. Record results before designing helpers.</p>
+            </div>
+            <div class="slice">
+              <h3>Build one safe vertical slice</h3>
+              <p>One web app: baseline capture → AST inventory → proven <code>solid-js/web</code> package/import move → mechanical verification → final report → second-run no-op.</p>
+            </div>
+            <div class="slice">
+              <h3>Add one AST → AI case</h3>
+              <p>Choose one ownership-sensitive lifecycle/effect case. JSSG emits a stable marker and manifest; a manual AI node edits only its closure; receipt and scope guard prove the result.</p>
+            </div>
+            <div class="slice">
+              <h3>Separate the three semantic domains</h3>
+              <p>Grow reactivity, async, and DOM/JSX candidate schemas and prompts independently. Each gets domain tests and a focused verification command.</p>
+            </div>
+            <div class="slice">
+              <h3>Expand deterministic coverage</h3>
+              <p>Port proven config/import/type/JSX/runtime rules into focused scripts. Every rule declares its evidence, fallback marker, compatibility revision, and idempotency fixtures.</p>
+            </div>
+            <div class="slice">
+              <h3>Ship safe and guided workflows</h3>
+              <p>Validate schema, run end-to-end fixtures, document AI execution modes, and make safe the default. Do not publish until skipped AI is detectable.</p>
+            </div>
+            <div class="slice">
+              <h3>Only then add Campaign sharding</h3>
+              <p>Build dependency-connected shards from residual markers, prove cloud task isolation and draft PR behavior, and enforce the AI allowlist with post-edit diff guards.</p>
+            </div>
+          </div>
+
+          <div class="callout green">
+            <strong>Next concrete work item:</strong> replace the current recipe-only orchestration with a runtime-spike branch containing <code>workflows/safe.yaml</code>, <code>workflows/guided-ai.yaml</code>, one inventory JSSG script, one deterministic import transform, one residual classifier, one AI receipt validator, and one tiny target fixture.
+          </div>
+        </section>
+
+        <section id="sources">
+          <h2>Primary sources researched</h2>
+          <ul>
+            <li><a href="https://docs.codemod.com/workflows/introduction">Codemod Workflows introduction</a></li>
+            <li><a href="https://docs.codemod.com/workflows/reference">Workflow v1 reference</a></li>
+            <li><a href="https://docs.codemod.com/workflows/ai-harness-rig">Rig AI harness behavior</a></li>
+            <li><a href="https://docs.codemod.com/workflows/sharding">Sharding, custom grouping, and matrix scope</a></li>
+            <li><a href="https://docs.codemod.com/jssg/semantic-analysis">JSSG semantic analysis</a></li>
+            <li><a href="https://docs.codemod.com/jssg/security">JSSG sandbox and capabilities</a></li>
+            <li><a href="https://docs.codemod.com/jssg/testing">JSSG fixture testing</a> and <a href="https://docs.codemod.com/jssg/metrics">metrics</a></li>
+            <li><a href="https://docs.codemod.com/cli">Codemod CLI reference</a></li>
+            <li><a href="https://github.com/codemod/codemod/blob/eaeb7a9a64502800a4c910c40f8e9bcd09bd2e16/schemas/workflow.json">Workflow schema at eaeb7a9</a></li>
+            <li><a href="https://github.com/codemod/migrations-template/blob/16f63eb558d9aa647b2f604dbd576fd12a6cf36c/codemods/sample-codemod/workflow.yaml">Official AST → marker → AI sample workflow</a></li>
+            <li><a href="https://github.com/codemod/useful-codemods/blob/14c72ee81badfd9f558d87fe9ae66f86a7782190/codemods/debarrel/workflow-sharded.yaml">Official sharded workflow example</a></li>
+            <li><a href="https://github.com/codemod/codemod/blob/eaeb7a9a64502800a4c910c40f8e9bcd09bd2e16/crates/core/src/engine.rs">Current engine implementation</a> for state, nested codemods, and AI dispatch</li>
+          </ul>
+        </section>
+
+        <footer>
+          Prepared from the local Solid beta.17 checkout, current repository scaffold, official Codemod documentation, the Codemod engine/schema at <code>eaeb7a9</code>, and three independent research subagents. No current package boundary was treated as a constraint.
+        </footer>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

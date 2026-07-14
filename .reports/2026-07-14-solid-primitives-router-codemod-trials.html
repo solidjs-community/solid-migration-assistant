@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solid 2 Codemod · Primitives and Router Trials</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#090d12; --panel:#111823; --panel2:#172131; --line:#29364b;
+      --text:#e8eef8; --muted:#9baac0; --green:#58d69a; --blue:#74a8ff;
+      --amber:#f2c467; --red:#ff7d87; --violet:#b69aff;
+      --sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 5% 0,rgba(116,168,255,.15),transparent 30rem),radial-gradient(circle at 95% 8%,rgba(182,154,255,.12),transparent 26rem),var(--bg);color:var(--text);font:15px/1.58 var(--sans)}
+    main{width:min(1180px,calc(100% - 40px));margin:auto;padding:54px 0 86px}
+    h1{max-width:970px;margin:12px 0 15px;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-.04em}
+    h2{margin:52px 0 18px;font-size:28px;letter-spacing:-.025em} h3{margin:0 0 8px;font-size:18px}
+    p{margin:8px 0} code,pre{font-family:var(--mono)} code{color:#dbe7ff}
+    pre{margin:14px 0 0;padding:15px 17px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#080c12;color:#d5dfef;font-size:12px;line-height:1.55}
+    .hero{padding-bottom:34px;border-bottom:1px solid var(--line)}
+    .eyebrow{color:var(--blue);font:700 12px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+    .lede{max-width:950px;color:var(--muted);font-size:18px}.meta{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:23px;color:var(--muted);font:12px var(--mono)}
+    .verdict{display:grid;grid-template-columns:auto 1fr;gap:22px;margin-top:34px;padding:24px;border:1px solid rgba(255,125,135,.48);border-radius:14px;background:linear-gradient(135deg,rgba(255,125,135,.14),rgba(255,125,135,.03))}
+    .mark{display:grid;place-items:center;width:82px;height:82px;border-radius:50%;background:rgba(255,125,135,.14);color:var(--red);font:800 13px var(--mono);text-align:center}
+    .verdict h2{margin:0 0 6px;font-size:25px}.verdict p{color:#cbd5e5}
+    .grid{display:grid;gap:15px}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .card{padding:20px;border:1px solid var(--line);border-radius:12px;background:rgba(17,24,35,.9)}.card p,.card li{color:var(--muted)}
+    .metric{margin-bottom:7px;color:var(--red);font:760 27px/1 var(--mono)}.metric.green{color:var(--green)}.metric.amber{color:var(--amber)}.metric.blue{color:var(--blue)}
+    .label{color:var(--muted);font:700 11px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+    table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(17,24,35,.83)}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--panel2);color:#bfcae0;font:700 11px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase}td{color:#cbd5e5}tr:last-child td{border-bottom:0}
+    .pass{color:var(--green);font-weight:760}.warn{color:var(--amber);font-weight:760}.fail{color:var(--red);font-weight:760}
+    .pill{display:inline-block;padding:3px 7px;border:1px solid currentColor;border-radius:99px;font:700 10px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase}.critical{color:var(--red)}.high{color:var(--amber)}.good{color:var(--green)}
+    .finding{margin:0 0 15px;padding:21px;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;background:rgba(17,24,35,.92)}.finding.high{border-left-color:var(--amber)}.finding.good{border-left-color:var(--green)}
+    .finding-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.evidence{margin-top:11px;color:var(--muted)}
+    ul,ol{padding-left:22px}li{margin:7px 0}.callout{margin:18px 0;padding:16px 18px;border:1px solid rgba(116,168,255,.34);border-radius:10px;background:rgba(116,168,255,.09);color:#cbd8ec}
+    .foot{margin-top:58px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+    @media(max-width:850px){.two,.three,.verdict{grid-template-columns:1fr}main{width:min(100% - 24px,1180px);padding-top:30px}table{display:block;overflow-x:auto}}
+  </style>
+</head>
+<body><main>
+  <header class="hero">
+    <div class="eyebrow">External corpus trials · 2026-07-14</div>
+    <h1>Solid Primitives and Solid Router expose critical first-pass gaps</h1>
+    <p class="lede">Two parallel, isolated trials tested the current Solid 1 → 2 workflow against the latest verified Solid 1.x <code>main</code> revisions. Both projects had green Solid 1 baselines. Both migrations failed. The failures reveal library-manifest blind spots, unsafe shape rewrites, incomplete API validation, and a workflow runner that can report success for rejected output.</p>
+    <div class="meta"><span>codemod: solid-v2-first-pass</span><span>target: Solid 2.0.0-beta.17</span><span>CLI: codemod 1.12.7</span><span>method: two parallel isolated worktrees</span></div>
+  </header>
+
+  <section class="verdict">
+    <div class="mark">BLOCKED</div>
+    <div><h2>Do not run this codemod unattended on libraries or monorepos.</h2><p>The Kanban application fixture remains useful proof for its supported shapes, but these real repositories demonstrate that the current workflow is app-specific and validator-incomplete. The highest-priority correction is to turn unknown library shapes into explicit blockers before any broad source rewrite.</p></div>
+  </section>
+
+  <h2>Result snapshot</h2>
+  <div class="grid three">
+    <div class="card"><div class="metric green">1,004</div><div class="label">Primitives baseline tests</div><p>914 client + 90 SSR tests passed before migration.</p></div>
+    <div class="card"><div class="metric green">237 / 237</div><div class="label">Router baseline tests</div><p>All tests, direct typecheck, and build passed before migration.</p></div>
+    <div class="card"><div class="metric">129</div><div class="label">Primitives build errors</div><p>Across 82 files after the emitted migration.</p></div>
+    <div class="card"><div class="metric">56</div><div class="label">Router type errors</div><p>Still present after manually installing the correct Solid 2 dependency tuple.</p></div>
+    <div class="card"><div class="metric amber">62 files</div><div class="label">Primitives validator rejection</div><p>The outer workflow nevertheless returned success.</p></div>
+    <div class="card"><div class="metric amber">false clean</div><div class="label">Router validator result</div><p>Direct validation exited 0 despite invalid source and failing behavior.</p></div>
+  </div>
+
+  <h2>Source and isolation controls</h2>
+  <table>
+    <thead><tr><th>Repository</th><th>Existing support checkout</th><th>Actual tested source</th><th>Solid 1 proof</th></tr></thead>
+    <tbody>
+      <tr><td><strong>solid-primitives</strong></td><td><code>dev/presence-migration</code> at <code>52e361a</code>, clean and untouched. Its configured <code>origin/main</code> was a stale 2024 personal fork and was not used.</td><td>Canonical <code>solidjs-community/solid-primitives</code> main at <code>453ec58c4a3d</code>, 2026-07-11.</td><td><code>solid-js ^1.9.7</code>, plugin <code>^2.11.6</code>, package peer ranges <code>^1.6.12</code>, and legacy APIs in source.</td></tr>
+      <tr><td><strong>solid-router</strong></td><td>Detached <code>6290ee6</code> from <code>origin/next</code>, version <code>0.17.0-next.3</code> on Solid beta.7; correctly identified as already migrated and left untouched.</td><td>Latest official <code>origin/main</code> at <code>e54fc4a3bc51</code>, 2026-03-17, version <code>0.16.1</code>.</td><td>Dev <code>solid-js ^1.9.3</code>, peer <code>^1.8.6</code>, preset <code>^1.9.3</code>, plugin <code>^2.11.0</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Validation matrix</h2>
+  <table>
+    <thead><tr><th>Gate</th><th>solid-primitives</th><th>solid-router</th></tr></thead>
+    <tbody>
+      <tr><td>Solid 1 install</td><td class="pass">PASS · 87 workspaces, 1,393 packages</td><td class="pass">PASS · frozen pnpm install</td></tr>
+      <tr><td>Solid 1 build/types</td><td class="pass">PASS build</td><td class="pass">PASS types and build</td></tr>
+      <tr><td>Solid 1 behavior</td><td class="pass">1,004 passed; expected skips/todos</td><td class="pass">237/237 passed</td></tr>
+      <tr><td>Workflow result</td><td class="fail">Incorrect success despite validator-node failures</td><td class="fail">Success for an invalid half-migration</td></tr>
+      <tr><td>Direct validator</td><td class="warn">Exit 1 · 62 files, including one false positive</td><td class="fail">Exit 0 · false clean</td></tr>
+      <tr><td>Migrated install</td><td class="fail">Root stayed on Solid 1.9.7</td><td class="fail">Manifest and lock stayed on Solid 1.9.3</td></tr>
+      <tr><td>Migrated build/types</td><td class="fail">129 errors across 82 files</td><td class="fail">58 errors as emitted; 56 after manual dependency repair</td></tr>
+      <tr><td>Migrated behavior</td><td class="fail">104 client files failed; SSR not run</td><td class="fail">65/237 failed after manual dependency repair</td></tr>
+      <tr><td>Idempotency</td><td class="fail">Second pass changed two more setters; third stable</td><td class="pass">Second pass exact no-op</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Cross-cutting critical findings</h2>
+  <article class="finding"><div class="finding-head"><span class="pill critical">Critical</span><h3>Package migration only recognizes the Kanban-style application manifest</h3></div><p>Both libraries place Solid in <code>devDependencies</code> and expose compatibility through <code>peerDependencies</code>. The transform rewrote source and JSX configuration while leaving the root runtime/compiler graph on Solid 1. Primitives also contains 85 package manifests that need classification rather than one blanket pinning rule.</p><div class="evidence">Required design: classify application, library, package, example, and excluded fixture manifests first. Refuse the source phase unless a coherent runtime, renderer, compiler, JSX, peer-range, and lockfile plan has been selected.</div></article>
+  <article class="finding"><div class="finding-head"><span class="pill critical">Critical</span><h3>Validation is neither authoritative nor complete</h3></div><p>In Primitives, the validation node detected blockers but the workflow returned success. In Router, the direct validator itself missed removed APIs, invalid <code>splitProps</code> output, legacy contexts, stale JSX ownership, and a broken dependency graph. Textual residual checks also falsely treated the string <code>{"&lt;Index&gt;"}</code> as JSX while missing a multiline directive.</p><div class="evidence">Required design: make validation AST- and binding-aware, validate manifests/config before source, add a compile gate, and treat runner exit propagation as unsafe until independently enforced.</div></article>
+  <article class="finding"><div class="finding-head"><span class="pill critical">Critical</span><h3>Some supported-looking rewrites generate invalid or semantically wrong code</h3></div><p>Primitives exposed a lifecycle rewrite that drops a closing parenthesis, object-valued directives that become non-returning blocks, duplicate <code>ref</code> attributes, and binding-unaware <code>const merge = merge(...)</code>. Router exposed invalid destructuring after <code>splitProps</code> → <code>omit</code> and incomplete <code>classList</code> normalization.</p><div class="evidence">These shapes need focused red fixtures before implementation fixes. A migration must never present syntactically invalid output as a successful node.</div></article>
+
+  <h2>solid-primitives details</h2>
+  <div class="grid two">
+    <div class="card"><h3>Scope and emitted output</h3><ul><li>230 changed files: 229 source files and only one excluded demo manifest.</li><li>803 insertions and 1,080 deletions.</li><li>99 <code>solid-js/web</code> occurrences removed; 115 <code>@solidjs/web</code> occurrences added.</li><li>36 <code>classList</code> attributes removed.</li><li>65 <code>storePath</code> and 59 net <code>snapshot</code> conversions.</li><li>135 unsupported-effect markers and four store blockers.</li></ul></div>
+    <div class="card"><h3>Post-migration failure</h3><ul><li>70 missing <code>@solidjs/web</code> diagnostics.</li><li>36 missing Solid 2 exports from the still-installed Solid 1 runtime.</li><li>Four parser errors from lifecycle conversion.</li><li>104 client test files failed; 37 assertions failed and 62 passed before load/runtime failures stopped wider coverage.</li><li>SSR was not meaningful after the client/build failure.</li></ul></div>
+  </div>
+  <table>
+    <thead><tr><th>Defect</th><th>Severity</th><th>Observed shape</th></tr></thead>
+    <tbody>
+      <tr><td>Lifecycle syntax corruption</td><td class="fail">Critical</td><td><code>removeEventListener(... as any;</code> loses a closing parenthesis.</td></tr>
+      <tr><td>Directive object semantics</td><td class="fail">Critical</td><td><code>ref={mutationObserver(() =&gt; { childList: true })}</code> returns no options object.</td></tr>
+      <tr><td>Duplicate refs</td><td class="fail">Critical</td><td>An existing <code>ref</code> plus a converted directive yields two <code>ref</code> attributes.</td></tr>
+      <tr><td>Directive detection mismatch</td><td class="fail">Critical</td><td>Multiline/no-value <code>use:copyToClipboard</code> survives and is missed by validation.</td></tr>
+      <tr><td>Binding collision</td><td class="fail">Critical</td><td><code>mergeProps</code> → <code>merge</code> can emit <code>const merge = merge(...)</code>.</td></tr>
+      <tr><td>Ordering/idempotency</td><td class="warn">High</td><td>Two store setters are wrapped only on the second pass.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>solid-router details</h2>
+  <div class="grid two">
+    <div class="card"><h3>Scope and emitted output</h3><ul><li>15 files changed, 42 insertions and 77 deletions.</li><li>All 14 <code>solid-js/web</code> references removed; 15 renderer references introduced.</li><li>Mechanical <code>mergeProps</code>, intrinsic class, batch, unwrap, and boundary renames applied.</li><li>Second workflow pass was byte-identical.</li><li>Direct validator incorrectly passed all 19 source files.</li></ul></div>
+    <div class="card"><h3>Dependency-repaired behavior</h3><ul><li>Manually installed Solid and renderer beta.17, preset beta.17, and plugin next.4.</li><li>56 type errors and 51 build errors remained.</li><li>172/237 tests passed; 65 failed with two unhandled errors.</li><li>Failure roots included removed <code>on</code>, <code>getListener</code>, and <code>createResource</code>, plus owned-scope write diagnostics.</li></ul></div>
+  </div>
+  <table>
+    <thead><tr><th>Defect</th><th>Severity</th><th>Observed shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>splitProps</code> rewrite</td><td class="fail">Critical</td><td><code>const [, rest] = omit(props, [...])</code> assumes an array return and the wrong key signature.</td></tr>
+      <tr><td>Removed async APIs</td><td class="fail">Critical</td><td><code>createResource</code>, <code>catchError</code>, old reconcile types, and <code>sharedConfig.context</code> survive.</td></tr>
+      <tr><td>Removed reactive APIs</td><td class="fail">Critical</td><td><code>on</code>, <code>getListener</code>, <code>startTransition</code>, <code>resetErrorBoundaries</code>, and <code>createComputed</code> survive.</td></tr>
+      <tr><td>Context providers</td><td class="fail">Critical</td><td>Two <code>.Provider</code> forms remain.</td></tr>
+      <tr><td>JSX type ownership</td><td class="warn">High</td><td>Several files retain <code>JSX</code> from <code>solid-js</code>, causing element/intrinsic errors.</td></tr>
+      <tr><td>Memo/signal semantics</td><td class="warn">High</td><td>Old <code>createMemo</code> signatures and writes in owned scopes are not migrated.</td></tr>
+      <tr><td>Class normalization</td><td class="warn">High</td><td>Converted <code>class</code> still spreads legacy <code>rest.classList</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Recommended fix order</h2>
+  <ol>
+    <li><strong>Add a discovery/classification phase.</strong> Inventory all manifests, package roles, package-manager/workspace layout, Solid ranges, compiler packages, renderer ownership, SSR usage, and project references. Produce a migration plan before editing.</li>
+    <li><strong>Make unsafe package shapes block immediately.</strong> Support <code>dependencies</code>, <code>devDependencies</code>, and deliberately selected <code>peerDependencies</code>; distinguish publishable libraries from applications and examples.</li>
+    <li><strong>Harden validation and exit semantics.</strong> Add AST residual rules for every removed API, directive, provider, JSX owner, and old signature. Run direct validation plus parse/type gates; never trust the outer workflow exit alone.</li>
+    <li><strong>Fix syntax- and binding-safety defects first.</strong> Lifecycle parentheses, object-expression directive returns, duplicate refs, multiline directives, import/local binding collisions, and <code>splitProps</code> semantics each need red fixtures.</li>
+    <li><strong>Add library-specific semantic recipes.</strong> Router-style async compatibility layers, context APIs, memo signatures, owned-scope writes, class normalization, event delegation, bundler externals, and JSX public types require explicit decisions rather than broad renames.</li>
+    <li><strong>Require first-pass idempotency.</strong> Ordering bugs should fail a test that hashes every changed file after one and two workflow runs.</li>
+    <li><strong>Promote both repositories into a corpus gate.</strong> Start with parse + blocker expectations, then narrow the blocker count as each supported shape gains a fixture and semantic test.</li>
+  </ol>
+
+  <h2>AST source documentation update</h2>
+  <article class="finding good"><div class="finding-head"><span class="pill good">Verified</span><h3><code>source.ts</code> is now annotated for maintainers new to AST manipulation</h3></div><p>A separate subagent added JSDoc to all 41 top-level named functions and arrow helpers, plus 41 focused comments at binding/scope guards, shape checks, node replacement sites, import classification, blocker/idempotency choices, and ast-grep edit commits.</p><div class="evidence">The before/after audit found zero changed executable lines. TypeScript <code>--noEmit</code> passed, and all 18 source fixtures passed under strict Codemod testing.</div></article>
+
+  <h2>Evidence retained</h2>
+  <div class="grid two">
+    <div class="card"><h3>solid-primitives</h3><p><code>/tmp/solid-primitives-codemod-trial-2026-07-14</code></p><p>Summary, baseline logs, migrated logs, direct-validator output, and first/second-pass patches live under <code>.trial-evidence</code>.</p></div>
+    <div class="card"><h3>solid-router</h3><p><code>/tmp/solid-router-codemod-2026-07-14-e54fc4a3</code></p><p>Baseline, migration, validator, diff, and idempotency evidence live under <code>.evidence</code>. The manually dependency-repaired retry is in the sibling <code>-deps</code> worktree.</p></div>
+  </div>
+  <div class="callout">Neither original support checkout was switched or modified. The only workspace source edit from this request is the documentation-only annotation pass in <code>codemods/solid-v2-first-pass/scripts/source.ts</code>.</div>
+
+  <div class="foot">Final verdict: the codemod remains a useful shape-driven application prototype, but real library and monorepo migration must be blocked until manifest classification, AST validation, syntax safety, binding awareness, and library semantics are closed.</div>
+</main></body></html>

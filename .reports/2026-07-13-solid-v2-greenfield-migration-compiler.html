@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid 2 migration compiler — greenfield workflow design</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #16202a;
+      --muted: #62707d;
+      --paper: #f4f2ec;
+      --card: #fffefa;
+      --line: #d8d5cb;
+      --blue: #315f96;
+      --blue-soft: #e8f0f9;
+      --green: #207357;
+      --green-soft: #e6f4ee;
+      --amber: #9c6514;
+      --amber-soft: #fff2d9;
+      --red: #a33f3f;
+      --red-soft: #fae7e7;
+      --purple: #6f53a2;
+      --purple-soft: #f0ebf8;
+      --shadow: 0 18px 45px rgba(22, 32, 42, 0.09);
+      --radius: 17px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(120deg, rgba(49, 95, 150, 0.08), transparent 30rem),
+        radial-gradient(circle at 95% 5%, rgba(111, 83, 162, 0.10), transparent 32rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    a { color: var(--blue); text-underline-offset: 0.18em; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code { font-size: 0.91em; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      max-width: 1560px;
+      margin: 0 auto;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow: auto;
+      padding: 30px 23px;
+      border-right: 1px solid var(--line);
+      background: rgba(244, 242, 236, 0.9);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      margin: 0 8px 24px;
+      color: var(--blue);
+      font-weight: 820;
+      letter-spacing: -0.025em;
+    }
+
+    nav a {
+      display: block;
+      padding: 7px 10px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      text-decoration: none;
+    }
+    nav a:hover { background: var(--blue-soft); color: var(--ink); }
+
+    main { min-width: 0; padding: 64px clamp(28px, 6vw, 92px) 120px; }
+    article { max-width: 1160px; margin: 0 auto; }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--blue);
+      font-size: 0.77rem;
+      font-weight: 820;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, h4 { line-height: 1.16; letter-spacing: -0.026em; }
+    h1 { max-width: 950px; margin: 0; font-size: clamp(2.75rem, 5.4vw, 5.5rem); }
+    h2 { margin: 78px 0 20px; font-size: clamp(1.9rem, 3vw, 2.8rem); }
+    h3 { margin: 34px 0 12px; font-size: 1.37rem; }
+    h4 { margin: 22px 0 8px; font-size: 1.07rem; }
+
+    .lede {
+      max-width: 890px;
+      margin: 24px 0 28px;
+      color: var(--muted);
+      font-size: 1.24rem;
+    }
+
+    .meta { display: flex; flex-wrap: wrap; gap: 9px; margin: 24px 0 46px; }
+    .pill, .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: 0.79rem;
+      font-weight: 700;
+    }
+
+    .hero, .card, .callout {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+    }
+    .hero { padding: clamp(26px, 4vw, 44px); box-shadow: var(--shadow); }
+    .hero h2 { margin-top: 0; }
+    .hero strong { color: var(--blue); }
+
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card { padding: 22px; box-shadow: 0 8px 28px rgba(22, 32, 42, 0.045); }
+    .card h3, .card h4 { margin-top: 0; }
+    .card p:last-child, .callout p:last-child { margin-bottom: 0; }
+
+    .callout { margin: 24px 0; padding: 22px 24px; }
+    .callout.blue { border-color: #a8bed8; background: var(--blue-soft); }
+    .callout.amber { border-color: #e0b975; background: var(--amber-soft); }
+    .callout.red { border-color: #dda0a0; background: var(--red-soft); }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin: 26px 0 14px;
+    }
+    .pipeline .box {
+      position: relative;
+      min-height: 132px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      padding: 18px;
+    }
+    .pipeline .box:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -16px;
+      top: 46%;
+      z-index: 2;
+      display: grid;
+      width: 20px;
+      height: 20px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--paper);
+      color: var(--blue);
+      font-weight: 900;
+    }
+    .pipeline .box strong { display: block; margin-bottom: 8px; }
+    .pipeline .box span { color: var(--muted); font-size: 0.87rem; }
+
+    .feedback {
+      margin: 0 0 38px;
+      border: 1px dashed #9cb2c9;
+      border-radius: 12px;
+      background: rgba(232, 240, 249, 0.55);
+      padding: 11px 16px;
+      color: var(--blue);
+      text-align: center;
+      font-size: 0.88rem;
+      font-weight: 720;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 20px 0 32px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--card);
+      overflow: hidden;
+      font-size: 0.9rem;
+    }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { background: #ebece7; color: #3a4651; font-size: 0.75rem; letter-spacing: 0.065em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+
+    .deterministic { color: var(--green); background: var(--green-soft); font-weight: 780; }
+    .reviewable { color: var(--blue); background: var(--blue-soft); font-weight: 780; }
+    .design { color: var(--amber); background: var(--amber-soft); font-weight: 780; }
+    .blocked { color: var(--red); background: var(--red-soft); font-weight: 780; }
+    .runtime { color: var(--purple); background: var(--purple-soft); font-weight: 780; }
+
+    .steps { counter-reset: phase; }
+    .phase {
+      position: relative;
+      margin: 0 0 18px 22px;
+      border-left: 2px solid var(--line);
+      padding: 0 0 30px 38px;
+    }
+    .phase::before {
+      counter-increment: phase;
+      content: counter(phase);
+      position: absolute;
+      left: -19px;
+      top: 0;
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      font-weight: 850;
+    }
+    .phase h3 { margin-top: 0; }
+
+    pre {
+      overflow: auto;
+      margin: 18px 0;
+      border: 1px solid #2b3947;
+      border-radius: 13px;
+      background: #17212b;
+      padding: 18px;
+      color: #eff6fb;
+      font-size: 0.85rem;
+      line-height: 1.55;
+    }
+
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: 0.38rem; }
+    .muted { color: var(--muted); }
+    .small { font-size: 0.84rem; }
+
+    .facet {
+      border-left: 4px solid var(--purple);
+      border-radius: 0 13px 13px 0;
+      background: var(--purple-soft);
+      padding: 19px 22px;
+    }
+
+    .milestones { counter-reset: milestone; }
+    .milestone {
+      position: relative;
+      margin: 0 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      padding: 22px 22px 22px 72px;
+    }
+    .milestone::before {
+      counter-increment: milestone;
+      content: "M" counter(milestone);
+      position: absolute;
+      left: 20px;
+      top: 22px;
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 850;
+    }
+    .milestone h3 { margin-top: 0; }
+
+    footer {
+      margin-top: 82px;
+      border-top: 1px solid var(--line);
+      padding-top: 28px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    @media (max-width: 1080px) {
+      .pipeline { grid-template-columns: 1fr; }
+      .pipeline .box { min-height: 0; }
+      .pipeline .box:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -17px; }
+    }
+    @media (max-width: 960px) {
+      .layout { display: block; }
+      aside { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      nav { display: flex; flex-wrap: wrap; }
+    }
+    @media (max-width: 720px) {
+      main { padding: 38px 18px 80px; }
+      .grid.two, .grid.three { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="brand">Greenfield workflow</div>
+      <nav aria-label="Report sections">
+        <a href="#answer">The answer</a>
+        <a href="#principles">Design principles</a>
+        <a href="#journey">User journey</a>
+        <a href="#workflow">Workflow phases</a>
+        <a href="#model">Migration model</a>
+        <a href="#capabilities">Capability facets</a>
+        <a href="#decisions">Decision model</a>
+        <a href="#automation">Automation boundary</a>
+        <a href="#architecture">System architecture</a>
+        <a href="#verification">Verification loop</a>
+        <a href="#failure">Failure and recovery</a>
+        <a href="#drift">Version drift</a>
+        <a href="#roadmap">Implementation roadmap</a>
+        <a href="#conclusions">Surprising conclusions</a>
+        <a href="#sources">Sources</a>
+      </nav>
+    </aside>
+
+    <main>
+      <article>
+        <p class="eyebrow">From-scratch architecture · 13 July 2026</p>
+        <h1>Build a migration compiler, not a sequence of codemods.</h1>
+        <p class="lede">
+          A Solid 1.x → 2.0 migration is a workspace-wide reasoning problem with edits inside it. The greenfield system should analyze once, persist evidence and decisions, schedule dependency-ordered changes, and use compiler/runtime feedback to converge safely.
+        </p>
+
+        <div class="meta">
+          <span class="pill">Target: Solid 2.0.0-beta.17</span>
+          <span class="pill">Solid revision: a51cac19</span>
+          <span class="pill">Current repository structure intentionally ignored</span>
+          <span class="pill">Independent fresh-context review incorporated</span>
+        </div>
+
+        <section id="answer" class="hero">
+          <p class="eyebrow">Core architecture</p>
+          <h2>A version-pinned, resumable migration compiler</h2>
+          <p>
+            A <strong>semantic analyzer</strong> discovers the workspace and produces evidence-backed findings. A <strong>decision planner</strong> resolves each finding into an automatic action, an approval, a design choice, or a blocker. A <strong>transaction engine</strong> applies dependency-ordered patches. A <strong>verification engine</strong> converts type, build, test, browser, SSR, and Solid diagnostic results into new evidence. The cycle repeats until every finding is resolved or explicitly accepted.
+          </p>
+
+          <div class="pipeline" aria-label="Migration compiler pipeline">
+            <div class="box"><strong>Analyze</strong><span>Workspace graph, symbols, effects, resources, renderers, public contracts, commands</span></div>
+            <div class="box"><strong>Plan</strong><span>Findings, evidence, alternatives, risk, dependencies, verification obligations</span></div>
+            <div class="box"><strong>Decide</strong><span>Policy, automatic choice, human approval, semantic design, waiver, blocker</span></div>
+            <div class="box"><strong>Apply</strong><span>Atomic patch waves with preconditions, journal, reverse patch, reanalysis</span></div>
+            <div class="box"><strong>Verify</strong><span>Types, builds, tests, browser/SSR scenarios, DEV diagnostics, idempotency</span></div>
+          </div>
+          <div class="feedback">Verification observations become findings; affected findings are replanned and reapplied until convergence.</div>
+
+          <p>
+            AST rewriting remains useful, but it is downstream infrastructure. The authoritative product is the evidence/decision history and the verified target state—not a count of renamed identifiers.
+          </p>
+        </section>
+
+        <section id="principles">
+          <h2>Design principles</h2>
+          <div class="grid three">
+            <div class="card">
+              <h3>Pin the meaning of “Solid 2”</h3>
+              <p>Rules target an exact Solid release family and source revision. Unknown future betas may be audited, never silently auto-applied.</p>
+            </div>
+            <div class="card">
+              <h3>Baseline before touching code</h3>
+              <p>Pre-existing failures are evidence, not migration regressions. Capture types, builds, tests, and smoke scenarios first.</p>
+            </div>
+            <div class="card">
+              <h3>Evidence before confidence</h3>
+              <p>A rule records positive and negative evidence. Confidence is multidimensional; a high-confidence, high-risk edit can still require review.</p>
+            </div>
+            <div class="card">
+              <h3>Graph, not global order</h3>
+              <p>Each change declares prerequisites and verification gates. The scheduler derives waves rather than hard-coding one universal transform sequence.</p>
+            </div>
+            <div class="card">
+              <h3>Transactions, not mutation</h3>
+              <p>Rules propose edits. One engine resolves overlaps, validates preconditions, journals outcomes, and owns rollback.</p>
+            </div>
+            <div class="card">
+              <h3>Finish with proof</h3>
+              <p>“No old API names” is not success. Every finding needs a disposition and every behavioral decision needs a verification obligation.</p>
+            </div>
+          </div>
+
+          <h3>Non-goals for the first system</h3>
+          <ul>
+            <li>Automatically redesign every effect, resource, directive, or mutation workflow.</li>
+            <li>Force every package into one renderer label.</li>
+            <li>Use source TODO comments as the canonical migration database.</li>
+            <li>Declare success because source parses or because a single fixture test passes.</li>
+            <li>Support an unbounded range of evolving Solid betas with the same rules.</li>
+            <li>Hide missing tools, skipped commands, or unverifiable behavior behind a green status.</li>
+          </ul>
+        </section>
+
+        <section id="journey">
+          <h2>The user journey</h2>
+          <p>The workflow should be useful before the user permits edits and resumable after every interruption or design decision.</p>
+
+          <pre><code># 1. Read-only: pin target, discover workspace, capture baseline, build findings
+solid2-migrate analyze --target 2.0.0-beta.17
+
+# 2. Review the generated plan and unresolved design choices
+solid2-migrate plan --open
+
+# 3. Apply only deterministic, policy-approved changes
+solid2-migrate apply --mode safe
+
+# 4. Resolve a semantic work queue interactively or by editing decisions.jsonl
+solid2-migrate decide
+
+# 5. Apply newly unblocked transactions and verify
+solid2-migrate continue
+
+# 6. Run the complete target verification contract
+solid2-migrate verify --full
+
+# Recovery and automation
+solid2-migrate status
+solid2-migrate rollback --transaction &lt;id&gt;
+solid2-migrate verify --ci</code></pre>
+
+          <h3>Modes</h3>
+          <table>
+            <thead><tr><th>Mode</th><th>Writes</th><th>Decisions</th><th>Best use</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Analyze</strong></td><td>Migration state/report only</td><td>Detect and classify</td><td>Scoping, adoption decision, risk estimate</td></tr>
+              <tr><td><strong>Safe</strong></td><td>Deterministic transactions only</td><td>Policy-approved unique replacements</td><td>Default first pass</td></tr>
+              <tr><td><strong>Guided</strong></td><td>Approved semantic transactions</td><td>Human selects persisted alternatives</td><td>Effects, async UX, ownership, public API</td></tr>
+              <tr><td><strong>Assisted</strong></td><td>Context-generated proposals requiring review</td><td>AI can propose but not erase decision boundaries</td><td>Large workspaces after safe pass</td></tr>
+              <tr><td><strong>CI</strong></td><td>None</td><td>Check drift/residual findings/verification</td><td>Prevent regressions during migration</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="workflow">
+          <h2>Exact workflow phases</h2>
+          <div class="steps">
+            <div class="phase">
+              <h3>Lock the target contract</h3>
+              <p>Pin Solid core, renderer, compiler, related DOM-expression packages, rule-pack revision, and the Solid source commit. Snapshot public exports, relevant type signatures, JSX ownership, documented removals, diagnostics, and release deltas.</p>
+              <p><strong>Output:</strong> <code>target-lock.json</code>. <strong>Gate:</strong> every selected version belongs to one supported compatibility bundle.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Discover workspace topology and validation surfaces</h3>
+              <p>Find package/workspace boundaries, dependency graph, tsconfig inheritance, aliases, source/generated/vendor exclusions, entry points, browser/server/test execution contexts, public exports, and existing commands.</p>
+              <p><strong>Output:</strong> <code>workspace.json</code>. <strong>Gate:</strong> ambiguous package roots or generated-source policies must be resolved before edits.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Capture the source baseline</h3>
+              <p>Run available typechecks, builds, tests, SSR/hydration checks, and selected user flows before edits. Record failures, runtime versions, command lines, duration, output hashes, and unavailable prerequisites.</p>
+              <p><strong>Output:</strong> <code>baseline.jsonl</code>. <strong>Gate:</strong> “not run” and “blocked” remain distinct from pass.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Build the semantic inventory</h3>
+              <p>Create typed programs and symbol indexes. Detect migration surfaces: packages/imports, JSX ownership, props, control flow, contexts, effects, lifecycle, ownership, stores, resources, transitions, actions, directives, DOM namespaces, SSR and test-time immediate-read assumptions.</p>
+              <p><strong>Output:</strong> initial <code>findings.jsonl</code>. <strong>Gate:</strong> a same-named local function is never confused with a Solid API.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Enrich findings into migration units</h3>
+              <p>Connect related sites across files: resource creation/read/loading/error/refetch/mutate/boundaries; effect reads/writes/cleanup; context definition/providers/consumers/public wrappers; directive definitions/consumers; store initialization/setters/mutations; render roots/events/portals.</p>
+              <p><strong>Output:</strong> evidence-complete clusters. <strong>Gate:</strong> cross-file behavior is planned as one unit, not a list of call-site rewrites.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Resolve decisions</h3>
+              <p>Evaluate rule evidence and policy. Persist automatic decisions, approvals, selected alternatives, waivers, and blockers. Present concrete 2.0 alternatives and their verification requirements instead of generic “review this” flags.</p>
+              <p><strong>Output:</strong> <code>decisions.jsonl</code>. <strong>Gate:</strong> no unresolved design decision is smuggled into a deterministic transaction.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Construct the change DAG</h3>
+              <p>Turn resolved findings into changes with prerequisites, affected symbols/files, conflict sets, verification obligations, and rollback boundaries. Example dependencies: target lock → dependency alignment → install → renderer types → JSX checks; resource design → boundary edits → mutation UX → async scenarios.</p>
+              <p><strong>Output:</strong> <code>plan.json</code>. <strong>Gate:</strong> cycles are surfaced as plan errors or grouped into one atomic migration unit.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Apply transactional waves</h3>
+              <p>For each ready wave, verify pre-edit hashes and semantic preconditions, merge non-overlapping edits centrally, write a forward and reverse patch, apply atomically, format only touched files, and reanalyze affected programs.</p>
+              <p><strong>Output:</strong> changed source, <code>journal.jsonl</code>, and <code>patches/</code>. <strong>Gate:</strong> stale evidence or overlapping proposals abort the transaction instead of producing a best guess.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Verify cheaply, then deeply</h3>
+              <p>After each wave, run targeted parse/type/rule checks. At checkpoints, run package tests/builds. For semantic waves, run browser, SSR, hydration, and Solid diagnostic scenarios. Convert every failure into a normalized observation linked to the responsible findings and transactions.</p>
+              <p><strong>Output:</strong> <code>diagnostics.jsonl</code> and <code>verification.jsonl</code>. <strong>Gate:</strong> migration regressions block downstream waves unless explicitly waived.</p>
+            </div>
+
+            <div class="phase">
+              <h3>Converge and close</h3>
+              <p>Replan from new evidence, apply newly unblocked changes, and repeat. Close only when all findings are resolved, explicitly waived/accepted as debt, or blocked with named missing evidence. Run full verification and idempotency last.</p>
+              <p><strong>Output:</strong> final state ledger plus human-facing HTML report. <strong>Gate:</strong> complete disposition and proof, not zero string matches.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="model">
+          <h2>The durable migration model</h2>
+          <p>The system must survive restarts, target updates, manual edits, and partial rollbacks. JSONL/event-like artifacts make state appendable and auditable. The HTML report is a projection, not the database.</p>
+
+          <table>
+            <thead><tr><th>Artifact</th><th>Purpose</th><th>Why it is durable</th></tr></thead>
+            <tbody>
+              <tr><td><code>target-lock.json</code></td><td>Exact versions, source revision, ruleset hash, public-contract fingerprint</td><td>Makes “Solid 2” reproducible and drift detectable</td></tr>
+              <tr><td><code>workspace.json</code></td><td>Packages, dependency graph, configs, capabilities, commands, exclusions</td><td>Preserves the analysis context used by decisions</td></tr>
+              <tr><td><code>baseline.jsonl</code></td><td>Pre-migration command/scenario results</td><td>Separates existing failures from regressions</td></tr>
+              <tr><td><code>findings.jsonl</code></td><td>Stable detections, evidence, alternatives, risk, obligations, status</td><td>Canonical migration backlog</td></tr>
+              <tr><td><code>decisions.jsonl</code></td><td>Automatic/user/policy decisions, rationale, waivers, ruleset revision</td><td>Prevents repeated questions and records intent</td></tr>
+              <tr><td><code>plan.json</code></td><td>Change DAG, transactions, prerequisites, gates</td><td>Enables resume, visualization, and deterministic scheduling</td></tr>
+              <tr><td><code>journal.jsonl</code></td><td>Preconditions, file hashes, applied transactions, outcomes</td><td>Supports audit and targeted rollback</td></tr>
+              <tr><td><code>diagnostics.jsonl</code></td><td>Normalized compiler, build, browser, SSR, and Solid evidence</td><td>Feeds verification results back into findings</td></tr>
+              <tr><td><code>verification.jsonl</code></td><td>Commands/scenarios, environment, pass/fail/blocked, output references</td><td>Makes proof reproducible and CI-readable</td></tr>
+              <tr><td><code>patches/</code></td><td>Forward/reverse patches per transaction</td><td>Allows local rollback without resetting unrelated user work</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Finding schema</h3>
+          <pre><code>{
+  "id": "finding:pkg/ui:resource:user",
+  "rule": { "id": "solid2.resource-cluster", "revision": 4 },
+  "target": "solid-2.0.0-beta.17",
+  "scope": { "package": "ui", "symbols": ["user", "refetch", "mutate"] },
+  "locations": [/* source-mapped anchors */],
+  "evidence": [/* imports, symbols, reads, boundaries, tests */],
+  "negativeEvidence": [/* missing boundary, dynamic alias, weak coverage */],
+  "alternatives": [/* async memo, derived store, optimistic store/action */],
+  "confidence": {
+    "identity": "certain",
+    "shape": "certain",
+    "semanticUniqueness": "low",
+    "contextCoverage": "medium",
+    "validationStrength": "weak"
+  },
+  "risk": "high",
+  "dependencies": ["finding:pkg/ui:renderer:web"],
+  "verificationObligations": ["scenario:user-initial", "scenario:user-refresh"],
+  "status": "needs-decision"
+}</code></pre>
+
+          <h3>Change DAG, not a transform list</h3>
+          <pre><code>target lock
+  └─ dependency alignment
+      ├─ install / lockfile update
+      ├─ renderer config
+      │   └─ renderer-owned JSX types
+      │       └─ package typecheck
+      └─ import paths
+          ├─ deterministic JSX shapes
+          ├─ store compatibility changes
+          └─ semantic clusters
+              ├─ effect split decision ──► effect scenario
+              ├─ resource design ───────► Loading/Errored placement
+              │                           └─ action/optimistic UX ──► async scenarios
+              └─ directive design ──────► browser lifecycle scenario
+
+all verified waves ──► full build/test/browser/SSR/idempotency</code></pre>
+        </section>
+
+        <section id="capabilities">
+          <h2>Use capability facets, not one package profile</h2>
+          <div class="facet">
+            <p><strong>A package can be a published library, use web JSX internally, ship renderer-neutral types, include server entries, and have browser-only tests at the same time.</strong> A single “web/library/custom renderer” label loses information and forces wrong edits.</p>
+          </div>
+
+          <table>
+            <thead><tr><th>Facet</th><th>Example values</th><th>Decisions it informs</th></tr></thead>
+            <tbody>
+              <tr><td>Distribution role</td><td>Private app, published library, renderer, tool, test-only package</td><td>Dependencies vs peers, public API preservation, install behavior</td></tr>
+              <tr><td>Renderer capability</td><td>Web, hyperscript, custom, renderer-neutral, mixed</td><td>JSX source, renderer-owned types, runtime imports</td></tr>
+              <tr><td>Execution environment</td><td>Browser, server, worker, test, build-time</td><td>SSR rules, DOM/directive eligibility, diagnostics scenarios</td></tr>
+              <tr><td>Source contract</td><td>Internal, exported, generated, vendored</td><td>Whether edits are allowed and whether signatures can change</td></tr>
+              <tr><td>Async/render behavior</td><td>CSR, hydration, streaming SSR, static SSR, islands</td><td>Boundary placement, lazy assets, verification obligations</td></tr>
+              <tr><td>Validation coverage</td><td>Typecheck, unit, browser, SSR, none</td><td>Review threshold and required added scenarios</td></tr>
+            </tbody>
+          </table>
+
+          <p>Package-level facets provide defaults; file, entry-point, and symbol-level evidence can override them. Mixed evidence is a first-class state, not a failure to classify.</p>
+        </section>
+
+        <section id="decisions">
+          <h2>Decision and confidence model</h2>
+          <p>Do not compute one magic confidence percentage. Track dimensions independently and combine them with behavioral risk.</p>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Evidence dimensions</h3>
+              <ul>
+                <li><strong>Identity:</strong> is this definitely the Solid symbol across aliases/re-exports?</li>
+                <li><strong>Shape:</strong> does syntax match a supported transformation form?</li>
+                <li><strong>Semantic uniqueness:</strong> is there one behavior-preserving target?</li>
+                <li><strong>Context coverage:</strong> are renderer, owner, SSR, async, and public contract known?</li>
+                <li><strong>Validation strength:</strong> can relevant behavior be exercised?</li>
+                <li><strong>Behavioral risk:</strong> what is the cost of a wrong choice?</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Required rule contract</h3>
+              <ul>
+                <li>Supported source and target ranges</li>
+                <li>Detection and resolved-symbol requirements</li>
+                <li>Positive and negative evidence</li>
+                <li>Candidate decisions and behavioral tradeoffs</li>
+                <li>Preconditions and edit proposals</li>
+                <li>Conflict set and DAG dependencies</li>
+                <li>Verification obligations and rollback scope</li>
+                <li>Idempotency and invalidation conditions</li>
+              </ul>
+            </div>
+          </div>
+
+          <table>
+            <thead><tr><th>Class</th><th>Meaning</th><th>Default action</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td class="deterministic">Deterministic</td><td>Mandatory evidence exists; one low-risk behavior-preserving result</td><td>Eligible for safe apply</td><td>Proven <code>solid-js/web</code> import path move</td></tr>
+              <tr><td class="reviewable">Reviewable</td><td>Strong inference, but externally visible behavior or weak validation</td><td>Preview and approval</td><td>Error fallback accessor rewrite in a public component</td></tr>
+              <tr><td class="design">Design decision</td><td>Multiple legitimate Solid 2 designs</td><td>Persist a human/assisted choice</td><td>Resource cluster or createComputed intent</td></tr>
+              <tr><td class="runtime">Runtime evidence</td><td>Static evidence is insufficient; target runtime knows the violation</td><td>Create/execute scenario and ingest diagnostics</td><td>Owned writes, pending async reads, owner lifecycle</td></tr>
+              <tr><td class="blocked">Blocked</td><td>Missing target support, parse/type context, environment, or prerequisite</td><td>Fail closed with named evidence gap</td><td>Unknown custom renderer JSX runtime</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout amber">
+            <h3 style="margin-top:0">High confidence does not cancel high risk</h3>
+            <p>The tool can be certain that a component is <code>Suspense</code> while still lacking enough evidence to redesign loading/revalidation UX around its resource consumers. Syntax certainty and behavioral safety are separate axes.</p>
+          </div>
+        </section>
+
+        <section id="automation">
+          <h2>Where automatic rewriting belongs—and where it does not</h2>
+          <table>
+            <thead><tr><th>Migration surface</th><th>Role of automatic tools</th><th>Decision boundary</th></tr></thead>
+            <tbody>
+              <tr><td>Package/import path moves</td><td class="deterministic">Rewrite with symbol/module proof</td><td>Direct vs transitive dependencies; role-aware package placement</td></tr>
+              <tr><td>Renderer JSX config/types</td><td class="reviewable">Rewrite from capability evidence</td><td>Mixed/custom renderer and renderer-neutral public contracts</td></tr>
+              <tr><td>Exact component/API renames</td><td class="deterministic">Binding-aware edits</td><td>Fallback callback shape and visible UX may add obligations</td></tr>
+              <tr><td><code>Index</code>, provider, class composition</td><td class="reviewable">Supported local shapes can be proposed/applied</td><td>Dynamic modes, shadowing, exported contracts, custom elements</td></tr>
+              <tr><td><code>mergeProps</code> / <code>splitProps</code></td><td class="reviewable">Detect and handle narrow forms</td><td><code>undefined</code> semantics and selected/rest dual usage</td></tr>
+              <tr><td>Store path setters</td><td class="reviewable">Compatibility proposal via <code>storePath</code></td><td>Idiomatic draft redesign is optional semantic work</td></tr>
+              <tr><td>Effect splitting</td><td class="design">Inventory reads/writes/cleanup; generate alternatives</td><td>Compute/apply partition is semantic and control-flow sensitive</td></tr>
+              <tr><td><code>createComputed</code></td><td class="design">Classify possible intent</td><td>Readonly derivation vs effect vs writable derived state</td></tr>
+              <tr><td><code>createResource</code></td><td class="design">Build the entire resource cluster</td><td>Loading/error UX, refetch, identity, mutation, SSR</td></tr>
+              <tr><td><code>batch</code></td><td class="design">Analyze writes and immediate observations</td><td>Remove vs explicit <code>flush</code> depends on imperative visibility</td></tr>
+              <tr><td><code>onMount</code></td><td class="design">Detect ownership/callback/cleanup shape</td><td><code>onSettled</code> timing and beta.17 unowned cleanup constraints</td></tr>
+              <tr><td><code>/*@once*/</code></td><td class="design">Classify DOM/prop/use context</td><td>Normal reactivity vs default prop vs narrow <code>untrack</code></td></tr>
+              <tr><td>Directives and event namespaces</td><td class="design">Connect definitions and consumers</td><td>Two-phase ownership, cleanup, native listener options</td></tr>
+              <tr><td>Actions/optimistic state</td><td class="design">Map mutation workflows and pending UI</td><td>Product UX; beta.17 optimistic overrides mask <code>isPending</code></td></tr>
+              <tr><td><code>createMutable</code></td><td class="design">Inventory direct writes and consumers</td><td>Setter API and ownership redesign</td></tr>
+              <tr><td>Root detachment/context wrappers</td><td class="design">Trace lifetime/public exposure</td><td>Global lifetime and public API intent</td></tr>
+              <tr><td>Owned writes/untracked reads/async errors</td><td class="runtime">Static hints plus runtime capture</td><td>Solid diagnostics and actual execution context</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout red">
+            <h3 style="margin-top:0">AST-only architecture is structurally incapable of completing this migration</h3>
+            <p>It cannot reliably recover symbol identity across a workspace, determine effect/resource intent, observe owner/runtime state, place async boundaries, preserve public contracts, or prove SSR/hydration behavior. Use TypeScript semantic analysis, cross-file clustering, runtime diagnostics, and user decisions; use AST/text edits only after a decision exists.</p>
+          </div>
+        </section>
+
+        <section id="architecture">
+          <h2>Technical architecture</h2>
+          <pre><code>CLI / API / report UI
+        │
+        ▼
+Run coordinator ─────────────── state store / resume / policies
+        │
+        ├── Target contract loader ── versioned rules + public fingerprints
+        ├── Workspace discoverer ──── packages, configs, graph, commands
+        ├── Semantic analyzer ──────── TS programs, symbols, flows, clusters
+        ├── Decision engine ───────── evidence evaluation, alternatives, risk
+        ├── DAG planner ───────────── prerequisites, conflicts, gates, waves
+        ├── Transaction engine ────── proposals, range merge, journal, rollback
+        ├── Execution adapters ────── package manager, formatter, build/test
+        ├── Scenario runner ───────── browser, SSR, hydration, diagnostics
+        └── Report projector ──────── HTML + JSON summaries from durable state</code></pre>
+
+          <h3>Analysis stack</h3>
+          <ul>
+            <li><strong>TypeScript programs:</strong> symbol provenance, aliases/re-exports, type exposure, tsconfig/project references, JS inference.</li>
+            <li><strong>Syntax trees:</strong> stable anchors, JSX shapes, comments/trivia, narrow supported transformations.</li>
+            <li><strong>Workspace graph:</strong> package roles, public APIs, renderer/runtime boundaries, topological verification.</li>
+            <li><strong>Solid-specific cluster analyzers:</strong> effects, resources, contexts, stores, directives, roots, boundaries, actions.</li>
+            <li><strong>Runtime/source mapping:</strong> map diagnostics and scenario failures back to findings and transactions.</li>
+          </ul>
+
+          <h3>Edit engine</h3>
+          <ul>
+            <li>Rules return edit proposals with semantic preconditions; they never write files.</li>
+            <li>A central engine merges range edits, import changes, JSONC edits, and file creation while detecting conflicts.</li>
+            <li>Prefer range-preserving edits for small changes; use structured printers only for subtrees that require reconstruction.</li>
+            <li>Formatting is a separate touched-file step and is journaled independently from semantic edits.</li>
+            <li>After any manual change, stale findings are invalidated by content/symbol fingerprints and reanalyzed.</li>
+          </ul>
+
+          <h3>State machine</h3>
+          <pre><code>created → target-locked → discovered → baselined → inventoried → planned
+                                                        ↓
+                                              needs-decision / blocked
+                                                        ↓
+                         applying ↔ verifying ↔ replanning
+                            ↓            ↓
+                        rolled-back   regression
+                            └──────┬─────┘
+                                   ↓
+                    complete | accepted-debt | blocked</code></pre>
+        </section>
+
+        <section id="verification">
+          <h2>Verification is a feedback loop, not the last command</h2>
+          <h3>Verification layers</h3>
+          <table>
+            <thead><tr><th>Layer</th><th>When</th><th>Evidence</th></tr></thead>
+            <tbody>
+              <tr><td>Proposal validation</td><td>Before apply</td><td>Target version, file hashes, resolved symbols, supported syntax, no conflicting edits</td></tr>
+              <tr><td>Cheap static</td><td>Every transaction/wave</td><td>Parse, imports, targeted TypeScript program, removed-direct-API scans, rule invariants</td></tr>
+              <tr><td>Package contract</td><td>After related waves</td><td>Typecheck, lint, unit tests, production build, package export checks</td></tr>
+              <tr><td>Solid diagnostics</td><td>After runtime-affecting waves</td><td><code>DEV.diagnostics.subscribe()</code> with source maps and scenario IDs</td></tr>
+              <tr><td>Behavioral scenarios</td><td>Per semantic obligation</td><td>Browser, SSR, hydration, transitions, boundaries, cleanup, identity, optimistic state</td></tr>
+              <tr><td>Full workspace</td><td>Checkpoint/final</td><td>Original command suite plus migration-specific scenarios</td></tr>
+              <tr><td>Idempotency</td><td>Final and CI</td><td>Reanalysis produces no unaccounted deterministic changes</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Required Solid 2 scenario library</h3>
+          <div class="grid two">
+            <div class="card">
+              <h4>Reactivity and ownership</h4>
+              <ul>
+                <li>Immediate reads and DOM observations after setters</li>
+                <li>Effect compute/apply ordering and cleanup</li>
+                <li>Owned writes and action calls</li>
+                <li>Owned vs out-of-band <code>onSettled</code> cleanup</li>
+                <li>Root disposal/detachment and portal cleanup</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>Async and boundaries</h4>
+              <ul>
+                <li>Initial load, revalidation, rejection, retry</li>
+                <li>Nested Loading/Errored/Reveal behavior</li>
+                <li>Concurrent actions and optimistic reconciliation</li>
+                <li><code>isPending</code>/<code>latest</code> expectations</li>
+                <li>Thenables and empty/rejecting async iterators</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>SSR and hydration</h4>
+              <ul>
+                <li>Streamed holes and sibling hydration identity</li>
+                <li>Lazy/dynamic Promise components and asset preloads</li>
+                <li>Boundary settle/error during streaming</li>
+                <li>Post-hydration refresh without duplicate nodes</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>Stores and lists</h4>
+              <ul>
+                <li>Draft updates, reconcile identity, path compatibility</li>
+                <li>Optimistic store refresh and structural tracking</li>
+                <li>Array holes, truncation, symbol keys, store-in-store views</li>
+                <li>For/Repeat identity and disjoint range movement</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="callout amber">
+            <h3 style="margin-top:0">Beta.17 error-halt handling</h3>
+            <p>An uncaught reactive error emits <code>REACTIVITY_HALTED</code> and stops later writes/flushes. Error-producing verification scenarios must run in isolated processes/realms, or a controlled test/dev harness must invoke <code>resetErrorHalt()</code> before continuing. Otherwise one expected error invalidates the rest of the run.</p>
+          </div>
+        </section>
+
+        <section id="failure">
+          <h2>Failure, recovery, and coexistence with manual work</h2>
+          <table>
+            <thead><tr><th>Condition</th><th>System behavior</th></tr></thead>
+            <tbody>
+              <tr><td>Dirty worktree at start</td><td>Allow analyze; require explicit checkpoint policy before apply. Never overwrite unrelated changes.</td></tr>
+              <tr><td>File changed after analysis</td><td>Reject stale transaction, invalidate affected findings, reanalyze, replan.</td></tr>
+              <tr><td>Overlapping edit proposals</td><td>Planner conflict: merge through a higher-level rule or separate/serialize transactions; never last-write-wins.</td></tr>
+              <tr><td>Install fails</td><td>Rollback dependency/lock transaction or leave it blocked with exact command/output; do not continue type-driven waves.</td></tr>
+              <tr><td>Targeted verification regression</td><td>Stop dependent waves, link failure to transaction, offer reverse patch, preserve independent successful work.</td></tr>
+              <tr><td>Tool or environment unavailable</td><td>Record blocked/not-run. Lower validation strength and raise review threshold.</td></tr>
+              <tr><td>User manually resolves a finding</td><td>Reanalyze anchor/symbol, recognize target state, record external/manual decision and verification obligations.</td></tr>
+              <tr><td>Run interrupted</td><td>Resume from journal after revalidating target lock, file hashes, tool versions, and ready DAG nodes.</td></tr>
+              <tr><td>User accepts debt</td><td>Persist rationale, owner, optional deadline, and CI suppression scope; keep it visible in final report.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Source annotations</h3>
+          <p>Annotations are optional views of unresolved findings, useful for editors and code review. The ledger remains authoritative. A marker should carry only a stable finding ID and concise action; details live in the report.</p>
+          <pre><code>// solid2-migrate: finding:pkg/ui:effect:save-draft — choose compute/apply split
+createEffect(() => { /* ... */ });</code></pre>
+        </section>
+
+        <section id="drift">
+          <h2>Version drift is an invalidation problem</h2>
+          <p>Solid beta “patch” releases can change diagnostics, async semantics, error phases, optimistic pending behavior, SSR/hydration, and package scopes. Rules must declare their supported contracts.</p>
+
+          <h3>Ruleset bundle</h3>
+          <pre><code>{
+  "target": "solid-2.0.0-beta.17",
+  "solidCommit": "a51cac193386507f27dd95546f6d567fab4ff6d3",
+  "packages": { /* exact compatible Solid and @dom-expressions versions */ },
+  "publicContractFingerprint": "sha256:...",
+  "diagnostics": [
+    "REACTIVE_WRITE_IN_OWNED_SCOPE",
+    "ACTION_CALLED_IN_OWNED_SCOPE",
+    "SETTLED_CLEANUP_UNOWNED",
+    "REACTIVITY_HALTED"
+  ],
+  "rules": [
+    { "id": "solid2.effect", "revision": 4, "targets": ["2.0.0-beta.17"] }
+  ]
+}</code></pre>
+
+          <h3>Updating to a new beta</h3>
+          <ol>
+            <li>Fetch the new Solid revision and diff docs, changelogs, exports, types, diagnostics, package scopes, and migration examples.</li>
+            <li>Generate a target-contract delta and identify affected rule IDs and scenario obligations.</li>
+            <li>Invalidate only findings/decisions whose rules or public fingerprints changed.</li>
+            <li>Run contract fixtures and real scenarios against the new target before allowing auto-apply.</li>
+            <li>Keep previous ruleset bundles available so existing runs remain resumable and reproducible.</li>
+          </ol>
+
+          <div class="callout blue">
+            <h3 style="margin-top:0">Fail closed, analyze broadly</h3>
+            <p>An unknown beta may still be inventoried and compared, but deterministic edits require a supported ruleset. This preserves the analyzer’s value without pretending old decisions remain safe.</p>
+          </div>
+        </section>
+
+        <section id="roadmap">
+          <h2>Implementation roadmap</h2>
+          <p>Each milestone delivers a complete vertical capability. Avoid building a huge rewrite library before the state, transaction, and verification contracts exist.</p>
+
+          <div class="milestones">
+            <div class="milestone">
+              <h3>Target contract + read-only inventory</h3>
+              <p>Implement target locks, workspace discovery, baseline command capture, TypeScript symbol index, capability facets, core Solid surface detectors, durable findings, and the HTML/JSON report projection.</p>
+              <p><strong>Demo:</strong> analyze a workspace, explain every detected migration surface, distinguish pre-existing failures, and make zero source edits.</p>
+            </div>
+            <div class="milestone">
+              <h3>Decision ledger + transactional foundation</h3>
+              <p>Implement decision persistence, change DAG, semantic preconditions, conflict detection, central edit application, journal, forward/reverse patches, reanalysis, resume, and rollback.</p>
+              <p><strong>Demo:</strong> apply and selectively roll back a small dependency/import/config wave without disturbing manual changes.</p>
+            </div>
+            <div class="milestone">
+              <h3>Safe mechanical migration</h3>
+              <p>Add exact dependency/config moves, import paths, renderer JSX ownership, proven symbols, and narrow local JSX/store compatibility rules. Every rule ships with source/target contract tests, negative evidence, idempotency, and verification obligations.</p>
+              <p><strong>Demo:</strong> migrate a minimal web app and a renderer-neutral library through a clean second run.</p>
+            </div>
+            <div class="milestone">
+              <h3>Semantic decision workbench</h3>
+              <p>Add cross-file clusters and concrete alternatives for effects, createComputed, resources, stores, lifecycle, roots, directives, async boundaries, and actions/optimistic UX. Persist decisions and generate approved transactions.</p>
+              <p><strong>Demo:</strong> pause at a resource/effect design choice, resume after selection, and verify the chosen behavior.</p>
+            </div>
+            <div class="milestone">
+              <h3>Verification feedback system</h3>
+              <p>Add command adapters, browser/SSR/hydration scenario runner, source-mapped Solid diagnostics, beta.17 error-halt isolation, regression attribution, residual-finding generation, and CI mode.</p>
+              <p><strong>Demo:</strong> a runtime diagnostic creates a finding, a decision unlocks a patch, and rerun proof closes it.</p>
+            </div>
+            <div class="milestone">
+              <h3>Ecosystem hardening + target updater</h3>
+              <p>Exercise representative app, public library, primitives, component library, SSR/router, custom renderer, and mixed workspaces. Implement target-contract diffing and selective invalidation for future Solid releases.</p>
+              <p><strong>Demo:</strong> update the ruleset to a newer beta without invalidating unrelated completed decisions.</p>
+            </div>
+          </div>
+
+          <h3>First concrete engineering sequence</h3>
+          <ol>
+            <li>Specify the durable schemas and state transitions before selecting an edit library.</li>
+            <li>Build target-lock and baseline capture for beta.17.</li>
+            <li>Build workspace/TypeScript discovery and stable source anchors.</li>
+            <li>Implement findings for import paths, renderer JSX ownership, effects, resources, and lifecycle—read-only first.</li>
+            <li>Render a useful report that shows evidence, alternatives, risk, and verification gaps.</li>
+            <li>Add decisions and the DAG planner.</li>
+            <li>Add one transactional tracer: dependency/config + import path + typecheck + rollback + idempotency.</li>
+            <li>Grow deterministic rules only after that tracer proves the whole architecture.</li>
+          </ol>
+        </section>
+
+        <section id="conclusions">
+          <h2>Surprising conclusions</h2>
+          <div class="grid three">
+            <div class="card">
+              <h3>The analyzer is the primary product</h3>
+              <p>Most migration risk is choosing Solid 2 semantics and proving them. Rewriting text is the cheaper downstream operation.</p>
+            </div>
+            <div class="card">
+              <h3>The runtime is part of the specification</h3>
+              <p>Beta.16/17 introduced behavior and diagnostics beyond the stable prose. Documentation-only tooling will drift.</p>
+            </div>
+            <div class="card">
+              <h3>Success is a decision history</h3>
+              <p>A migrated tree is trustworthy when loading, ownership, mutation, SSR, lifecycle, and public API decisions are recorded and verified—not merely when old names disappear.</p>
+            </div>
+          </div>
+
+          <div class="callout blue">
+            <h3 style="margin-top:0">Independent fresh-context check</h3>
+            <p>A separately tasked planning agent, given only the latest Solid beta.17 source/docs and told to ignore the current repository, independently converged on the same architecture: version-pinned analyzer → evidence-backed decisions → dependency-ordered transactional edits → verification feedback. Its strongest addition was to make the report a projection of an appendable findings/decisions/journal model rather than the source of truth.</p>
+          </div>
+        </section>
+
+        <section id="sources">
+          <h2>Sources</h2>
+          <ul>
+            <li><a href="../.repos/solid/documentation/solid-2.0/MIGRATION.md">Solid 2.0 migration guide</a></li>
+            <li><a href="../.repos/solid/documentation/solid-2.0/README.md">Solid 2.0 RFC index</a> and RFCs 01–09</li>
+            <li><a href="../.repos/solid/packages/solid/CHEATSHEET.md">Solid 2.0 package cheatsheet</a></li>
+            <li><a href="../.repos/solid/packages/solid/CHANGELOG.md">solid-js beta.16/17 changelog</a></li>
+            <li><a href="../.repos/solid/packages/solid-signals/CHANGELOG.md">Solid signals beta.16/17 changelog</a></li>
+            <li><a href="../.repos/solid/packages/solid-web/CHANGELOG.md">Solid web beta.16/17 changelog</a></li>
+            <li>Local Solid checkout: <code>a51cac193386507f27dd95546f6d567fab4ff6d3</code> (<code>2.0.0-beta.17</code>)</li>
+          </ul>
+        </section>
+
+        <footer>
+          This is a greenfield design. It intentionally does not preserve or map onto the repository’s current package names, workflow files, fixtures, reports, or domain glossary. Those artifacts can be evaluated later against this architecture rather than constraining it in advance.
+        </footer>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

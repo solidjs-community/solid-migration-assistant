@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "solid-js": "^1.9.13",
-    "@solidjs/web": "2.0.0-beta.0"
-  }
-}

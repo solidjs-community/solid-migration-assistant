@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Expanded Kanban Codemod · Final Retry</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#090d12; --panel:#111823; --panel2:#172131; --line:#29364b;
+      --text:#e8eef8; --muted:#9baac0; --green:#58d69a; --blue:#74a8ff;
+      --amber:#f2c467; --red:#ff7d87; --violet:#b69aff;
+      --sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+    }
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 5% 0,rgba(61,113,255,.16),transparent 30rem),radial-gradient(circle at 95% 8%,rgba(182,154,255,.12),transparent 26rem),var(--bg);color:var(--text);font:15px/1.58 var(--sans)}
+    main{width:min(1180px,calc(100% - 40px));margin:auto;padding:54px 0 86px} h1{max-width:920px;margin:12px 0 15px;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-.04em} h2{margin:54px 0 19px;font-size:28px;letter-spacing:-.025em} h3{margin:0 0 8px;font-size:18px} p{margin:8px 0} a{color:var(--blue)} code,pre{font-family:var(--mono)} code{color:#dbe7ff} pre{margin:14px 0 0;padding:15px 17px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#080c12;color:#d5dfef;font-size:12px;line-height:1.55}
+    .eyebrow{color:var(--blue);font:700 12px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase}.lede{max-width:900px;color:var(--muted);font-size:18px}.meta{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:23px;color:var(--muted);font:12px var(--mono)}.hero{padding-bottom:34px;border-bottom:1px solid var(--line)}
+    .verdict{display:grid;grid-template-columns:auto 1fr;gap:22px;margin-top:34px;padding:24px;border:1px solid rgba(88,214,154,.45);border-radius:14px;background:linear-gradient(135deg,rgba(88,214,154,.13),rgba(88,214,154,.03))}.mark{display:grid;place-items:center;width:70px;height:70px;border-radius:50%;background:rgba(88,214,154,.14);color:var(--green);font:800 15px var(--mono)}.verdict h2{margin:0 0 6px;font-size:25px}.verdict p{color:#cbd5e5}
+    .grid{display:grid;gap:15px}.three{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:20px;border:1px solid var(--line);border-radius:12px;background:rgba(17,24,35,.9)}.card p,.card li{color:var(--muted)}.metric{margin-bottom:7px;color:var(--green);font:760 27px/1 var(--mono)}.metric.amber{color:var(--amber)}.metric.blue{color:var(--blue)}.label{color:var(--muted);font:700 11px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+    table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(17,24,35,.83)} th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top} th{background:var(--panel2);color:#bfcae0;font:700 11px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase} td{color:#cbd5e5} tr:last-child td{border-bottom:0}.pass{color:var(--green);font-weight:760}.warn{color:var(--amber);font-weight:760}.fail{color:var(--red);font-weight:760}
+    .pill{display:inline-block;padding:3px 7px;border:1px solid currentColor;border-radius:99px;font:700 10px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase}.good{color:var(--green)}.caveat{color:var(--amber)}.info{color:var(--blue)}
+    .finding{margin:0 0 15px;padding:21px;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:10px;background:rgba(17,24,35,.92)}.finding.caution{border-left-color:var(--amber)}.finding-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.evidence{margin-top:11px;color:var(--muted)}
+    ul,ol{padding-left:22px} li{margin:7px 0}.callout{margin:18px 0;padding:16px 18px;border:1px solid rgba(116,168,255,.32);border-radius:10px;background:rgba(116,168,255,.09);color:#cbd8ec}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.flow div{padding:13px 9px;border:1px solid rgba(88,214,154,.42);border-radius:9px;background:var(--panel);text-align:center;color:var(--muted);font-size:12px}.flow strong{display:block;margin-bottom:4px;color:var(--text)}.foot{margin-top:58px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+    @media(max-width:850px){.three,.two,.flow{grid-template-columns:1fr}.verdict{grid-template-columns:1fr}main{width:min(100% - 24px,1180px);padding-top:30px}table{display:block;overflow-x:auto}}
+  </style>
+</head>
+<body><main>
+  <header class="hero">
+    <div class="eyebrow">Final independent retry · 2026-07-14</div>
+    <h1>Expanded Kanban Solid 1 → 2 codemod trial</h1>
+    <p class="lede">A third, clean-room run of the current three-node workflow against the expanded Solid 1.x fixture. This report separates ordinary acceptance tests, development warnings, an intentionally adversarial timing probe, validator behavior, and the codemod’s documented shape boundaries.</p>
+    <div class="meta"><span>trial: /tmp/solid-codemod-kanban-retry-final-2026-07-14</span><span>baseline: 974ece178e60</span><span>CLI: codemod 1.12.7</span><span>target: Solid 2.0.0-beta.17</span></div>
+  </header>
+
+  <section class="verdict">
+    <div class="mark">PASS</div>
+    <div><h2>The expanded fixture now migrates successfully under the standard acceptance gate.</h2><p>The untouched output typechecks, builds, passes two independent 16-test dev runs and one 16-test preview run, produces no application console warnings/errors, updates the previously stale selection chip after rename, rejects a known blocker through the validator directly, and is byte-idempotent. This is a pass for the supported fixture shapes—not a claim that every Solid application is automatically migratable.</p></div>
+  </section>
+
+  <h2>Result snapshot</h2>
+  <div class="grid three">
+    <div class="card"><div class="metric">48 / 48</div><div class="label">Migrated standard E2E</div><p>Two dev runs and one preview run, all green.</p></div>
+    <div class="card"><div class="metric">0</div><div class="label">Application warnings/errors</div><p>No console warnings, console errors, page errors, or failed responses in the expanded browser probe.</p></div>
+    <div class="card"><div class="metric">0 hashes</div><div class="label">Second-pass drift</div><p>No tracked byte changed on the second workflow run.</p></div>
+    <div class="card"><div class="metric blue">10 files</div><div class="label">Migration diff</div><p>179 insertions and 180 deletions, including the freshly regenerated lockfile.</p></div>
+    <div class="card"><div class="metric">exit 1</div><div class="label">Direct negative validator</div><p><code>S2-VALIDATE-002</code> rejects the injected unsupported effect.</p></div>
+    <div class="card"><div class="metric amber">16 / 20</div><div class="label">Parallel loading stress</div><p>Timing-sensitive loading assertion; the separate Solid 1 baseline scored 17/20 under the same artificial stress.</p></div>
+  </div>
+
+  <h2>Progress across the three trials</h2>
+  <table>
+    <thead><tr><th>Trial</th><th>Static closure</th><th>Behavior</th><th>Key lesson</th></tr></thead>
+    <tbody>
+      <tr><td>Initial trial</td><td class="fail">Failed parse, typecheck, and build</td><td class="fail">Blank app; 0/16 dev tests</td><td>Regex tag pairing, removed imports, store aliases, effects, and class composition were not closed.</td></tr>
+      <tr><td>Intermediate retry</td><td class="pass">Typecheck/build passed</td><td class="fail">Warnings and stale selected-chip label</td><td>Passing tests were insufficient: <code>STRICT_READ_UNTRACKED</code> identified a real reactive regression. The chip remained stale after its card was renamed.</td></tr>
+      <tr><td><strong>Final retry</strong></td><td class="pass">Typecheck/build passed</td><td class="pass">48/48 standard E2E; warning-clean semantic probe</td><td>Getter-preserving list props and explicit untracked initialization close the observed reactive gaps.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Isolation and baseline controls</h2>
+  <div class="grid two">
+    <div class="card"><h3>Fresh trial</h3><ul><li>Copied the current <code>.repos/kanban</code> working tree, including untracked feature modules.</li><li>Excluded Git metadata, dependencies, build output, reports, test output, and build caches.</li><li>Initialized a new trial-only Git repository and committed the exact Solid 1 baseline.</li><li>All 20 tracked hashes exactly match the prior retry baseline; only Git metadata and evidence differ.</li></ul></div>
+    <div class="card"><h3>Dependency discipline</h3><ul><li>Baseline-only validation reused the fixture’s Solid 1 <code>node_modules</code> via <code>rsync</code>; this is explicitly recorded.</li><li>After migration, deleted trial <code>node_modules</code> and <code>package-lock.json</code>.</li><li>Fresh npm install resolved Solid and renderer <code>2.0.0-beta.17</code>, plugin <code>3.0.0-next.4</code>, Vite <code>6.4.3</code>, TypeScript <code>5.9.3</code>, Playwright <code>1.61.1</code>.</li><li>The regenerated lockfile versions match installed packages.</li></ul></div>
+  </div>
+
+  <h2>Execution path</h2>
+  <div class="flow"><div><strong>Baseline</strong>type + build</div><div><strong>Baseline</strong>32 E2E + browser</div><div><strong>Workflow</strong>3 nodes, exit 0</div><div><strong>Install</strong>fresh beta.17 graph</div><div><strong>Migrated</strong>48 E2E + browser</div><div><strong>Repeat</strong>hash-idempotent</div></div>
+
+  <h2>Validation matrix</h2>
+  <table>
+    <thead><tr><th>Gate</th><th>Solid 1 baseline</th><th>Final migrated output</th><th>Interpretation</th></tr></thead>
+    <tbody>
+      <tr><td>TypeScript project build</td><td class="pass">PASS</td><td class="pass">PASS</td><td>No diagnostics with a cold build-info state.</td></tr>
+      <tr><td>Vite production build</td><td class="pass">PASS · 14 modules</td><td class="pass">PASS · 14 modules</td><td>Migrated JS bundle is 76.82 kB versus 49.71 kB on Solid 1.</td></tr>
+      <tr><td>Dev Playwright run 1</td><td class="pass">16/16</td><td class="pass">16/16</td><td>All user workflows pass on the development server.</td></tr>
+      <tr><td>Dev Playwright run 2</td><td>Not required</td><td class="pass">16/16</td><td>A second full run specifically checks the previously timing-sensitive details path.</td></tr>
+      <tr><td>Preview Playwright</td><td class="pass">16/16</td><td class="pass">16/16</td><td>Production output supports the same behavior.</td></tr>
+      <tr><td>Expanded browser probe</td><td class="pass">Clean</td><td class="pass">Clean</td><td>Initial render, selection, editor rename, async success/failure, and preferences complete with zero application events.</td></tr>
+      <tr><td>Selected-chip rename</td><td>Baseline semantics</td><td class="pass"><code>Plan migration</code> → <code>Plan final</code></td><td>The exact intermediate regression is fixed.</td></tr>
+      <tr><td>Parallel details stress</td><td class="warn">17/20 in separate baseline probe</td><td class="warn">16/20</td><td>The assertion requires observing a 120 ms loading fallback under ten-worker contention. Both versions flake; standard suites pass.</td></tr>
+      <tr><td>Second workflow pass</td><td>—</td><td class="pass">0 hash changes</td><td>Tracked output is byte-idempotent.</td></tr>
+      <tr><td>Direct blocker validator</td><td>—</td><td class="pass">exit 1 + S2-VALIDATE-002</td><td>The validator itself rejects an unsupported one-argument effect.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Semantic diff audit</h2>
+  <table>
+    <thead><tr><th>Feature cluster</th><th>Status</th><th>Observed migration and evidence</th></tr></thead>
+    <tbody>
+      <tr><td>Package/config/renderer</td><td class="pass">PASS</td><td>Exact beta pins, <code>@solidjs/web</code>, plugin next.4, JSX import source, render/Portal/JSX types all close.</td></tr>
+      <tr><td>Board stores, history, aliases</td><td class="pass">PASS</td><td><code>setBoard</code>, aliased <code>updateBoard</code>, and <code>setHistory</code> use draft callbacks or <code>storePath</code>; snapshot/reconcile/flush preserve add, move, delete, reset, rename, undo/redo, identity, and same-tick persistence. The unrelated shadowed function parameter named <code>setBoard</code> remains untouched.</td></tr>
+      <tr><td>Effects and persistence</td><td class="pass">PASS</td><td>Board and preference effects are split into compute/apply phases. Persistence and reload tests pass; no <code>S2-EFFECT</code> marker remains.</td></tr>
+      <tr><td>Lists and selection identity</td><td class="pass">PASS</td><td>Paired <code>Index</code> trees become <code>For keyed={false}</code>. Getter-backed child props preserve accessor reads. Selection, filtering, completion, movement, and the explicit select→rename→chip-update probe pass with no strict-read warning.</td></tr>
+      <tr><td>Class composition</td><td class="pass">PASS</td><td>Static and conditional card classes are merged into one array/object <code>class</code> value. The custom component property named <code>classList</code> remains a normal prop. Dark, selected, done, and compact classes are observed.</td></tr>
+      <tr><td>Async details</td><td class="pass">PASS with timing caveat</td><td><code>createResource</code>, transition, Suspense, and ErrorBoundary become async memo, <code>Loading</code>, <code>Errored</code>, and <code>isPending</code>. Success, switching, stale-work suppression, failure, and close behavior pass standard dev/preview tests and the browser probe.</td></tr>
+      <tr><td>Preferences/context</td><td class="pass">PASS</td><td><code>merge</code>/<code>omit</code>, context-as-provider, store paths, default context, theme/compact/default-column UI, new-card destination, and persistence all pass.</td></tr>
+      <tr><td>Portal, directives, lifecycle, JSX</td><td class="pass">PASS</td><td>Directives become ref factories; Portal and renderer types move to <code>@solidjs/web</code>; mount/cleanup becomes <code>onSettled</code>; editor seed read is explicitly untracked. Focus, Escape, outside click, save, and cleanup pass without warnings.</td></tr>
+      <tr><td>Boolean-like attributes</td><td class="pass">PASS</td><td><code>data-selected</code> and <code>aria-busy</code> are emitted as explicit strings; assertions and browser inspection agree.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Warning and timing analysis</h2>
+  <article class="finding"><div class="finding-head"><span class="pill good">Closed</span><h3>The intermediate reactive warning became a tested postcondition</h3></div><p>The final probe records every console warning/error, page error, and HTTP response ≥400 while exercising the app. It observed none. The chip label changed from <code>1. Plan migration ×</code> to <code>1. Plan final ×</code>, while the renamed card retained selected and compact classes.</p><div class="evidence">This matters because the intermediate tests mostly passed despite the stale chip. Warning cleanliness plus a targeted state transition caught what assertion count alone missed.</div></article>
+  <article class="finding caution"><div class="finding-head"><span class="pill caveat">Timing caveat</span><h3>The “loading text must be visible” assertion is inherently contention-sensitive</h3></div><p>The test tries to observe a fallback backed by a 120 ms timer. Under 20 repetitions and ten workers, the final migration passes 16/20; the separately measured Solid 1 baseline passes 17/20. Under ordinary execution, both final dev runs and preview pass the complete 16-test suite.</p><div class="evidence">Verdict: retain the ordinary behavior gate, but do not use fallback visibility under artificial CPU contention as a deterministic semantic oracle. The final rate is close to baseline and materially better than the intermediate retry’s 13/20.</div></article>
+
+  <h2>Validation behavior</h2>
+  <div class="grid two">
+    <div class="card"><h3>Validator itself: correct</h3><p>A clean disposable probe contains the exact unsupported one-argument effect marker and call. Running <code>scripts/validate.ts</code> directly through <code>codemod jssg run</code> exits <strong>1</strong> and reports <code>S2-VALIDATE-002</code>.</p></div>
+    <div class="card"><h3>Outer workflow propagation: known CLI limitation</h3><p>Codemod CLI 1.12.7 can log a validate-node runtime error yet return workflow exit <code>0</code>. This was reproduced in the intermediate retry. The direct negative probe proves the local validator; it does not erase the outer CLI limitation.</p></div>
+  </div>
+  <div class="callout">Operationally, consumers should inspect structured node results or invoke the validator directly until the workflow engine reliably propagates node failures to its process status.</div>
+
+  <h2>Residual scan</h2>
+  <p>The migrated application contains none of the covered residual forms: <code>solid-js/store</code>, <code>solid-js/web</code>, removed resource/transition/boundary/selector/prop-helper imports, <code>batch</code>, <code>produce</code>, <code>unwrap</code>, <code>&lt;Index&gt;</code>, DOM <code>classList=</code>, <code>Context.Provider</code>, custom <code>use:</code> directives, or Solid 2 blocker markers.</p>
+
+  <h2>Remaining boundaries</h2>
+  <ol>
+    <li><strong>Shape-driven support.</strong> This is still a fixture-evidenced first pass. New aliases, unusual control flow, indirect effects, or different prop/list composition need fixtures or a blocking finding.</li>
+    <li><strong>Platform scope.</strong> The workflow targets npm-based Vite client apps. SSR, alternative renderers, non-Vite builds, and other package managers remain outside the demonstrated closure.</li>
+    <li><strong>Async redesign is contextual.</strong> This resource shape migrates successfully, but arbitrary resource state APIs, mutation/refetch behavior, nested transition semantics, and streaming boundaries require separate patterns.</li>
+    <li><strong>Formatting polish.</strong> Generated code has a few awkward blank lines and indentation choices. They are not functional failures, but a formatter step would improve review quality.</li>
+    <li><strong>CLI exit propagation.</strong> A failing workflow node may not produce a nonzero outer exit with CLI 1.12.7; direct validation or structured-result enforcement remains necessary.</li>
+  </ol>
+
+  <h2>Exact command ledger</h2>
+  <pre># Workflow
+codemod workflow run \
+  -w /home/lucifer/work/active/codemod/solid/solid-codemod/codemods/solid-v2-first-pass \
+  -t /tmp/solid-codemod-kanban-retry-final-2026-07-14
+
+# Fresh target graph
+rm -rf node_modules package-lock.json
+/home/lucifer/.vscode-server/bin/fc3def6774c76082adf699d366f31a557ce5573f/node \
+  /mnt/c/Users/devag/AppData/Local/hermes/node/node_modules/npm/bin/npm-cli.js install --no-audit --no-fund
+
+# Static/build gates
+node node_modules/typescript/bin/tsc -b --pretty false
+node node_modules/typescript/bin/tsc -b --pretty false &amp;&amp; node node_modules/vite/bin/vite.js build
+
+# Standard browser suites
+E2E_BASE_URL=http://127.0.0.1:4223 E2E_WEB_COMMAND="... vite --port 4223" node .../playwright test
+E2E_BASE_URL=http://127.0.0.1:4224 E2E_WEB_COMMAND="... vite --port 4224" node .../playwright test
+E2E_PREVIEW_WEB_COMMAND="... vite preview --port 4174" node .../playwright test --config=playwright.preview.config.ts
+
+# Direct negative validator
+codemod jssg run --language tsx \
+  --target /tmp/solid-codemod-validate-final-probe-2026-07-14 \
+  /home/lucifer/work/active/codemod/solid/solid-codemod/codemods/solid-v2-first-pass/scripts/validate.ts
+
+# Second pass
+codemod workflow run --allow-dirty -w .../codemods/solid-v2-first-pass \
+  -t /tmp/solid-codemod-kanban-retry-final-2026-07-14</pre>
+
+  <h2>Retained evidence</h2>
+  <p>The complete trial and reviewable Git diff remain at <code>/tmp/solid-codemod-kanban-retry-final-2026-07-14</code>. Logs, hashes, browser JSON, diffs, package versions, direct-validator output, and the CLI limitation note remain under <code>.final-evidence/</code>. The original <code>.repos/kanban</code> fixture and codemod sources were not modified by this trial.</p>
+
+  <div class="foot">Final verdict: accepted for the expanded Kanban fixture and documented first-pass scope. Standard behavior and warning cleanliness are green; timing stress and workflow exit propagation remain explicit caveats.</div>
+</main></body></html>

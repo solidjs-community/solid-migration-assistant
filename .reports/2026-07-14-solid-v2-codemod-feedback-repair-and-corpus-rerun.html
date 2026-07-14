@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid 2 Codemod · Feedback Repair and Corpus Rerun</title>
+  <style>
+    :root{color-scheme:dark;--bg:#081018;--panel:#101a25;--panel2:#152231;--line:#29394a;--text:#edf4fa;--muted:#a4b3c2;--green:#68dca0;--amber:#f2c66d;--red:#ff7f89;--blue:#78adff;--cyan:#58d7d2;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 8% 0,rgba(88,215,210,.12),transparent 32rem),radial-gradient(circle at 90% 5%,rgba(120,173,255,.11),transparent 30rem),var(--bg);color:var(--text);font:15px/1.6 var(--sans)}main{width:min(1180px,calc(100% - 38px));margin:auto;padding:56px 0 88px}h1{max-width:1000px;margin:10px 0 18px;font-size:clamp(38px,5vw,66px);line-height:1.02;letter-spacing:-.045em}h2{margin:52px 0 17px;font-size:28px;letter-spacing:-.025em}h3{margin:0 0 8px;font-size:18px}p{margin:8px 0}code,pre{font-family:var(--mono)}code{color:#dce9ff}.eyebrow{color:var(--cyan);font:750 12px var(--mono);letter-spacing:.14em;text-transform:uppercase}.lede{max-width:960px;color:#c0ceda;font-size:19px}.meta{display:flex;flex-wrap:wrap;gap:9px 20px;margin-top:22px;color:var(--muted);font:12px var(--mono)}
+    .verdict{display:grid;grid-template-columns:94px 1fr;gap:22px;margin:34px 0;padding:25px;border:1px solid rgba(104,220,160,.43);border-radius:15px;background:linear-gradient(135deg,rgba(104,220,160,.12),rgba(16,26,37,.9))}.mark{display:grid;place-items:center;width:82px;height:82px;border-radius:50%;background:rgba(104,220,160,.12);color:var(--green);font:800 11px var(--mono);text-align:center}.verdict h2{margin:0 0 7px;font-size:26px}.verdict p{color:#cbd8e3}
+    .grid{display:grid;gap:15px}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{padding:20px;border:1px solid var(--line);border-radius:12px;background:rgba(16,26,37,.9)}.card p,.card li{color:var(--muted)}.metric{margin-bottom:6px;color:var(--blue);font:800 28px/1 var(--mono)}.metric.green{color:var(--green)}.metric.amber{color:var(--amber)}.metric.red{color:var(--red)}.label{color:var(--muted);font:750 11px var(--mono);letter-spacing:.09em;text-transform:uppercase}
+    table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(16,26,37,.86)}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--panel2);color:#c6d3df;font:750 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}td{color:#cad6e1}tr:last-child td{border-bottom:0}.pass{color:var(--green);font-weight:780}.warn{color:var(--amber);font-weight:780}.fail{color:var(--red);font-weight:780}
+    .finding{margin:0 0 14px;padding:19px 21px;border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:10px;background:rgba(16,26,37,.92)}.finding.good{border-left-color:var(--green)}.finding.bad{border-left-color:var(--red)}.pill{display:inline-block;margin-right:8px;padding:3px 7px;border:1px solid currentColor;border-radius:99px;color:var(--amber);font:750 10px var(--mono);letter-spacing:.05em;text-transform:uppercase}.finding.good .pill{color:var(--green)}.finding.bad .pill{color:var(--red)}ul,ol{padding-left:22px}li{margin:7px 0}.callout{margin:18px 0;padding:16px 18px;border:1px solid rgba(120,173,255,.35);border-radius:10px;background:rgba(120,173,255,.08);color:#ccd9e7}.foot{margin-top:58px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}a{color:var(--cyan)}@media(max-width:820px){.two,.three,.verdict{grid-template-columns:1fr}main{width:min(100% - 24px,1180px);padding-top:30px}table{display:block;overflow-x:auto}}
+  </style>
+</head>
+<body><main>
+  <header>
+    <div class="eyebrow">Implementation + two corpus rounds · 14 July 2026</div>
+    <h1>The mechanical pass is now coherent; semantic migrations are finally failing honestly</h1>
+    <p class="lede">The codemod was repaired using the hand-migrated Router/Primitives comparison and the peer-repository operating-model report, then tested twice by independent agents. The first corpus round caught a real Kanban scope regression and a false beta.17 validator rule. Those were repaired before the final three-way rerun.</p>
+    <div class="meta"><span>Kanban base c789067</span><span>Router base e54fc4a3</span><span>Primitives base 453ec58</span><span>no commits or staging</span></div>
+  </header>
+
+  <section class="verdict">
+    <div class="mark">CURRENT<br>CONTRACT</div>
+    <div><h2>Complete for the supported Vite application profile; fail-closed for library semantics.</h2><p>Kanban now migrates completely and passes behavior tests. Router and Primitives receive coherent runtime, renderer, compiler, peer, and source edits, but direct validation stops on unsupported algorithms, effects, lifecycle shapes, directives, stores, and context providers. That is meaningful progress over the earlier false-clean half migrations.</p></div>
+  </section>
+
+  <h2>What the implementation changed</h2>
+  <div class="grid two">
+    <div class="card"><h3>Binding and scope safety</h3><ul><li>Removed global imported-name replacement.</li><li>Preserves local aliases for <code>mergeProps</code>, <code>batch</code>, and async boundaries.</li><li>Scopes selected <code>splitProps</code> reads to the nearest lexical block.</li><li>Protects sibling functions that reuse names such as <code>props</code>.</li></ul></div>
+    <div class="card"><h3>Correct mechanical recipes</h3><ul><li>Router rest-only <code>splitProps</code> becomes <code>const rest = omit(props, ...keys)</code>.</li><li>Direct Babel preset, runtime, renderer, plugin, dev, and peer policies migrate by package role.</li><li>Unsupported effects reconcile nested setter edits in one pass.</li><li>Private workspace roots receive an explicit beta.17 development tuple.</li></ul></div>
+    <div class="card"><h3>Fail-closed semantic boundaries</h3><ul><li>Complex lifecycle, directive, props, async, store, and effect shapes emit coded blockers.</li><li>Cross-file <code>&lt;Context.Provider&gt;</code> forms are rejected rather than guessed.</li><li>Cross-file directive families require semantic migration.</li><li>Router cache/navigation algorithms and obsolete-module deletion remain outside the mechanical pass.</li></ul></div>
+    <div class="card"><h3>Validator and evidence</h3><ul><li>Verified beta.17 exports instead of assuming removals; <code>onCleanup</code> remains valid.</li><li>Detects proven removed exports including <code>on</code>, <code>catchError</code>, <code>resetErrorBoundaries</code>, and <code>createComputed</code>.</li><li>Expected-failure validator fixtures exercise rejection.</li><li>Every config/source fixture is second-pass hash checked.</li></ul></div>
+  </div>
+
+  <h2>Final local codemod contract</h2>
+  <div class="grid three">
+    <div class="card"><div class="metric green">6 / 6</div><div class="label">Config fixtures</div><p>Application, library, renderer library, workspace root, ambiguous dev-only, and TypeScript profiles.</p></div>
+    <div class="card"><div class="metric green">31 / 31</div><div class="label">Source fixtures</div><p>Includes positive, negative, collision, alias, sibling-scope, blocker, and real Router/Kanban shapes.</p></div>
+    <div class="card"><div class="metric green">5 / 5</div><div class="label">Validator rejection cases</div><p>All expected failures reject; the clean case and TypeScript check also pass.</p></div>
+  </div>
+  <div class="callout">Second-pass hashes were exact no-ops across all 37 expected config/source outputs. This closes the first-pass ordering defect previously observed in Primitives’ stream demo.</div>
+
+  <h2>Final corpus results</h2>
+  <table>
+    <thead><tr><th>Corpus</th><th>Mechanical result</th><th>Validation</th><th>Build / behavior</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Kanban</strong><br><code>c789067</code></td><td>10 files after lock regeneration; 183 insertions, 178 deletions. Correct scoped <code>omit</code>; exact second pass.</td><td class="pass">Workflow and direct validator pass.</td><td class="pass">Install, typecheck, Vite build, and Playwright 16/16 pass.</td><td class="pass">Supported application migration is complete.</td></tr>
+      <tr><td><strong>Router</strong><br><code>e54fc4a3</code></td><td>17 files with lock; compiler/runtime/renderer/plugin/peers coherent. Rollup emits only <code>@solidjs/web</code>. Exact second pass.</td><td class="warn">Five real blocker files. No false <code>onCleanup</code> failures.</td><td class="fail">57 type errors / 13 files; 52 build errors / 10 files; 65 failed and 172 passed tests, plus 2 unhandled.</td><td class="warn">Mechanical layer improved; navigation/cache/ownership redesign remains semantic.</td></tr>
+      <tr><td><strong>Primitives</strong><br><code>453ec58</code></td><td>326 files after lock; 88/89 manifests. Root and renderer provisioning fixed; zero missing-renderer build errors. Exact second pass.</td><td class="warn">138 blocked files: effects, lifecycle, async, directives, stores, props, removed exports, and provider.</td><td class="fail">317 type errors / 73 files; client 95 failed, 16 passed, 2 skipped files before OOM; SSR 5 failed, 31 passed, 1 skipped files.</td><td class="warn">Package topology is more coherent, but broad semantic API migration remains.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What improved relative to the earlier trials</h2>
+  <div class="grid two">
+    <article class="finding good"><span class="pill">Fixed</span><h3>False-clean validation</h3><p>Router and Primitives now stop on real unsupported forms. Router reports five real files; Primitives reports 138 scoped failures. The false <code>onCleanup</code> rule was removed after beta.17 runtime and type verification.</p></article>
+    <article class="finding good"><span class="pill">Fixed</span><h3>Dependency and compiler coherence</h3><p>Router’s direct Babel preset now moves to beta.17, and its built output no longer reintroduces <code>solid-js/web</code>. Primitives’ private root and 88 library manifests receive Solid/renderer policy; missing <code>@solidjs/web</code> errors fell to zero.</p></article>
+    <article class="finding good"><span class="pill">Fixed</span><h3>Known transform corruption</h3><p>Router <code>splitProps</code> output is valid, merge/batch collisions are avoided, lifecycle ambiguity blocks rather than corrupts syntax, and Primitives’ first pass is now idempotent.</p></article>
+    <article class="finding bad"><span class="pill">Still open</span><h3>Semantic closure</h3><p>Router’s 65 runtime failures are unchanged because old navigation, cache, async, ownership, and scheduling algorithms remain. Primitives now executes more Solid 2 code, exposing hundreds of real semantic/type failures instead of missing-module collection errors.</p></article>
+  </div>
+
+  <h2>Remaining highest-priority work</h2>
+  <ol>
+    <li><strong>Wrap workflow execution with an authoritative gate.</strong> The Codemod workflow runner still exits <code>0</code> after validator failures. A project-owned runner must execute the validator directly and propagate nonzero status.</li>
+    <li><strong>Implement workspace discovery and a migration manifest.</strong> Primitives’ <code>site/package.json</code> was the sole skipped manifest while twelve site files gained renderer imports. Package/source scope must be decided before mutation.</li>
+    <li><strong>Pass package role into source transforms.</strong> Application compatibility helpers such as <code>storePath</code> should not silently define publishable-library architecture.</li>
+    <li><strong>Add structured rule metrics and blocker budgets.</strong> Record applied, skipped, ambiguous, blocked, and already-migrated cardinalities per package and assert them in fixtures/corpus gates.</li>
+    <li><strong>Build semantic recipes as transactions.</strong> Directive definitions/exports/call sites, presence effects and cleanup, Router cache/navigation, ownership, public APIs, tests, and deletion must migrate together.</li>
+    <li><strong>Consolidate the executable architecture.</strong> Port the green tracer bullet into focused packages and expose only implemented phases through the thin recipe; then add frozen root CI.</li>
+  </ol>
+
+  <h2>Retained evidence</h2>
+  <div class="grid three">
+    <div class="card"><h3>Kanban</h3><p><code>/tmp/kanban-final-codemod-2026-07-14-c789067/.evidence/RESULTS.txt</code></p></div>
+    <div class="card"><h3>Router</h3><p><code>/tmp/solid-router-final-codemod-2026-07-14-e54fc4a3/.evidence/RESULTS.md</code></p></div>
+    <div class="card"><h3>Primitives</h3><p><code>/tmp/solid-primitives-codemod-final-2026-07-14-453ec58c-router-agent/.evidence/21-final-summary.txt</code></p></div>
+  </div>
+
+  <div class="foot">Epistemic status: fixture/type checks and every corpus command above were executed against the live repaired worktree by independent agents. Kanban, Router, and Primitives support checkouts were left untouched. The executable codemod directory remains untracked in the outer repository; no files were staged or committed.</div>
+</main></body>
+</html>
