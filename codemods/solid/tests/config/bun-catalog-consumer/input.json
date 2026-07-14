@@ -1,0 +1,9 @@
+{
+  "name": "web-app",
+  "dependencies": {
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "vite-plugin-solid": "catalog:"
+  }
+}

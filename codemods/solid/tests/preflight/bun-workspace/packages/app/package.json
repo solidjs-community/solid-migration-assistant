@@ -1,0 +1,10 @@
+{
+  "name": "fixture-app",
+  "private": true,
+  "dependencies": {
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "vite-plugin-solid": "catalog:"
+  }
+}

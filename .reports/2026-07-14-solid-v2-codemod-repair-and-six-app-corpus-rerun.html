@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solid 2 Codemod Repair and Six-App Corpus Rerun</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#080d18; --panel:#111a2b; --panel2:#17243b; --line:#293956;
+      --text:#edf3ff; --muted:#9dabc4; --red:#ff7f8c; --amber:#ffc86a;
+      --green:#5ed9a1; --blue:#7caaff; --purple:#c2a2ff; --cyan:#65dce6;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(circle at 82% 0,#213966 0,var(--bg) 46rem); color:var(--text); font:15px/1.58 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1200px,calc(100% - 40px)); margin:auto; padding:54px 0 86px; }
+    h1,h2,h3 { line-height:1.14; letter-spacing:-.025em; }
+    h1 { max-width:950px; margin:10px 0 18px; font-size:clamp(38px,6vw,68px); }
+    h2 { margin:50px 0 17px; font-size:29px; }
+    h3 { margin:0 0 9px; font-size:18px; }
+    p { margin:0 0 14px; }
+    a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+    code { padding:2px 6px; border:1px solid var(--line); border-radius:6px; background:#091322; color:#dce8ff; }
+    .eyebrow { color:var(--cyan); font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+    .lede { max-width:980px; color:#cad4e7; font-size:19px; }
+    .callout { margin:28px 0; padding:22px 24px; border:1px solid #3e5f58; border-left:5px solid var(--green); border-radius:14px; background:linear-gradient(135deg,rgba(94,217,161,.12),rgba(17,26,43,.92)); }
+    .callout.warnbox { border-color:#704d39; border-left-color:var(--amber); background:linear-gradient(135deg,rgba(255,200,106,.11),rgba(17,26,43,.92)); }
+    .metrics { display:grid; grid-template-columns:repeat(6,minmax(120px,1fr)); gap:12px; margin:29px 0; }
+    .metric,.card { border:1px solid var(--line); border-radius:14px; background:rgba(17,26,43,.92); box-shadow:0 14px 38px rgba(0,0,0,.16); }
+    .metric { padding:18px; }
+    .metric b { display:block; margin-bottom:4px; font-size:28px; }
+    .metric span { color:var(--muted); font-size:13px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .card { padding:21px; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:14px; }
+    table { width:100%; border-collapse:collapse; background:rgba(17,26,43,.92); }
+    th,td { padding:13px 14px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:var(--panel2); color:#bdc9df; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+    tr:last-child td { border-bottom:0; }
+    .pill { display:inline-block; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap; }
+    .pass { color:#c5f8df; border:1px solid rgba(94,217,161,.36); background:rgba(94,217,161,.14); }
+    .fail { color:#ffd5d9; border:1px solid rgba(255,127,140,.36); background:rgba(255,127,140,.14); }
+    .warn { color:#ffe6b4; border:1px solid rgba(255,200,106,.36); background:rgba(255,200,106,.14); }
+    .muted { color:var(--muted); }
+    .bar-row { display:grid; grid-template-columns:225px 1fr 52px; gap:12px; align-items:center; margin:10px 0; }
+    .bar { height:11px; overflow:hidden; border-radius:999px; background:#091322; }
+    .bar span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--blue)); }
+    ol,ul { padding-left:22px; }
+    li { margin-bottom:10px; padding-left:5px; }
+    .foot { margin-top:48px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); }
+    @media(max-width:900px){.metrics{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.bar-row{grid-template-columns:150px 1fr 46px}}
+  </style>
+</head>
+<body><main>
+  <div class="eyebrow">Repair cycle + independent corpus rerun · 14 July 2026</div>
+  <h1>The codemod now fails honestly and reaches a stable fixed point.</h1>
+  <p class="lede">A repair agent addressed every deterministic transform defect discovered in the earlier Kanban, router, primitives, open-source, and OpenCode trials. Three independent corpus agents then reran six pinned Solid 1 applications from a frozen codemod snapshot. The result is mechanically reliable but semantically incomplete: all six migrations are exactly idempotent, all six correctly exit nonzero, and zero of six are ready to ship as Solid 2 applications.</p>
+
+  <div class="callout"><strong>Core outcome.</strong> The codemod no longer creates malformed effects, defers known store rewrites to a second pass, churns CRLF files, overlooks Bun catalog ownership, or reports validator failure as success through its supported runner. Remaining work is explicit in machine-readable migration manifests rather than hidden behind a successful process exit.</div>
+
+  <section class="metrics">
+    <div class="metric"><b style="color:var(--green)">6 / 6</b><span>exact second-pass no-ops</span></div>
+    <div class="metric"><b style="color:var(--green)">6 / 6</b><span>fail closed when incomplete</span></div>
+    <div class="metric"><b style="color:var(--red)">0 / 6</b><span>complete migrations</span></div>
+    <div class="metric"><b>1,331</b><span>first-pass changed files</span></div>
+    <div class="metric"><b>1,449</b><span>structured blockers</span></div>
+    <div class="metric"><b>62</b><span>installed dependency blockers</span></div>
+  </section>
+
+  <h2>What the repair cycle fixed</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Failure class</th><th>Repair</th><th>Regression evidence</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>False-success workflow</td><td>Added an authoritative runner that composes workflow, direct validation, postflight analysis, manifest emission, and exit propagation.</td><td>Dedicated failure-propagation test</td><td><span class="pill pass">fixed</span></td></tr>
+      <tr><td>Workspace and catalog blindness</td><td>Preflight now discovers package ownership, workspaces, root and named Bun catalogs, installed peers, and dependency deep imports. Catalog consumers remain <code>catalog:</code> references.</td><td>Bun root/consumer fixtures; 40 OpenCode manifests and 329 consumers stay coherent</td><td><span class="pill pass">fixed</span></td></tr>
+      <tr><td>Invalid object effects</td><td>Object-literal effect bodies are parenthesized when rewritten.</td><td>Nerimity reduced fixture; post-build syntax errors fall from two to zero</td><td><span class="pill pass">fixed</span></td></tr>
+      <tr><td>Delayed store transforms</td><td>Store analysis and edit application now survive ancestor overlap, semicolonless syntax, adjacent setters, nested setters, <code>produce</code>, updater wrapping, and <code>flush</code> insertion in one pass.</td><td>Nerimity, Primal, and five OpenCode store fixtures</td><td><span class="pill pass">fixed</span></td></tr>
+      <tr><td>Line-ending churn</td><td>Source edits consistently retain CRLF.</td><td>Primal CRLF fixture and corpus whitespace check</td><td><span class="pill pass">fixed</span></td></tr>
+      <tr><td>Unsafe JSX serialization</td><td>Multiline JSX class values are serialized safely; the exact OpenCode source is parser-tested.</td><td>Original slash-popover fixture, zero TSX parse diagnostics</td><td><span class="pill pass">fixed</span></td></tr>
+      <tr><td>Broken local packaging</td><td>Removed the tracked <code>node_modules</code> symlink that pointed to a deleted sibling package.</td><td>Disposable-mirror typecheck</td><td><span class="pill pass">fixed</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Local contract after repair</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Regression suite</h3>
+      <p><span class="pill pass">8 / 8</span> config fixtures<br><span class="pill pass">40 / 40</span> source fixtures<br><span class="pill pass">1 / 1</span> positive validator fixture<br><span class="pill pass">5 / 5</span> negative validator fixtures</p>
+      <p class="muted">Preflight tests, authoritative-runner exit propagation, TypeScript in a disposable mirror, and <code>git diff --check</code> also pass.</p>
+    </div>
+    <div class="card">
+      <h3>Exact fixed-point gate</h3>
+      <p>Config aggregate SHA: <code>5d22ef4bd52c…</code><br>Source aggregate SHA: <code>05aaec91216f…</code></p>
+      <p>Every fixture produces byte-identical output on pass two. The corpus agents also compare tree, patch, status, and canonical work-item inventories—not only the transform exit code.</p>
+    </div>
+  </div>
+
+  <h2>Six-application corpus result</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Application</th><th>First pass</th><th>Fixed point</th><th>Installed-aware blockers</th><th>Install / build</th><th>Material result</th></tr></thead>
+    <tbody>
+      <tr><td><strong>YTify</strong></td><td>33 files<br>+137 / −107</td><td><span class="pill pass">exact</span></td><td>34</td><td><span class="pill fail">install blocked</span></td><td>No lockfile; <code>solid-sortablejs</code> Solid 1 peer conflict prevents dependency validation and build.</td></tr>
+      <tr><td><strong>Nerimity</strong></td><td>208 files<br>+835 / −1,130</td><td><span class="pill pass">exact</span></td><td>370<br><span class="muted">9 peer, 2 deep</span></td><td><span class="pill pass">install</span> <span class="pill fail">build</span></td><td>All known store setters close on pass one. Build errors improve from 36 to 6; remaining errors are ecosystem deep imports.</td></tr>
+      <tr><td><strong>OpenList</strong></td><td>136 files<br>+260 / −369</td><td><span class="pill pass">exact</span></td><td>75<br><span class="muted">8 peer, 1 deep</span></td><td><span class="pill pass">install</span> <span class="pill fail">build</span></td><td>Eleven additional store setters are fixed; residual <code>produce</code>, <code>Index</code>, removed exports, and dependency subpaths remain.</td></tr>
+      <tr><td><strong>OpenAQ</strong></td><td>48 files<br>+157 / −121</td><td><span class="pill pass">exact</span></td><td>50<br><span class="muted">2 peer, 1 deep</span></td><td><span class="pill pass">install</span> <span class="pill fail">build/tests</span></td><td>Baseline build passes; migrated build fails on removed <code>solid-js/web</code>. Tests: 10 failed, 23 passed.</td></tr>
+      <tr><td><strong>Primal</strong></td><td>—</td><td><span class="pill pass">exact</span></td><td>402</td><td><span class="pill fail">install blocked</span></td><td>Five delayed files became one in v1 and zero in v2. Solid 1 ecosystem peers still reject Solid 2.</td></tr>
+      <tr><td><strong>OpenCode</strong></td><td>—</td><td><span class="pill pass">exact</span></td><td>518<br><span class="muted">32 peer, 7 deep</span></td><td><span class="pill pass">install</span> <span class="pill fail">app/UI checks</span></td><td>Catalog ownership and all 14 delayed files are fixed. A mixed Solid 1/2 dependency graph and remaining APIs keep builds and tests red.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted" style="margin-top:12px">Across all six applications the first pass changes 1,331 files with +6,253 / −6,658 lines. YTify and Primal cannot be installed after migration, so their dependency scans cannot reach the same installed-state depth as the other four.</p>
+
+  <h2>What remains: semantic migration, not transform stability</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Structured blocker distribution</h3>
+      <div class="bar-row"><span>Removed exports</span><div class="bar"><span style="width:100%"></span></div><b>531</b></div>
+      <div class="bar-row"><span>Effect semantics</span><div class="bar"><span style="width:75.5%"></span></div><b>401</b></div>
+      <div class="bar-row"><span>Lifecycle semantics</span><div class="bar"><span style="width:58.6%"></span></div><b>311</b></div>
+      <div class="bar-row"><span>Props semantics</span><div class="bar"><span style="width:13.7%"></span></div><b>73</b></div>
+      <div class="bar-row"><span>Peer dependency</span><div class="bar"><span style="width:9.6%"></span></div><b>51</b></div>
+      <div class="bar-row"><span>Async semantics</span><div class="bar"><span style="width:7.5%"></span></div><b>40</b></div>
+      <div class="bar-row"><span>Store semantics</span><div class="bar"><span style="width:3.4%"></span></div><b>18</b></div>
+      <div class="bar-row"><span>Deep dependencies</span><div class="bar"><span style="width:2.1%"></span></div><b>11</b></div>
+    </div>
+    <div class="card">
+      <h3>Long-tail source blockers</h3>
+      <p>Directives: 4<br>Context providers: 4<br><code>Index</code>: 3<br>Deep store imports: 2</p>
+      <p class="muted">These totals intentionally represent explicit work items. A stable second pass proves determinism; it does not prove that those work items have been migrated.</p>
+    </div>
+  </div>
+
+  <div class="callout warnbox"><strong>Correction to the earlier OpenCode report.</strong> The slash-popover class value contains escaped <code>\n</code> characters, not a physical newline inside a quoted string. TypeScript reports zero TSX parse diagnostics. The original “invalid multiline class” claim was a display-interpretation false positive; the exact original source is now a fixture so this cannot regress unnoticed.</div>
+
+  <h2>Recommended next workflow</h2>
+  <ol>
+    <li><strong>Keep deterministic AST transforms narrow and proved.</strong> Add recipes only when the migration intent is inferable from syntax, bindings, types, and local data flow; require an exact reduced fixture and a corpus example.</li>
+    <li><strong>Prioritize the highest-volume semantic families.</strong> Removed exports, effects, and lifecycle APIs account for 1,243 of 1,449 blockers. Split these into sub-recipes by actual Solid 2 replacement pattern rather than one broad textual rule.</li>
+    <li><strong>Use AI only on manifested work items.</strong> Give an agent the original source, AST/binding facts, Solid 2 API contract, nearby tests, and one blocker at a time. Require a patch plus rationale, then rerun parser, typecheck, tests, validator, and exact fixed-point gates.</li>
+    <li><strong>Treat dependency migration as a separate lane.</strong> Resolve peer ranges and forbidden deep imports after workspace discovery but before claiming application completeness. Installation failure is a hard gate, not a warning.</li>
+    <li><strong>Promote corpus results into release criteria.</strong> A codemod release should require all fixtures, exact pass two, nonzero exit for unresolved work, and no regression in the subset of corpus applications whose Solid 1 baselines build.</li>
+  </ol>
+
+  <h2>Evidence</h2>
+  <div class="card">
+    <p><strong>Frozen codemod snapshot:</strong> <code>/tmp/solid2-oss-corpus-repaired-v2-2026-07-14/codemod-snapshot</code><br><strong>Aggregate snapshot SHA-256:</strong> <code>c41ea6a815802c90c1c27f1ee21d0209d6a6cadf3dab4369d9cf1a49c6771775</code></p>
+    <p><a href="file:///tmp/solid2-oss-corpus-repaired-v2-2026-07-14/ytify-nerimity-v2-SUMMARY.md">YTify + Nerimity lane</a> · <a href="file:///tmp/solid2-oss-corpus-repaired-v2-2026-07-14/openlist-openaq-v2-SUMMARY.md">OpenList + OpenAQ lane</a> · <a href="file:///tmp/solid2-oss-corpus-repaired-v2-2026-07-14/primal-opencode-v2-SUMMARY.md">Primal + OpenCode lane</a></p>
+    <p><a href="file:///tmp/solid2-oss-corpus-repaired-v2-2026-07-14/evidence/opencode-solid1/09-slash-popover-parser.json">Corrected OpenCode parser evidence</a> · <a href="file:///tmp/solid2-oss-corpus-repaired-v2-2026-07-14/evidence/opencode-solid1/summary.json">OpenCode machine-readable result</a> · <a href="file:///tmp/solid2-oss-corpus-repaired-v2-2026-07-14/evidence/nerimity-web-solid1/summary.json">Nerimity machine-readable result</a></p>
+    <p><strong>Implementation:</strong> <a href="../codemods/solid/scripts/source.ts">source transform</a> · <a href="../codemods/solid/scripts/config.ts">config transform</a> · <a href="../codemods/solid/scripts/preflight.mjs">preflight</a> · <a href="../codemods/solid/scripts/run.mjs">authoritative runner</a></p>
+  </div>
+
+  <div class="foot">Repository HEAD during the repair: <code>d70fc95</code> on <code>fresh-solid-v2-rewrite</code>. All corpus mutations were isolated under <code>/tmp</code>; all six pinned discovery clones remained clean. The main working tree contains the repair and report changes, but nothing was staged or committed.</div>
+</main></body></html>

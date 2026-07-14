@@ -21,6 +21,33 @@ function setVersion(section: JsonObject, name: string, version: string): boolean
   return true;
 }
 
+/** Returns whether a dependency version is owned by a Bun catalog instead of this manifest. */
+function isCatalogReference(value: unknown): value is string {
+  return typeof value === "string" && /^catalog(?::[^:]*)?$/.test(value);
+}
+
+/** Updates a direct version while preserving `catalog:` ownership for catalog consumers. */
+function setManagedVersion(section: JsonObject, name: string, version: string): boolean {
+  return isCatalogReference(section[name]) ? false : setVersion(section, name, version);
+}
+
+/** Collects default and named catalog objects from Bun's supported root manifest locations. */
+function catalogObjects(document: JsonObject): JsonObject[] {
+  const catalogs: JsonObject[] = [];
+  const collect = (owner: unknown) => {
+    if (!isObject(owner)) return;
+    if (isObject(owner.catalog)) catalogs.push(owner.catalog);
+    if (isObject(owner.catalogs)) {
+      for (const catalog of Object.values(owner.catalogs)) {
+        if (isObject(catalog)) catalogs.push(catalog);
+      }
+    }
+  };
+  collect(document);
+  collect(document.workspaces);
+  return catalogs;
+}
+
 /** Preserves the input file's indentation and final-newline conventions after JSON edits. */
 function serializeLike(source: string, document: JsonObject): string {
   const indent = source.match(/\n([ \t]+)"/)?.[1] ?? "  ";
@@ -59,9 +86,29 @@ const codemod: Codemod<JSON> = async (root) => {
     isPublishableLibrary || isProvenViteWebApplication || isWorkspaceRoot || isDevViteApplication;
   let changed = false;
 
+  // Catalog owners are authoritative. Update them before their consumers so the workspace cannot
+  // install a mixed Solid 1/2 graph while every leaf manifest still says `catalog:`.
+  for (const catalog of catalogObjects(document)) {
+    if (!hasStringProperty(catalog, "solid-js")) continue;
+    changed = setVersion(catalog, "solid-js", SOLID_VERSION) || changed;
+    changed = setVersion(catalog, "@solidjs/web", SOLID_VERSION) || changed;
+    if (hasStringProperty(catalog, "vite-plugin-solid")) {
+      changed = setVersion(catalog, "vite-plugin-solid", VITE_PLUGIN_VERSION) || changed;
+    }
+    if (hasStringProperty(catalog, "babel-preset-solid")) {
+      changed = setVersion(catalog, "babel-preset-solid", BABEL_PRESET_VERSION) || changed;
+    }
+  }
+
   if (isProvenViteWebApplication && isObject(dependencies)) {
-    changed = setVersion(dependencies, "solid-js", SOLID_VERSION) || changed;
-    changed = setVersion(dependencies, "@solidjs/web", SOLID_VERSION) || changed;
+    const solidVersion = dependencies["solid-js"];
+    changed = setManagedVersion(dependencies, "solid-js", SOLID_VERSION) || changed;
+    changed =
+      setVersion(
+        dependencies,
+        "@solidjs/web",
+        isCatalogReference(solidVersion) ? solidVersion : SOLID_VERSION,
+      ) || changed;
   }
 
   if (isPublishableLibrary && isObject(peerDependencies)) {
@@ -69,7 +116,7 @@ const codemod: Codemod<JSON> = async (root) => {
     changed = setVersion(peerDependencies, "solid-js", SOLID_PEER_VERSION) || changed;
     if (isObject(dependencies) && hasSolidDependency) {
       // Preserve the author's dependency classification, but never leave a mixed Solid 1 graph.
-      changed = setVersion(dependencies, "solid-js", SOLID_VERSION) || changed;
+      changed = setManagedVersion(dependencies, "solid-js", SOLID_VERSION) || changed;
     }
     if (!isObject(devDependencies)) {
       document.devDependencies = {};
@@ -83,8 +130,14 @@ const codemod: Codemod<JSON> = async (root) => {
   }
 
   if ((isWorkspaceRoot || isDevViteApplication) && isObject(document.devDependencies)) {
-    changed = setVersion(document.devDependencies, "solid-js", SOLID_VERSION) || changed;
-    changed = setVersion(document.devDependencies, "@solidjs/web", SOLID_VERSION) || changed;
+    const solidVersion = document.devDependencies["solid-js"];
+    changed = setManagedVersion(document.devDependencies, "solid-js", SOLID_VERSION) || changed;
+    changed =
+      setVersion(
+        document.devDependencies,
+        "@solidjs/web",
+        isCatalogReference(solidVersion) ? solidVersion : SOLID_VERSION,
+      ) || changed;
   }
 
   for (const section of [dependencies, document.devDependencies]) {
@@ -93,14 +146,14 @@ const codemod: Codemod<JSON> = async (root) => {
       isObject(section) &&
       hasStringProperty(section, "vite-plugin-solid")
     ) {
-      changed = setVersion(section, "vite-plugin-solid", VITE_PLUGIN_VERSION) || changed;
+      changed = setManagedVersion(section, "vite-plugin-solid", VITE_PLUGIN_VERSION) || changed;
     }
     if (
       hasClassifiedSolidToolchain &&
       isObject(section) &&
       hasStringProperty(section, "babel-preset-solid")
     ) {
-      changed = setVersion(section, "babel-preset-solid", BABEL_PRESET_VERSION) || changed;
+      changed = setManagedVersion(section, "babel-preset-solid", BABEL_PRESET_VERSION) || changed;
     }
   }
 

@@ -5,11 +5,15 @@
   "packageManager": "pnpm@10.19.0",
   "type": "module",
   "scripts": {
-    "test": "pnpm run test:config && pnpm run test:source && pnpm run test:validate && pnpm run test:validate-fail",
+    "test": "pnpm run test:config && pnpm run test:source && pnpm run test:validate && pnpm run test:validate-fail && pnpm run test:preflight && pnpm run test:runner && pnpm run test:idempotency",
     "test:config": "pnpm dlx codemod@latest jssg test -l json ./scripts/config.ts ./tests/config --strictness strict",
     "test:source": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/source.ts ./tests/source --strictness strict",
     "test:validate": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/validate.ts ./tests/validate --strictness strict",
     "test:validate-fail": "node ./scripts/test-validation-failures.mjs",
+    "test:preflight": "node ./scripts/test-preflight.mjs",
+    "test:runner": "node ./scripts/test-authoritative-runner.mjs",
+    "test:idempotency": "node ./scripts/test-idempotency.mjs",
+    "migrate": "node ./scripts/run.mjs",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {

@@ -1,0 +1,11 @@
+{
+  "name": "workspace",
+  "private": true,
+  "workspaces": {
+    "packages": ["packages/*"],
+    "catalog": {
+      "solid-js": "1.9.10",
+      "vite-plugin-solid": "2.11.10"
+    }
+  }
+}

@@ -63,7 +63,7 @@ function uniqueSpecifiers(specifiers: string[]): string[] {
  */
 function parseNamedImports(source: string): NamedImport[] {
   const imports: NamedImport[] = [];
-  const pattern = /import\s*\{([\s\S]*?)\}\s*from\s*(["'])([^"']+)\2\s*;[ \t]*(?:\r?\n)?/g;
+  const pattern = /import\s*\{([\s\S]*?)\}\s*from\s*(["'])([^"']+)\2[ \t]*;?[ \t]*(?:\r?\n)?/g;
 
   for (const match of source.matchAll(pattern)) {
     // Ignore unrelated modules: identical export names there do not prove a Solid binding.
@@ -247,6 +247,23 @@ function unwrapJsxExpression(value: string): string {
 }
 
 /**
+ * Converts a JSX attribute value into a JavaScript expression without copying quoted JSX text
+ * into executable source. JSX permits literal newlines inside quoted attributes; JavaScript
+ * string literals do not, so quoted values are serialized with their newlines escaped.
+ */
+function jsxAttributeValueExpression(value: string): string | null {
+  if (value.startsWith("{") && value.endsWith("}")) return value.slice(1, -1).trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    const literal = value.slice(1, -1);
+    // Entity decoding is renderer-owned. Leave uncommon entity-bearing values for review rather
+    // than silently changing their runtime value while moving them into an expression container.
+    if (/&(?:#\d+|#x[\da-f]+|[a-z][\w-]*);/i.test(literal)) return null;
+    return JSON.stringify(literal);
+  }
+  return JSON.stringify(value);
+}
+
+/**
  * Rewrites `classList` on lowercase intrinsic elements to Solid 2's `class` form.
  * Edits are collected as source ranges and applied backwards to keep offsets stable.
  */
@@ -270,7 +287,8 @@ function rewriteDomClassComposition(source: string): string {
       });
       continue;
     }
-    const classValue = unwrapJsxExpression(classAttribute.value);
+    const classValue = jsxAttributeValueExpression(classAttribute.value);
+    if (classValue === null) continue;
     const classListValue = unwrapJsxExpression(classList.value);
     edits.push({
       start: match.index + classAttribute.start,
@@ -1168,22 +1186,6 @@ function matchingParen(source: string, open: number): number {
 }
 
 /**
- * Removes a `produce(...)` wrapper only from a statement whose callee is a discovered store setter.
- * Returns null when binding evidence or balanced call structure is absent.
- */
-function removeProduceWrapper(statement: string, setters: Set<string>): string | null {
-  const callee = statement.match(/^([A-Za-z_$][\w$]*)\s*\(/)?.[1];
-  // Name membership ties the textual call to a createStore setter rather than a shadowed helper.
-  if (!callee || !setters.has(callee)) return null;
-  const start = statement.indexOf("produce(");
-  if (start === -1) return null;
-  const open = start + "produce".length;
-  const close = matchingParen(statement, open);
-  if (close === -1) return null;
-  return statement.slice(0, start) + statement.slice(open + 1, close) + statement.slice(close + 1);
-}
-
-/**
  * Splits comma-separated source while tracking nested (), [], {}, generic angles, and strings.
  * This approximates AST argument boundaries for the codemod's deliberately narrow text rewrites.
  */
@@ -1227,6 +1229,7 @@ function splitTopLevel(source: string): string[] {
 }
 
 interface StoreBindings {
+  produceNames: Set<string>;
   reconcileNames: Set<string>;
   stores: Set<string>;
   setterToStore: Map<string, string>;
@@ -1275,7 +1278,94 @@ function discoverStoreBindings(source: string): StoreBindings {
       importedLocalNames(source, "solid-js", "reconcile"),
     ),
   );
-  return { reconcileNames, stores, setterToStore, setters: new Set(setterToStore.keys()) };
+  const produceNames = new Set(
+    importedLocalNames(source, "solid-js/store", "produce").concat(
+      importedLocalNames(source, "solid-js", "produce"),
+    ),
+  );
+  return { produceNames, reconcileNames, stores, setterToStore, setters: new Set(setterToStore.keys()) };
+}
+
+interface SourceRange {
+  end: number;
+  start: number;
+}
+
+/** Returns trimmed source ranges for each top-level argument between a call's parentheses. */
+function topLevelArgumentRanges(source: string, start: number, end: number): SourceRange[] {
+  const ranges: SourceRange[] = [];
+  let partStart = start;
+  let round = 0;
+  let square = 0;
+  let curly = 0;
+  let quote = "";
+  let escaped = false;
+  const push = (partEnd: number) => {
+    let trimmedStart = partStart;
+    let trimmedEnd = partEnd;
+    while (/\s/.test(source[trimmedStart] ?? "") && trimmedStart < trimmedEnd) trimmedStart += 1;
+    while (/\s/.test(source[trimmedEnd - 1] ?? "") && trimmedEnd > trimmedStart) trimmedEnd -= 1;
+    if (trimmedStart < trimmedEnd) ranges.push({ start: trimmedStart, end: trimmedEnd });
+  };
+  for (let index = start; index < end; index += 1) {
+    const char = source[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === quote) quote = "";
+      continue;
+    }
+    if (char === '"' || char === "'" || char === "`") quote = char;
+    else if (char === "(") round += 1;
+    else if (char === ")") round -= 1;
+    else if (char === "[") square += 1;
+    else if (char === "]") square -= 1;
+    else if (char === "{") curly += 1;
+    else if (char === "}") curly -= 1;
+    else if (char === "," && round === 0 && square === 0 && curly === 0) {
+      push(index);
+      partStart = index + 1;
+    }
+  }
+  push(end);
+  return ranges;
+}
+
+/** Removes imported `produce` wrappers only when they are complete setter/storePath arguments. */
+function removeProvenProduceArguments(statement: string, bindings: StoreBindings): string {
+  const setter = statement.match(/^([A-Za-z_$][\w$]*)\s*\(/)?.[1];
+  if (!setter || !bindings.setters.has(setter) || bindings.produceNames.size === 0) return statement;
+  const setterOpen = statement.indexOf("(", setter.length);
+  const setterClose = matchingParen(statement, setterOpen);
+  if (setterClose === -1) return statement;
+  const argumentRanges = topLevelArgumentRanges(statement, setterOpen + 1, setterClose);
+  for (const range of [...argumentRanges]) {
+    const argument = statement.slice(range.start, range.end);
+    const storePath = argument.match(/^storePath\s*\(/);
+    if (!storePath) continue;
+    const open = range.start + argument.indexOf("(");
+    const close = matchingParen(statement, open);
+    if (close === range.end - 1) {
+      argumentRanges.push(...topLevelArgumentRanges(statement, open + 1, close));
+    }
+  }
+  const edits: Array<{ start: number; end: number; text: string }> = [];
+  for (const range of argumentRanges) {
+    const argument = statement.slice(range.start, range.end);
+    const wrapper = argument.match(/^([A-Za-z_$][\w$]*)\s*\(/);
+    if (!wrapper || !bindings.produceNames.has(wrapper[1])) continue;
+    const open = range.start + argument.indexOf("(");
+    const close = matchingParen(statement, open);
+    if (close !== range.end - 1) continue;
+    const inner = topLevelArgumentRanges(statement, open + 1, close);
+    if (inner.length !== 1) continue;
+    edits.push({ start: range.start, end: range.end, text: statement.slice(open + 1, close) });
+  }
+  let output = statement;
+  for (const edit of edits.sort((a, b) => b.start - a.start)) {
+    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
+  }
+  return output;
 }
 
 /**
@@ -1286,6 +1376,10 @@ function migrateStoreSetterCall(statement: string, bindings: StoreBindings): str
   const match = statement.match(/^([A-Za-z_$][\w$]*)\s*\(/);
   // Binding discovery is the scope guard against rewriting unrelated functions named like setters.
   if (!match || !bindings.setters.has(match[1])) return null;
+  const withoutProduce = removeProvenProduceArguments(statement, bindings);
+  if (withoutProduce !== statement) {
+    return migrateStoreSetterCall(withoutProduce, bindings) ?? withoutProduce;
+  }
   const open = statement.indexOf("(", match[0].length - 1);
   const close = matchingParen(statement, open);
   if (close === -1) return null;
@@ -1309,7 +1403,6 @@ function migrateStoreSetterCall(statement: string, bindings: StoreBindings): str
   if (/^(?:async\s+)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/.test(arg) || /^function\b/.test(arg)) {
     return null;
   }
-  if (/^produce\s*\(/.test(arg)) return removeProduceWrapper(statement, bindings.setters);
   if (arg.startsWith("{") && arg.endsWith("}")) {
     return `${statement.slice(0, open + 1)}() => (${arg})${statement.slice(close)}`;
   }
@@ -1317,6 +1410,125 @@ function migrateStoreSetterCall(statement: string, bindings: StoreBindings): str
     return `${statement.slice(0, open + 1)}() => ${arg}${statement.slice(close)}`;
   }
   return null;
+}
+
+/**
+ * Reprocesses nested setter statements to a fixed point after ast-grep commits overlapping edits.
+ * An outer setter can contain method bodies with inner setters; applying only the outer AST edit
+ * otherwise restores the original inner text and defers those rewrites until a second codemod run.
+ */
+function rewriteNestedStoreSetters(
+  source: string,
+  bindings: StoreBindings,
+): { output: string; changed: boolean } {
+  let output = source;
+  let changed = false;
+
+  for (let iteration = 0; iteration < 100; iteration += 1) {
+    const candidates: Array<{ start: number; end: number; replacement: string }> = [];
+    for (const setter of bindings.setters) {
+      const pattern = new RegExp(`\\b${escapeRegExp(setter)}\\s*\\(`, "g");
+      for (const match of output.matchAll(pattern)) {
+        if (match.index === undefined) continue;
+        const open = output.indexOf("(", match.index + setter.length);
+        const close = matchingParen(output, open);
+        if (close === -1) continue;
+        let end = close + 1;
+        while (/[ \t]/.test(output[end] ?? "")) end += 1;
+        if (output[end] === ";") end += 1;
+        const statement = output.slice(match.index, end);
+        const replacement = migrateStoreSetterCall(statement, bindings);
+        if (replacement && replacement !== statement) {
+          candidates.push({ start: match.index, end, replacement });
+        }
+      }
+    }
+    if (candidates.length === 0) break;
+
+    // Only apply candidates that contain no other candidate. The next iteration can then rebuild
+    // an enclosing setter from text that already includes every migrated nested call.
+    const innermost = candidates.filter(
+      (candidate) =>
+        !candidates.some(
+          (other) =>
+            other !== candidate &&
+            other.start > candidate.start &&
+            other.end < candidate.end,
+        ),
+    );
+    for (const candidate of innermost.sort((a, b) => b.start - a.start)) {
+      output =
+        output.slice(0, candidate.start) +
+        candidate.replacement +
+        output.slice(candidate.end);
+    }
+    changed = true;
+  }
+
+  return { output, changed };
+}
+
+interface SetterCallRange extends SourceRange {
+  setter: string;
+}
+
+/** Lists every balanced call to a proven setter in lexical order, including concise callbacks. */
+function storeSetterCallRanges(source: string, bindings: StoreBindings): SetterCallRange[] {
+  const calls: SetterCallRange[] = [];
+  for (const setter of bindings.setters) {
+    const pattern = new RegExp(`\\b${escapeRegExp(setter)}\\s*\\(`, "g");
+    for (const match of source.matchAll(pattern)) {
+      if (match.index === undefined) continue;
+      const open = source.indexOf("(", match.index + setter.length);
+      const close = matchingParen(source, open);
+      if (close !== -1) calls.push({ setter, start: match.index, end: close + 1 });
+    }
+  }
+  return calls.sort((a, b) => a.start - b.start);
+}
+
+/** Converts a tree-sitter line/column position to the source-string index used by text scans. */
+function sourceIndexAt(source: string, line: number, column: number): number {
+  let index = 0;
+  for (let current = 0; current < line; current += 1) {
+    const newline = source.indexOf("\n", index);
+    if (newline === -1) return source.length;
+    index = newline + 1;
+  }
+  return index + column;
+}
+
+/**
+ * Reapplies flush requirements after fixed-point rewriting. An ancestor edit can overwrite a
+ * child setter edit, so targets are tracked by the setter's stable lexical ordinal, not offsets.
+ */
+function wrapRequiredStoreFlushes(
+  source: string,
+  bindings: StoreBindings,
+  targets: Set<string>,
+): string {
+  if (targets.size === 0) return source;
+  const calls = storeSetterCallRanges(source, bindings);
+  const ordinals = new Map<string, number>();
+  const edits: Array<{ start: number; end: number; text: string }> = [];
+  for (const call of calls) {
+    const ordinal = ordinals.get(call.setter) ?? 0;
+    ordinals.set(call.setter, ordinal + 1);
+    if (!targets.has(`${call.setter}\0${ordinal}`)) continue;
+    const prefix = source.slice(Math.max(0, call.start - 80), call.start);
+    // A surviving structural AST edit already supplied the required wrapper.
+    if (/flush\s*\(\s*\(\s*\)\s*=>\s*$/.test(prefix)) continue;
+    let end = call.end;
+    while (/[ \t]/.test(source[end] ?? "")) end += 1;
+    if (source[end] === ";") end += 1;
+    const callText = source.slice(call.start, call.end);
+    edits.push({ start: call.start, end, text: `flush(() => ${callText});` });
+  }
+  let output = source;
+  for (const edit of edits.sort((a, b) => b.start - a.start)) {
+    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
+  }
+  return output;
 }
 
 /** Renames only one-argument calls of an imported helper, preserving unsupported overloads. */
@@ -1477,6 +1689,12 @@ function splitSingleCallEffect(
     }
     return arg;
   });
+  const computedArgs = trackedArgs.map((arg) => {
+    const trimmed = arg.trim();
+    // Arrow concise bodies interpret `{ ... }` as blocks. Parenthesize object literals so the
+    // compute phase returns the value that the apply phase receives.
+    return trimmed.startsWith("{") && trimmed.endsWith("}") ? `(${arg})` : arg;
+  });
   if (args.length === 1) {
     const memberName = usesDeep ? args[0].match(/\.([A-Za-z_$][\w$]*)$/)?.[1] : undefined;
     const valueName = memberName && !/^(?:await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|undefined|var|void|while|with|yield)$/.test(memberName)
@@ -1486,19 +1704,28 @@ function splitSingleCallEffect(
       const comments = blockComments.length > 0 ? `${blockComments.join(`\n${indent}`)}\n${indent}` : "";
       return {
         deep: usesDeep,
-        output: `${comments}${effectName}(\n${indent}  () => ${trackedArgs[0]},\n${indent}  (${valueName}) => ${call[1]}(${valueName}),\n${indent});`,
+        output: `${comments}${effectName}(\n${indent}  () => ${computedArgs[0]},\n${indent}  (${valueName}) => ${call[1]}(${valueName}),\n${indent});`,
       };
     }
     return {
       deep: usesDeep,
-      output: `${effectName}(() => ${trackedArgs[0]}, (${valueName}) => ${call[1]}(${valueName}));`,
+      output: `${effectName}(() => ${computedArgs[0]}, (${valueName}) => ${call[1]}(${valueName}));`,
     };
   }
   const values = args.map((_, index) => `value${index}`);
   return {
     deep: usesDeep,
-    output: `${effectName}(\n${indent}  () => [${trackedArgs.join(", ")}] as const,\n${indent}  ([${values.join(", ")}]) => ${call[1]}(${values.join(", ")}),\n${indent});`,
+    output: `${effectName}(\n${indent}  () => [${computedArgs.join(", ")}] as const,\n${indent}  ([${values.join(", ")}]) => ${call[1]}(${values.join(", ")}),\n${indent});`,
   };
+}
+
+/** Preserves a consistently CRLF- or LF-authored file after generated snippets add new lines. */
+function restoreLineEndings(source: string, output: string): string {
+  const crlf = source.match(/\r\n/g)?.length ?? 0;
+  const lf = source.match(/(?<!\r)\n/g)?.length ?? 0;
+  if (crlf > 0 && lf === 0) return output.replace(/\r?\n/g, "\r\n");
+  if (lf > 0 && crlf === 0) return output.replace(/\r\n/g, "\n");
+  return output;
 }
 
 /** Returns whether a statement is nested in a call to one of the supplied imported bindings. */
@@ -1583,6 +1810,15 @@ const codemod: Codemod<TSX> = async (root) => {
     importReplacements: new Map(),
   };
   const storeBindings = discoverStoreBindings(original);
+  const originalSetterCalls = storeSetterCallRanges(original, storeBindings);
+  const originalSetterOrdinals = new Map<number, string>();
+  const setterOrdinalCounts = new Map<string, number>();
+  for (const call of originalSetterCalls) {
+    const ordinal = setterOrdinalCounts.get(call.setter) ?? 0;
+    setterOrdinalCounts.set(call.setter, ordinal + 1);
+    originalSetterOrdinals.set(call.start, `${call.setter}\0${ordinal}`);
+  }
+  const requiredFlushTargets = new Set<string>();
   const effectNames = new Set(importedLocalNames(original, "solid-js", "createEffect"));
   const mountNames = new Set(importedLocalNames(original, "solid-js", "onMount"));
   const cleanupNames = new Set(importedLocalNames(original, "solid-js", "onCleanup"));
@@ -1614,18 +1850,16 @@ const codemod: Codemod<TSX> = async (root) => {
         new RegExp(`\\b${store}\\b`).test(next.text()) &&
         !isInsideCall(statement, synchronousBoundaryNames)
       ) {
+        const range = statement.range().start;
+        const originalStart = sourceIndexAt(original, range.line, range.column);
+        const target = originalSetterOrdinals.get(originalStart);
+        if (target) requiredFlushTargets.add(target);
         edits.push(statement.replace(`flush(() => ${migratedStoreSetter.replace(/;$/, "")});`));
         flags.flush = true;
       } else {
         edits.push(statement.replace(migratedStoreSetter));
       }
       flags.storePath = true;
-      continue;
-    }
-
-    const withoutProduce = removeProduceWrapper(text, storeBindings.setters);
-    if (withoutProduce) {
-      edits.push(statement.replace(withoutProduce));
       continue;
     }
 
@@ -1637,7 +1871,10 @@ const codemod: Codemod<TSX> = async (root) => {
     }
     if (mountNames.has(text.match(/^([A-Za-z_$][\w$]*)\s*\(/)?.[1] ?? "")) {
       const marked = `${LIFECYCLE_BLOCKER}\n${indent}${text}`;
-      if (!original.includes(marked)) edits.push(statement.replace(marked));
+      const markedCrlf = `${LIFECYCLE_BLOCKER}\r\n${indent}${text}`;
+      if (!original.includes(marked) && !original.includes(markedCrlf)) {
+        edits.push(statement.replace(marked));
+      }
       continue;
     }
 
@@ -1646,6 +1883,11 @@ const codemod: Codemod<TSX> = async (root) => {
 
   // Apply all AST-selected replacements atomically so their original ranges cannot drift.
   let output = edits.length > 0 ? program.commitEdits(edits) : original;
+  const nestedSetters = rewriteNestedStoreSetters(output, storeBindings);
+  output = nestedSetters.output;
+  flags.storePath ||= nestedSetters.changed;
+  output = wrapRequiredStoreFlushes(output, storeBindings, requiredFlushTargets);
+  flags.flush ||= requiredFlushTargets.size > 0;
   output = reconcileEffectMarkers(output, storeBindings, effectNames);
   for (const localName of importedLocalNames(output, "solid-js/store", "unwrap")) {
     const next = rewriteSingleArgumentCalls(output, localName, "snapshot");
@@ -1696,6 +1938,7 @@ const codemod: Codemod<TSX> = async (root) => {
     output = rewritten;
   }
   output = rewriteImports(output, flags);
+  output = restoreLineEndings(original, output);
 
   // Codemod's null convention records a true no-op and is essential to idempotent workflows.
   return output === original ? null : output;
