@@ -239,7 +239,10 @@ export function renderHtmlReport(report: MigrationReport): string {
 `;
 }
 
-function compareFindings(left: MigrationFinding, right: MigrationFinding): number {
+function compareFindings(
+  left: MigrationFinding,
+  right: MigrationFinding,
+): number {
   return (
     left.location.file.localeCompare(right.location.file) ||
     left.location.line - right.location.line ||

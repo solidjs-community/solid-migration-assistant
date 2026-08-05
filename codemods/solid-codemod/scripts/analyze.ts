@@ -95,7 +95,9 @@ const analyze: Codemod<TSX> = async (root) => {
   return null;
 };
 
-function directOneArgumentCreateEffectCalls(rootNode: SgNode<TSX>): SgNode<TSX>[] {
+function directOneArgumentCreateEffectCalls(
+  rootNode: SgNode<TSX>,
+): SgNode<TSX>[] {
   const calls = new Map<number, SgNode<TSX>>();
 
   for (const statement of rootNode.findAll({
