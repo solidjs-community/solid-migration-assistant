@@ -1,5 +1,13 @@
 {
   "name": "solid-codemod-workspace",
   "private": true,
-  "description": "Monorepo workspace for codemods"
+  "description": "Read-only Solid 1 to Solid 2 migration analysis",
+  "packageManager": "pnpm@11.20.0",
+  "scripts": {
+    "analyze": "node ./codemods/solid-codemod/scripts/run-workflow.mjs analyze",
+    "transform:web-imports": "node ./codemods/solid-codemod/scripts/run-workflow.mjs transform:web-imports",
+    "test": "pnpm --dir ./codemods/solid-codemod test",
+    "check-types": "pnpm --dir ./codemods/solid-codemod check-types",
+    "verify": "pnpm --dir ./codemods/solid-codemod verify"
+  }
 }

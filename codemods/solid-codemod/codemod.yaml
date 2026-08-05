@@ -1,18 +1,16 @@
 schema_version: "1.0"
 
-name: "solid-codemod"
+name: "solid-v2-readonly-analysis"
 version: "0.1.0"
-description: "Migrate local-safe Solid 1.x patterns to Solid 2"
+description: "Report exact Solid 1.9 migration sites for Solid 2 beta.30"
 author: "Solid Codemod Contributors"
 license: "MIT"
 category: "migration"
 
-
 targets:
-  # Keep this aligned with the files matched in workflow.yaml.
-  languages: ["typescript", "javascript", "json"]
+  languages: ["typescript"]
 
-keywords: ["solid", "solidjs", "upgrade", "v1-to-v2", "breaking-change"]
+keywords: ["solid", "solidjs", "readonly", "analysis", "migration"]
 
 registry:
   access: "public"
@@ -21,6 +19,9 @@ registry:
 capabilities: []
 
 workflows:
-  - name: main
+  - name: analyze
     default: true
     path: workflow.yaml
+  - name: transform-web-imports
+    default: false
+    path: workflow.transform-web-imports.yaml

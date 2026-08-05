@@ -2,46 +2,48 @@
 
 version: "1"
 
+params:
+  schema:
+    report_directory:
+      name: Report directory
+      description: Target-relative directory for JSON and HTML report artifacts
+      type: string
+      default: ".codemod-reports/solid-v2"
+
 nodes:
-  - id: apply-transforms
-    name: Apply Solid 1.x to 2 local-safe transformations
+  - id: analyze-solid-v2-sites
+    name: Analyze supported Solid 2 migration sites
     type: automatic
     steps:
-      - name: "Rewrite Solid source imports and local-safe JSX patterns"
+      - name: Detect exact migration sites without changing source
         js-ast-grep:
-          js_file: scripts/codemod.ts
+          js_file: scripts/analyze.ts
           base_path: "."
           language: "tsx"
+          semantic_analysis: file
           include:
-            - "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+            - "**/*.ts"
+            - "**/*.tsx"
           exclude:
+            - "**/.codemod-reports/**"
             - "**/node_modules/**"
             - "**/dist/**"
             - "**/build/**"
-
-      - name: "Update Solid JSX config and package dependency entries"
+            - "**/coverage/**"
+            - "**/*.d.ts"
+      - name: Write canonical JSON and self-contained HTML reports
         js-ast-grep:
-          js_file: scripts/json-config.ts
+          js_file: scripts/write-report.ts
           base_path: "."
-          language: "json"
+          language: "tsx"
+          max_threads: 1
           include:
-            - "**/package.json"
-            - "**/tsconfig.json"
-            - "**/tsconfig.*.json"
-            - "**/jsconfig.json"
-            - "**/jsconfig.*.json"
+            - "**/*.ts"
+            - "**/*.tsx"
           exclude:
+            - "**/.codemod-reports/**"
             - "**/node_modules/**"
             - "**/dist/**"
             - "**/build/**"
-
-
-  - id: install-package-skill
-    name: Install Package Skill
-    type: automatic
-    steps:
-      - id: install-package-skill
-        name: Install package skill
-        install-skill:
-          package: "solid-codemod"
-          path: "./agents/skill/solid-codemod/SKILL.md"
+            - "**/coverage/**"
+            - "**/*.d.ts"

@@ -1,17 +1,23 @@
 {
-  "name": "solid-codemod",
+  "name": "solid-v2-readonly-analysis",
   "version": "0.1.0",
-  "description": "Migrate local-safe Solid 1.x patterns to Solid 2",
-  "packageManager": "pnpm@10.0.0",
+  "description": "Report exact Solid 2 migration sites without changing source files",
+  "packageManager": "pnpm@11.20.0",
   "type": "module",
   "scripts": {
-    "test": "pnpm test:source && pnpm test:json",
-    "test:source": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/codemod.ts ./tests/source --strictness ast",
-    "test:json": "pnpm dlx codemod@latest jssg test -l json ./scripts/json-config.ts ./tests/json --strictness ast",
-    "check-types": "tsc --noEmit"
+    "analyze": "node ./scripts/run-workflow.mjs analyze",
+    "transform:web-imports": "node ./scripts/run-workflow.mjs transform:web-imports",
+    "test": "pnpm test:report && pnpm test:transform && pnpm test:workflow && pnpm test:skill",
+    "test:report": "node --experimental-strip-types --test ./scripts/report.test.ts ./scripts/report-path.test.ts",
+    "test:transform": "pnpm dlx codemod@1.12.13 jssg test -l tsx ./scripts/transform-web-imports.ts ./tests/transform --strictness strict",
+    "test:workflow": "node ./scripts/verify-workflow.mjs",
+    "test:skill": "node ./scripts/validate-skill.mjs",
+    "check-types": "tsc --noEmit",
+    "validate": "pnpm dlx codemod@1.12.13 workflow validate -w workflow.yaml && pnpm dlx codemod@1.12.13 workflow validate -w workflow.transform-web-imports.yaml",
+    "verify": "pnpm test && pnpm check-types && pnpm validate"
   },
   "devDependencies": {
-    "@codemod.com/jssg-types": "latest",
-    "typescript": "latest"
+    "@codemod.com/jssg-types": "1.6.2",
+    "typescript": "6.0.3"
   }
 }

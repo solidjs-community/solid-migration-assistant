@@ -1,0 +1,4 @@
+interface:
+  display_name: "Migrate Solid createEffect"
+  short_description: "Guide safe Solid 2 effect migrations"
+  default_prompt: "Use $migrate-solid-create-effect to explain this reported Solid createEffect migration site."

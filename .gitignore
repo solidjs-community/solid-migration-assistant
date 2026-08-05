@@ -8,6 +8,7 @@ yarn-error.log*
 target/
 dist/
 build/
+.codemod-reports/
 
 # Temporary files
 *.tmp

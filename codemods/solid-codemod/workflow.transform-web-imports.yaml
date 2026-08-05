@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: "1"
+
+nodes:
+  - id: transform-static-web-imports
+    name: Transform exact static Solid web imports
+    type: automatic
+    steps:
+      - name: Rewrite solid-js/web to @solidjs/web
+        js-ast-grep:
+          js_file: scripts/transform-web-imports.ts
+          base_path: "."
+          language: "tsx"
+          include:
+            - "**/*.ts"
+            - "**/*.tsx"
+          exclude:
+            - "**/.codemod-reports/**"
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"
+            - "**/coverage/**"
+            - "**/*.d.ts"
