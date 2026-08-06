@@ -16,7 +16,7 @@ A detected migration site whose finding contains narrow migration guidance, but 
 
 **Manual decision**
 
-A detected site that requires application behavior or ownership information beyond the available local evidence. The report schema supports this route even though the current rules emit none.
+A detected site that requires application behavior or ownership information beyond the available local evidence. Legacy two- and three-argument `createMemo` calls use this route.
 
 **Read-only analysis**
 
@@ -28,4 +28,4 @@ The exact project profile, syntax, and rule set the report can claim. Every repo
 
 **Target contract**
 
-The pinned Solid version and upstream source commit used to define a rule. The first slice targets `solid-js@2.0.0-beta.30` at `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.
+The pinned Solid version and upstream source commit used to define a rule. The current implementation targets `solid-js@2.0.0-beta.30` at `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.

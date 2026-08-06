@@ -2,14 +2,21 @@
 
 This package has two workflows: read-only analysis and aggregate safe transformation. It currently scans only TSX files in a narrow Solid 1.9 client-app profile.
 
-The current rules recognize only:
+The current rules recognize only exact named `solid-js` bindings and static web imports:
 
+- direct `createComputed(...)` calls (`agent-guided`);
 - direct, one-argument `createEffect(...)` calls bound to `import { createEffect } from "solid-js"`;
+- direct two- and three-argument `createMemo(...)` calls (`manual`);
+- direct `mergeProps(...)` calls (`agent-guided`);
 - direct, one-argument `onMount(...)` calls bound to `import { onMount } from "solid-js"`;
 - static ES imports whose module source is exactly `solid-js/web`.
 
 The target contract is Solid `2.0.0-beta.30` at upstream commit `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.
-The pinned target [removes `onMount` in favor of `onSettled`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/index.ts#L156); [`onSettled` callbacks may return an owner-bound cleanup function](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid-signals/src/signals.ts#L823-L838).
+
+- The pinned target [removes `createComputed`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/index.ts#L138-L156). Depending on intent, migration may use [`createMemo`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/client/hydration.ts#L949-L964), split `createEffect`, or [function-form `createSignal`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/client/hydration.ts#L980-L1011).
+- Solid 2 exposes [`merge`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid-signals/src/store/utils.ts#L267-L309) as the user-facing replacement for `mergeProps`. Its right-most source wins when a property exists even when its value is `undefined`, so the analyzer does not blindly rename calls.
+- Solid 2 [`createMemo` accepts options as its second argument and no initial-value position](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/client/hydration.ts#L943-L964), so Solid 1 two- and three-argument calls require manual review.
+- The pinned target [removes `onMount` in favor of `onSettled`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/index.ts#L156); [`onSettled` callbacks may return an owner-bound cleanup function](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid-signals/src/signals.ts#L823-L838).
 
 ## Analyze
 
@@ -54,7 +61,7 @@ Each analyzer returns its rule metadata and findings. Findings contain their own
 
 ## Deliberate limits
 
-Version one does not cover JavaScript, `.ts` files, aliases, namespace effect or lifecycle calls, unsupported call argument counts, re-exports, dynamic imports, `require`, TypeScript import types, configuration, dependencies, SSR, libraries, monorepos, or cross-file meaning. `onMount` findings are guidance only: the codemod does not automatically rewrite lifecycle callbacks. These limits are repeated in every report.
+Version one does not cover JavaScript, `.ts` files, aliases, namespace calls, indirect calls, shadowed bindings, unsupported `createEffect`, `createMemo`, or `onMount` argument counts, re-exports, dynamic imports, `require`, TypeScript import types, configuration, dependencies, SSR, libraries, monorepos, or cross-file meaning. `createComputed`, `mergeProps`, and `onMount` findings are guidance only; legacy `createMemo` initial arguments are manual findings. None of these four rules transforms source. These limits are repeated in every report.
 
 ## Verify
 
