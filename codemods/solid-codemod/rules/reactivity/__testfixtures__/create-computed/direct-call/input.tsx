@@ -1,4 +1,4 @@
-import { createComputed, createSignal } from "solid-js";
+import { /* before */ createComputed /* after */, createSignal } from "solid\u{2d}js";
 import { createComputed as computed } from "solid-js";
 import * as Solid from "solid-js";
 import * as Other from "other-library";
@@ -9,7 +9,7 @@ createComputed(() => count() * 2);
 createComputed(() => console.log(count()));
 createComputed(() => setCount(count() + 1));
 createComputed(() => { console.log(count()); setCount(count() + 1); });
-(createComputed)(/* leading */ () => count());
+(createComputed /* callee */)(/* leading */ () => count());
 declare const computedCallbacks: [() => number];
 createComputed(...computedCallbacks);
 

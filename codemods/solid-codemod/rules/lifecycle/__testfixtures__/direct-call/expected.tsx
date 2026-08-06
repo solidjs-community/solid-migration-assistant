@@ -1,4 +1,4 @@
-import { /* lifecycle */ onCleanup, onMount } from "solid-js";
+import { /* lifecycle */ onCleanup, /* before */ onMount /* after */ } from "solid\u002djs";
 import { onMount as mount } from "solid-js";
 import * as Solid from "solid-js";
 import * as Other from "other-library";
@@ -7,7 +7,7 @@ onMount(() => {
   document.querySelector("main")?.focus();
 });
 
-(onMount)(() => {
+(onMount /* callee */)(() => {
   document.querySelector("aside")?.focus();
 });
 

@@ -1,4 +1,4 @@
-import { mergeProps } from "solid-js";
+import { /* before */ mergeProps /* after */ } from "solid\x2djs";
 import { mergeProps as merge } from "solid-js";
 import * as Solid from "solid-js";
 import * as Other from "other-library";
@@ -10,7 +10,7 @@ mergeProps(defaults, { enabled: false });
 mergeProps(defaults, maybeProps);
 declare const propSources: [{ enabled: boolean }, { label: string }];
 mergeProps(...propSources);
-(mergeProps)(/* leading */ defaults, { label: "ok" });
+(mergeProps /* callee */)(/* leading */ defaults, { label: "ok" });
 
 merge(defaults, {});
 Solid.mergeProps(defaults, {});

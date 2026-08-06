@@ -72,5 +72,68 @@ function stringLiteralValue(node: SgNode<TSX>): string | null {
   if ((quote !== '"' && quote !== "'") || text[text.length - 1] !== quote) {
     return null;
   }
-  return text.slice(1, -1);
+
+  let value = "";
+  const end = text.length - 1;
+  for (let index = 1; index < end; index++) {
+    const character = text[index]!;
+    if (character !== "\\") {
+      value += character;
+      continue;
+    }
+
+    index++;
+    if (index >= end) return null;
+    const escaped = text[index]!;
+    if (escaped === "\n" || escaped === "\u2028" || escaped === "\u2029") continue;
+    if (escaped === "\r") {
+      if (text[index + 1] === "\n") index++;
+      continue;
+    }
+
+    const simpleEscapes: Record<string, string> = {
+      b: "\b",
+      f: "\f",
+      n: "\n",
+      r: "\r",
+      t: "\t",
+      v: "\v",
+      "0": "\0",
+    };
+    if (escaped in simpleEscapes) {
+      if (escaped === "0" && /[0-9]/.test(text[index + 1] ?? "")) return null;
+      value += simpleEscapes[escaped]!;
+      continue;
+    }
+
+    if (escaped === "x") {
+      const digits = text.slice(index + 1, index + 3);
+      if (!/^[0-9a-f]{2}$/i.test(digits)) return null;
+      value += String.fromCharCode(Number.parseInt(digits, 16));
+      index += 2;
+      continue;
+    }
+
+    if (escaped === "u") {
+      if (text[index + 1] === "{") {
+        const close = text.indexOf("}", index + 2);
+        if (close < 0 || close >= end) return null;
+        const digits = text.slice(index + 2, close);
+        if (!/^[0-9a-f]{1,6}$/i.test(digits)) return null;
+        const codePoint = Number.parseInt(digits, 16);
+        if (codePoint > 0x10ffff) return null;
+        value += String.fromCodePoint(codePoint);
+        index = close;
+        continue;
+      }
+      const digits = text.slice(index + 1, index + 5);
+      if (!/^[0-9a-f]{4}$/i.test(digits)) return null;
+      value += String.fromCharCode(Number.parseInt(digits, 16));
+      index += 4;
+      continue;
+    }
+
+    value += escaped;
+  }
+  return value;
 }

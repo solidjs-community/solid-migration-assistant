@@ -1,10 +1,10 @@
-import { createEffect } from "solid-js";
+import { /* before */ createEffect /* after */ } from "solid\x2djs";
 
 createEffect(() => {
   document.title = "supported";
 });
 
-(createEffect)(() => {
+(createEffect /* callee */)(() => {
   document.title = "parenthesized";
 });
 
