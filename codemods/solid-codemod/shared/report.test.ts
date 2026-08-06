@@ -85,6 +85,16 @@ test("builds a sorted report with complete route buckets", () => {
   });
   assert.equal(report.summary.findings, 2);
   assert.equal(report.migration.to, "solid-js@2.0.0-beta.30");
+  assert.ok(
+    report.coverage.excluded.includes(
+      "Aliased and namespace createEffect and onMount calls",
+    ),
+  );
+  assert.ok(
+    report.coverage.excluded.includes(
+      "Unsupported createEffect and onMount argument counts",
+    ),
+  );
   assert.equal(JSON.parse(renderJsonReport(report)).schemaVersion, 1);
 });
 

@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, onMount } from "solid-js";
 import { render } from "solid-js/web";
 import "solid-js/web";
 
@@ -7,6 +7,10 @@ const [count, setCount] = createSignal(0);
 createEffect(() => {
   const title = `Count ${count()}`;
   document.title = title;
+});
+
+onMount(() => {
+  document.querySelector("button")?.focus();
 });
 
 createEffect(

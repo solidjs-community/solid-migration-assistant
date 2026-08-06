@@ -67,8 +67,8 @@ export function buildReport(input: {
       excluded: [
         "JavaScript files",
         "TypeScript files without JSX (.ts)",
-        "Aliased and namespace createEffect calls",
-        "Two-argument and three-argument createEffect calls",
+        "Aliased and namespace createEffect and onMount calls",
+        "Unsupported createEffect and onMount argument counts",
         "Re-exports, dynamic imports, require calls, and TypeScript import types",
         "Configuration and dependency changes",
         "SSR applications, libraries, and monorepos",

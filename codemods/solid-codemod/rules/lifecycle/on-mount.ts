@@ -1,24 +1,24 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 
-export const createEffectRule = {
-  ruleId: "S2-EFFECT-001",
+export const onMountRule = {
+  ruleId: "S2-LIFECYCLE-001",
   description:
-    "Direct one-argument createEffect calls bound to an exact named import from solid-js.",
+    "Direct one-argument onMount calls bound to an exact named import from solid-js.",
 };
 
-export function analyzeCreateEffect(
+export function analyzeOnMount(
   rootNode: SgNode<TSX>,
   context: { filename: string; source: string },
 ) {
-  const findings = directOneArgumentCreateEffectCalls(rootNode).map((call) => {
+  const findings = directOneArgumentOnMountCalls(rootNode).map((call) => {
     const range = call.range();
     const line = range.start.line + 1;
     const column = range.start.column + 1;
     return {
-      id: `${createEffectRule.ruleId}:${context.filename}:${line}:${column}`,
-      ruleId: createEffectRule.ruleId,
-      title: "Split this one-argument createEffect",
+      id: `${onMountRule.ruleId}:${context.filename}:${line}:${column}`,
+      ruleId: onMountRule.ruleId,
+      title: "Review this onMount lifecycle callback",
       route: "agent-guided" as const,
       confidence: "high" as const,
       location: {
@@ -30,21 +30,21 @@ export function analyzeCreateEffect(
       },
       excerpt: sourceExcerpt(context.source, range.start.line, range.end.line),
       reason:
-        "Solid 2 requires separate compute and effect callbacks; the correct split depends on which reads are reactive inputs and which statements are side effects.",
+        "Solid 2 removes onMount and replaces its lifecycle role with onSettled, but the correct migration depends on the callback's work and ownership.",
       evidence: {
-        importedName: "createEffect",
+        importedName: "onMount",
         argumentCount: 1,
         syntax: "direct-call",
       },
       guidance:
-        "Read the full callback, imports, and nearby reactive declarations. Explain the migration by default and edit only when explicitly asked. For the supported plain shape, move reactive reads into the compute callback, return their value, and keep the imperative operation in the effect callback. Stop without proposing a rewrite when the effect contains cleanup, async work, nested control flow affecting reads, reactive primitive creation, unrelated operations, writes that may affect its own inputs, or unclear intent. Ask for the smallest focused test or runtime observation that makes the missing behavior decision observable.",
+        "Read the full callback, its owner, and nearby cleanup registration. Explain the migration by default and edit only when explicitly asked. For a plain synchronous callback with clear ownership, consider replacing onMount with onSettled. Stop without proposing a rewrite when the callback registers cleanup, starts async work, contains nested control flow that changes lifecycle behavior, creates reactive primitives, or has unclear ownership. Ask for the smallest focused test or runtime observation that makes the required timing and cleanup behavior observable.",
     };
   });
 
-  return { rule: createEffectRule, findings };
+  return { rule: onMountRule, findings };
 }
 
-function directOneArgumentCreateEffectCalls(
+function directOneArgumentOnMountCalls(
   rootNode: SgNode<TSX>,
 ): SgNode<TSX>[] {
   const calls = new Map<number, SgNode<TSX>>();
@@ -58,7 +58,7 @@ function directOneArgumentCreateEffectCalls(
     for (const specifier of statement.findAll({
       rule: { kind: "import_specifier" },
     })) {
-      if (specifier.text().trim() !== "createEffect") continue;
+      if (specifier.text().trim() !== "onMount") continue;
       const identifiers = specifier.findAll({ rule: { kind: "identifier" } });
       const binding = identifiers[0];
       if (!binding || identifiers.length !== 1) continue;

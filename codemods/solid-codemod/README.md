@@ -5,9 +5,11 @@ This package has two workflows: read-only analysis and aggregate safe transforma
 The current rules recognize only:
 
 - direct, one-argument `createEffect(...)` calls bound to `import { createEffect } from "solid-js"`;
+- direct, one-argument `onMount(...)` calls bound to `import { onMount } from "solid-js"`;
 - static ES imports whose module source is exactly `solid-js/web`.
 
 The target contract is Solid `2.0.0-beta.30` at upstream commit `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.
+The pinned target [removes `onMount` in favor of `onSettled`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/index.ts#L156); [`onSettled` callbacks may return an owner-bound cleanup function](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid-signals/src/signals.ts#L823-L838).
 
 ## Analyze
 
@@ -52,7 +54,7 @@ Each analyzer returns its rule metadata and findings. Findings contain their own
 
 ## Deliberate limits
 
-Version one does not cover JavaScript, `.ts` files, aliases, namespace effect calls, two-argument effects, re-exports, dynamic imports, `require`, TypeScript import types, configuration, dependencies, SSR, libraries, monorepos, or cross-file meaning. These limits are repeated in every report.
+Version one does not cover JavaScript, `.ts` files, aliases, namespace effect or lifecycle calls, unsupported call argument counts, re-exports, dynamic imports, `require`, TypeScript import types, configuration, dependencies, SSR, libraries, monorepos, or cross-file meaning. `onMount` findings are guidance only: the codemod does not automatically rewrite lifecycle callbacks. These limits are repeated in every report.
 
 ## Verify
 

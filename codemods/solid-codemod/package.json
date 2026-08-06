@@ -10,7 +10,7 @@
     "test": "pnpm test:architecture && pnpm test:report && pnpm test:rules && pnpm test:workflow",
     "test:architecture": "node --experimental-strip-types --test ./tests/architecture.test.mjs ./tests/transform.test.ts",
     "test:report": "node --experimental-strip-types --test ./shared/report.test.ts ./shared/report-path.test.ts",
-    "test:rules": "pnpm dlx codemod@1.12.13 jssg test -l tsx ./rules/imports/web-import.test.ts ./rules/imports/__testfixtures__ --strictness strict && pnpm dlx codemod@1.12.13 jssg test -l tsx ./rules/reactivity/create-effect.test.ts ./rules/reactivity/__testfixtures__ --strictness strict --semantic-workspace",
+    "test:rules": "pnpm dlx codemod@1.12.13 jssg test -l tsx ./rules/imports/web-import.test.ts ./rules/imports/__testfixtures__ --strictness strict && pnpm dlx codemod@1.12.13 jssg test -l tsx ./rules/lifecycle/on-mount.test.ts ./rules/lifecycle/__testfixtures__ --strictness strict --semantic-workspace && pnpm dlx codemod@1.12.13 jssg test -l tsx ./rules/reactivity/create-effect.test.ts ./rules/reactivity/__testfixtures__ --strictness strict --semantic-workspace",
     "test:workflow": "node ./tests/workflow.test.mjs",
     "check-types": "tsc --noEmit",
     "validate": "pnpm dlx codemod@1.12.13 workflow validate -w workflow.yaml && pnpm dlx codemod@1.12.13 workflow validate -w workflow.transform.yaml",

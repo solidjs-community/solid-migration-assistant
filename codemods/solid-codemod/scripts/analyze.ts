@@ -3,6 +3,7 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 import { useMetricAtom } from "codemod:metrics";
 import { acquireLock, getState, setState } from "codemod:workflow";
 import { analyzeWebImport } from "../rules/imports/web-import.ts";
+import { analyzeOnMount } from "../rules/lifecycle/on-mount.ts";
 import { analyzeCreateEffect } from "../rules/reactivity/create-effect.ts";
 import {
   REPORT_STATE_KEY,
@@ -16,7 +17,11 @@ type Analyzer = (
   rootNode: SgNode<TSX>,
   context: { filename: string; source: string },
 ) => { rule: RuleMetadata; findings: MigrationFinding[] };
-const analyzers: Analyzer[] = [analyzeWebImport, analyzeCreateEffect];
+const analyzers: Analyzer[] = [
+  analyzeWebImport,
+  analyzeOnMount,
+  analyzeCreateEffect,
+];
 
 const analyze: Codemod<TSX> = async (root) => {
   const rootNode = root.root();

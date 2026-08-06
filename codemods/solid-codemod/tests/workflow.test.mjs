@@ -46,19 +46,20 @@ try {
 
   const firstReport = readReport(target);
   assert.equal(firstReport.schemaVersion, 1);
-  assert.equal(firstReport.summary.findings, 3);
+  assert.equal(firstReport.summary.findings, 4);
   assert.deepEqual(firstReport.summary.byRoute, {
     "safe-transform": 2,
-    "agent-guided": 1,
+    "agent-guided": 2,
     manual: 0,
   });
   assert.deepEqual(firstReport.summary.byRule, {
     "S2-EFFECT-001": 1,
     "S2-IMPORT-WEB-001": 2,
+    "S2-LIFECYCLE-001": 1,
   });
   assert.deepEqual(
     firstReport.coverage.supportedRules.map(({ ruleId }) => ruleId),
-    ["S2-EFFECT-001", "S2-IMPORT-WEB-001"],
+    ["S2-EFFECT-001", "S2-IMPORT-WEB-001", "S2-LIFECYCLE-001"],
   );
   assert.equal(
     firstReport.findings.some((finding) => "nextAction" in finding),
@@ -109,13 +110,16 @@ try {
 
   run("analyze", target);
   const afterTransformReport = readReport(target);
-  assert.equal(afterTransformReport.summary.findings, 1);
+  assert.equal(afterTransformReport.summary.findings, 2);
   assert.deepEqual(afterTransformReport.summary.byRoute, {
     "safe-transform": 0,
-    "agent-guided": 1,
+    "agent-guided": 2,
     manual: 0,
   });
-  assert.equal(afterTransformReport.findings[0]?.ruleId, "S2-EFFECT-001");
+  assert.deepEqual(
+    afterTransformReport.findings.map(({ ruleId }) => ruleId),
+    ["S2-EFFECT-001", "S2-LIFECYCLE-001"],
+  );
 
   const emptyTarget = join(temporaryRoot, "empty");
   cpSync(resolve(packageDirectory, "tests/empty"), emptyTarget, {
