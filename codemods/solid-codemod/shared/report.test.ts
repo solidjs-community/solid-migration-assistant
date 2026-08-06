@@ -92,7 +92,7 @@ test("builds a sorted report with complete route buckets", () => {
   );
   assert.ok(
     report.coverage.excluded.includes(
-      "Unsupported createEffect, createMemo, and onMount argument counts",
+      "Unsupported createComputed, createEffect, createMemo, and onMount argument counts",
     ),
   );
   assert.ok(

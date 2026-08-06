@@ -45,7 +45,7 @@ export function analyzeMergeProps(
           syntax: "direct-call",
         },
         guidance:
-          "Read every source expression and the consumers of the merged object. Explain the migration by default and edit only when explicitly asked. Suggest merge from solid-js only when later sources are known not to provide an own property with value undefined where older sources should win. Stop without proposing a rename when a source can define such an undefined property, uses a spread with unknown runtime contents, is computed dynamically, or relies on fallback-through-undefined behavior. In those cases preserve the intended precedence with an explicit manual rewrite and ask for the smallest focused test that observes the disputed property's value.",
+          "Read every source in order, identify overlapping keys, and inspect consumers of the merged object. Explain the migration by default and edit only when explicitly asked. Suggest merge from solid-js only when every later overlapping value is provably non-undefined and zero-argument behavior, result identity, and mutation do not matter. Stop without proposing a rename for spreads, any/unknown/union runtime sources, props/store proxies, function sources, getters, dynamic key presence, observed identity or mutation dependence, or fallback-through-undefined behavior. Never use the inferred Merge result type alone as runtime safety evidence. If old fallback behavior is required, preserve live reactive reads with a targeted manual guard rather than object spread or Object.assign, and ask for the smallest focused test that observes the disputed property's value.",
       };
     },
   );

@@ -12,12 +12,12 @@
 ## 3. Direct `createComputed(...)` calls
 
 - **Status:** Implemented as `S2-COMPUTED-001` (`agent-guided`, analysis only, no skill).
-- **Coverage:** Readonly derivation, side effects, writes, several operations, spreads, parenthesized callees, and alias/namespace/shadowed/non-Solid exclusions.
+- **Coverage:** One- to three-argument callbacks covering readonly derivation, side effects, writeback, previous/initial values, and several operations. Parenthesized callees match; zero-/four-argument calls, spreads, aliases, namespaces, shadowing, and non-Solid imports are excluded. Guidance covers `createMemo`, split `createEffect`, function-form `createSignal`, and derived `createStore`.
 
 ## 4. Direct `mergeProps(...)` calls
 
 - **Status:** Implemented as `S2-PROPS-001` (`agent-guided`, analysis only, no skill).
-- **Coverage:** Plain and possibly-undefined sources, spreads, parenthesized callees, and alias/namespace/shadowed/non-Solid exclusions. Guidance stops when runtime values decide `undefined` precedence.
+- **Coverage:** Plain, possibly-undefined, zero-/one-source, and spread calls; parenthesized callees; and alias/namespace/shadowed/non-Solid exclusions. Guidance stops when runtime values decide `undefined` precedence or when spreads, functions, getters, proxies, result identity, or mutation make a rename unsafe.
 
 ## 5. Legacy `createMemo` initial arguments
 

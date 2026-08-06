@@ -119,7 +119,7 @@ function stringLiteralValue(node: SgNode<TSX>): string | null {
         const close = text.indexOf("}", index + 2);
         if (close < 0 || close >= end) return null;
         const digits = text.slice(index + 2, close);
-        if (!/^[0-9a-f]{1,6}$/i.test(digits)) return null;
+        if (!/^[0-9a-f]+$/i.test(digits)) return null;
         const codePoint = Number.parseInt(digits, 16);
         if (codePoint > 0x10ffff) return null;
         value += String.fromCodePoint(codePoint);

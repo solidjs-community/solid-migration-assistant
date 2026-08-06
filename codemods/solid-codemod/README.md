@@ -4,7 +4,7 @@ This package has two workflows: read-only analysis and aggregate safe transforma
 
 The current rules recognize only exact named `solid-js` bindings and static web imports:
 
-- direct `createComputed(...)` calls (`agent-guided`);
+- direct, one- to three-semantic-argument, non-spread `createComputed(...)` calls (`agent-guided`);
 - direct, one-argument `createEffect(...)` calls bound to `import { createEffect } from "solid-js"`;
 - direct two- and three-argument `createMemo(...)` calls (`manual`);
 - direct `mergeProps(...)` calls (`agent-guided`);
@@ -13,9 +13,9 @@ The current rules recognize only exact named `solid-js` bindings and static web 
 
 The target contract is Solid `2.0.0-beta.30` at upstream commit `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.
 
-- The pinned target [removes `createComputed`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/index.ts#L138-L156). Depending on intent, migration may use [`createMemo`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/client/hydration.ts#L949-L964), split `createEffect`, or [function-form `createSignal`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/client/hydration.ts#L980-L1011).
-- Solid 2 exposes [`merge`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid-signals/src/store/utils.ts#L267-L309) as the user-facing replacement for `mergeProps`. Its right-most source wins when a property exists even when its value is `undefined`, so the analyzer does not blindly rename calls.
-- Solid 2 [`createMemo` accepts options as its second argument and no initial-value position](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/client/hydration.ts#L943-L964), so Solid 1 two- and three-argument calls require manual review.
+- Solid 1.9.14 [`createComputed` accepts one to three arguments](https://app.unpkg.com/solid-js@1.9.14/files/types/reactive/signal.d.ts), while the pinned target [removes it](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/index.ts#L138-L156). The [official migration guide](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/documentation/solid-2.0/MIGRATION.md#L716-L755) identifies `createMemo`, split `createEffect`, and function-form `createSignal`; the pinned [derived-ownership guidance](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/documentation/solid-2.0/02-signals-derived-ownership.md#L146-L165) also shows derived `createStore`, depending on intent.
+- Solid 2 exposes [`merge`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid-signals/src/store/utils.ts#L267-L368) as the user-facing replacement for `mergeProps`. Its right-most source wins when a property exists even when its value is `undefined`; `merge()` returns `undefined` rather than `{}`, and one-source results may preserve source identity, so the analyzer does not blindly rename calls.
+- Solid 1.9.14 [`createMemo` uses its second argument as an initial value and its third as options](https://unpkg.com/solid-js@1.9.14/types/reactive/signal.d.ts), while Solid 2 [`createMemo` accepts options as its second argument and no initial-value position](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/client/hydration.ts#L921-L964). Solid 1 two- and three-argument calls therefore require manual review.
 - The pinned target [removes `onMount` in favor of `onSettled`](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid/src/index.ts#L156); [`onSettled` callbacks may return an owner-bound cleanup function](https://github.com/solidjs/solid/blob/edb3e36faad698d0368d5eade19e4cb3b5d5cf10/packages/solid-signals/src/signals.ts#L823-L838).
 
 ## Analyze
@@ -61,7 +61,7 @@ Each analyzer returns its rule metadata and findings. Findings contain their own
 
 ## Deliberate limits
 
-Version one does not cover JavaScript, `.ts` files, aliases, namespace calls, indirect calls, shadowed bindings, unsupported `createEffect`, `createMemo`, or `onMount` argument counts, re-exports, dynamic imports, `require`, TypeScript import types, configuration, dependencies, SSR, libraries, monorepos, or cross-file meaning. `createComputed`, `mergeProps`, and `onMount` findings are guidance only; legacy `createMemo` initial arguments are manual findings. None of these four rules transforms source. These limits are repeated in every report.
+Version one does not cover JavaScript, `.ts` files, aliases, namespace calls, indirect calls, shadowed bindings, unsupported `createComputed`, `createEffect`, `createMemo`, or `onMount` argument counts, re-exports, dynamic imports, `require`, TypeScript import types, configuration, dependencies, SSR, libraries, monorepos, or cross-file meaning. `createComputed`, `mergeProps`, and `onMount` findings are guidance only; legacy `createMemo` initial arguments are manual findings. None of these four rules transforms source. These limits are repeated in every report.
 
 ## Verify
 

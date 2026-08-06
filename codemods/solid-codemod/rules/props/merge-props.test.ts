@@ -39,8 +39,11 @@ const testMergePropsRule: Codemod<TSX> = async (root) => {
     if (
       finding.route !== "agent-guided" ||
       finding.evidence.importedName !== "mergeProps" ||
-      !finding.guidance.includes("undefined") ||
       !finding.guidance.includes("merge") ||
+      !finding.guidance.includes("undefined") ||
+      !finding.guidance.includes("identity") ||
+      !finding.guidance.includes("function sources") ||
+      !finding.guidance.includes("props/store proxies") ||
       !finding.guidance.includes("Stop")
     ) {
       throw new Error("mergeProps finding must contain route, evidence, and guidance");

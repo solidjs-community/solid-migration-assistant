@@ -11,7 +11,7 @@ const testCreateComputedRule: Codemod<TSX> = async (root) => {
   if (result.rule.ruleId !== "S2-COMPUTED-001") {
     throw new Error(`unexpected rule metadata: ${result.rule.ruleId}`);
   }
-  const expectedFindings = source.includes('from "solid-js"') ? 6 : 0;
+  const expectedFindings = source.includes('from "solid-js"') ? 7 : 0;
   if (result.findings.length !== expectedFindings) {
     throw new Error(
       `expected ${expectedFindings} createComputed findings, got ${result.findings.length}`,
@@ -19,14 +19,16 @@ const testCreateComputedRule: Codemod<TSX> = async (root) => {
   }
   if (expectedFindings > 0) {
     const lines = result.findings.map((finding) => finding.location.line);
-    if (lines.join(",") !== "8,9,10,11,12,14") {
+    if (lines.join(",") !== "8,9,10,11,12,13,14") {
       throw new Error(`unexpected createComputed finding lines: ${lines.join(",")}`);
     }
-    const spreadFlags = result.findings.map(
-      (finding) => finding.evidence.hasSpreadArguments,
+    const argumentCounts = result.findings.map(
+      (finding) => finding.evidence.argumentCount,
     );
-    if (spreadFlags.join(",") !== "false,false,false,false,false,true") {
-      throw new Error(`unexpected createComputed spread evidence: ${spreadFlags.join(",")}`);
+    if (argumentCounts.join(",") !== "1,1,1,1,1,2,3") {
+      throw new Error(
+        `unexpected createComputed argument counts: ${argumentCounts.join(",")}`,
+      );
     }
   }
   for (const finding of result.findings) {
@@ -35,6 +37,8 @@ const testCreateComputedRule: Codemod<TSX> = async (root) => {
       finding.evidence.importedName !== "createComputed" ||
       !finding.guidance.includes("createMemo") ||
       !finding.guidance.includes("createEffect") ||
+      !finding.guidance.includes("createSignal") ||
+      !finding.guidance.includes("createStore") ||
       !finding.guidance.includes("Stop")
     ) {
       throw new Error("createComputed finding must contain route, evidence, and guidance");
