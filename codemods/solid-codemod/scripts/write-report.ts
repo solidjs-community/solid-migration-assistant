@@ -4,20 +4,32 @@ import { acquireLock, getState, setState } from "codemod:workflow";
 import { relative, resolve } from "path";
 import {
   prepareReportDirectory,
+  removeStaleReportFile,
+  REPORT_DIRECTORY,
+  REPORT_FILENAMES,
   writeReportFile,
-} from "./report-path.ts";
+} from "../shared/report-path.ts";
 import {
   buildReport,
   renderHtmlReport,
   renderJsonReport,
+} from "../shared/report.ts";
+import {
   REPORT_STATE_KEY,
-  type MigrationFinding,
-} from "./report.ts";
+  type AnalysisState,
+} from "../shared/types.ts";
 
 const REPORT_WRITTEN_STATE_KEY = "solid-v2-analysis-report-written";
-const DEFAULT_REPORT_DIRECTORY = ".codemod-reports/solid-v2";
+const writeReport: Codemod<TSX> = async (root, options) => {
+  const filename = root.relativeFilename().replaceAll("\\", "/");
+  const staleReportFilename = REPORT_FILENAMES.find(
+    (reportFilename) => filename === `${REPORT_DIRECTORY}/${reportFilename}`,
+  );
+  if (staleReportFilename) {
+    removeStaleReportFile(options.targetDir, staleReportFilename);
+    return null;
+  }
 
-const writeReport: Codemod<TSX> = async (_root, options) => {
   const release = acquireLock(REPORT_WRITTEN_STATE_KEY);
   try {
     if (getState<boolean>(REPORT_WRITTEN_STATE_KEY)) return null;
@@ -30,15 +42,13 @@ const writeReport: Codemod<TSX> = async (_root, options) => {
       return null;
     }
 
-    const outputDirectory = prepareReportDirectory(
-      options.targetDir,
-      options.params.report_directory ?? DEFAULT_REPORT_DIRECTORY,
-    );
-    const report = buildReport({
-      findings: getState<MigrationFinding[]>(REPORT_STATE_KEY) ?? [],
-    });
-    const jsonName = "solid-v2-migration-report.json";
-    const htmlName = "solid-v2-migration-report.html";
+    const outputDirectory = prepareReportDirectory(options.targetDir);
+    const state = getState<AnalysisState>(REPORT_STATE_KEY) ?? {
+      rules: [],
+      findings: [],
+    };
+    const report = buildReport(state);
+    const [jsonName, htmlName] = REPORT_FILENAMES;
     writeReportFile(outputDirectory, jsonName, renderJsonReport(report));
     writeReportFile(outputDirectory, htmlName, renderHtmlReport(report));
     setState(REPORT_WRITTEN_STATE_KEY, true, false);

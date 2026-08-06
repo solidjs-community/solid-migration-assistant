@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  existsSync,
   lstatSync,
   mkdtempSync,
   mkdirSync,
@@ -13,23 +14,22 @@ import { join } from "node:path";
 import { test } from "node:test";
 import {
   prepareReportDirectory,
-  resolveReportDirectory,
+  removeStaleReportFiles,
+  REPORT_DIRECTORY,
   writeReportFile,
 } from "./report-path.ts";
 
-test("keeps report paths inside the target", () => {
-  assert.equal(
-    resolveReportDirectory("/workspace/app", ".codemod-reports/solid-v2"),
-    "/workspace/app/.codemod-reports/solid-v2",
-  );
-  assert.throws(
-    () => resolveReportDirectory("/workspace/app", "../outside"),
-    /must stay inside/,
-  );
-  assert.throws(
-    () => resolveReportDirectory("/workspace/app", "/tmp/outside"),
-    /must be relative/,
-  );
+test("uses the fixed report directory inside the target", () => {
+  const target = mkdtempSync(join(tmpdir(), "solid-v2-fixed-report-"));
+  try {
+    assert.equal(
+      prepareReportDirectory(target),
+      join(target, ".codemod-reports", "solid-v2"),
+    );
+    assert.equal(REPORT_DIRECTORY, ".codemod-reports/solid-v2");
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
 });
 
 test("rejects directory symlink traversal", () => {
@@ -41,7 +41,7 @@ test("rejects directory symlink traversal", () => {
     mkdirSync(outside);
     symlinkSync(outside, join(target, ".codemod-reports"));
     assert.throws(
-      () => prepareReportDirectory(target, ".codemod-reports/solid-v2"),
+      () => prepareReportDirectory(target),
       /symbolic link/,
     );
   } finally {
@@ -70,4 +70,25 @@ test("rejects report filenames containing a path", () => {
     () => writeReportFile("/workspace/app", "../report.json", "{}"),
     /plain filename/,
   );
+});
+
+test("removes only stale generated report files", () => {
+  const root = mkdtempSync(join(tmpdir(), "solid-v2-stale-report-"));
+  try {
+    const reportDirectory = prepareReportDirectory(root);
+    const json = join(reportDirectory, "solid-v2-migration-report.json");
+    const html = join(reportDirectory, "solid-v2-migration-report.html");
+    const unrelated = join(reportDirectory, "keep.txt");
+    writeFileSync(json, "stale");
+    writeFileSync(html, "stale");
+    writeFileSync(unrelated, "keep");
+
+    removeStaleReportFiles(root);
+
+    assert.equal(existsSync(json), false);
+    assert.equal(existsSync(html), false);
+    assert.equal(readFileSync(unrelated, "utf8"), "keep");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

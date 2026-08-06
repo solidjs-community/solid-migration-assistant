@@ -1,43 +1,44 @@
 import * as fs from "fs";
-import { basename, isAbsolute, relative, resolve, sep } from "path";
+import { basename, relative, resolve, sep } from "path";
 
 const runtimeFs = fs as typeof fs & {
   unlinkSync(path: string): void;
 };
 
-export function resolveReportDirectory(
-  targetDirectory: string,
-  configuredPath: string,
-): string {
-  const requested = configuredPath.trim();
-  if (!requested) throw new Error("report_directory must not be empty");
-  if (isAbsolute(requested)) {
-    throw new Error("report_directory must be relative to the target directory");
-  }
+export const REPORT_DIRECTORY = ".codemod-reports/solid-v2";
+export const REPORT_FILENAMES = [
+  "solid-v2-migration-report.json",
+  "solid-v2-migration-report.html",
+] as const;
 
+export function prepareReportDirectory(targetDirectory: string): string {
   const target = resolve(targetDirectory);
-  const output = resolve(target, requested);
-  const fromTarget = relative(target, output);
-  if (
-    fromTarget === ".." ||
-    fromTarget.startsWith(`..${sep}`) ||
-    isAbsolute(fromTarget)
-  ) {
-    throw new Error("report_directory must stay inside the target directory");
-  }
-  return output;
-}
-
-export function prepareReportDirectory(
-  targetDirectory: string,
-  configuredPath: string,
-): string {
-  const target = resolve(targetDirectory);
-  const output = resolveReportDirectory(targetDirectory, configuredPath);
+  const output = resolve(target, REPORT_DIRECTORY);
   assertNoSymlinkPath(target, output);
   fs.mkdirSync(output, { recursive: true });
   assertNoSymlinkPath(target, output);
   return output;
+}
+
+export function removeStaleReportFiles(targetDirectory: string): void {
+  for (const filename of REPORT_FILENAMES) {
+    removeStaleReportFile(targetDirectory, filename);
+  }
+}
+
+export function removeStaleReportFile(
+  targetDirectory: string,
+  filename: (typeof REPORT_FILENAMES)[number],
+): void {
+  const target = resolve(targetDirectory);
+  const output = resolve(target, REPORT_DIRECTORY);
+  assertNoSymlinkPath(target, output);
+
+  try {
+    runtimeFs.unlinkSync(resolve(output, filename));
+  } catch (error) {
+    if (!isMissing(error)) throw error;
+  }
 }
 
 export function writeReportFile(

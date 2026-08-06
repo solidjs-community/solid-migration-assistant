@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   cpSync,
+  existsSync,
   mkdtempSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
@@ -14,7 +17,8 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const runner = resolve(packageDirectory, "scripts/run-workflow.mjs");
+const workspaceDirectory = resolve(packageDirectory, "../..");
+
 const reportRelativePath = join(
   ".codemod-reports",
   "solid-v2",
@@ -28,7 +32,8 @@ const htmlRelativePath = join(
 const temporaryRoot = mkdtempSync(join(tmpdir(), "solid-v2-analysis-"));
 
 try {
-  runFailure("analyze", join(temporaryRoot, "missing"), 2);
+  runFailure("analyze", ["--target", join(temporaryRoot, "missing")], /does not exist/);
+  runFailure("transform", [], /--target is required/);
 
   const target = join(temporaryRoot, "fixture");
   cpSync(resolve(packageDirectory, "tests/fixture"), target, {
@@ -36,7 +41,7 @@ try {
   });
 
   const sourceBeforeAnalysis = sourceSnapshot(target);
-  run("analyze", target);
+  runFromWorkspace("analyze", relative(workspaceDirectory, target));
   assert.deepEqual(sourceSnapshot(target), sourceBeforeAnalysis);
 
   const firstReport = readReport(target);
@@ -51,6 +56,15 @@ try {
     "S2-EFFECT-001": 1,
     "S2-IMPORT-WEB-001": 2,
   });
+  assert.deepEqual(
+    firstReport.coverage.supportedRules.map(({ ruleId }) => ruleId),
+    ["S2-EFFECT-001", "S2-IMPORT-WEB-001"],
+  );
+  assert.equal(
+    firstReport.findings.some((finding) => "nextAction" in finding),
+    false,
+  );
+  assert.ok(firstReport.findings.every((finding) => finding.guidance.length > 0));
   assert.deepEqual(
     [...new Set(firstReport.findings.map((finding) => finding.location.file))],
     ["src/App.tsx"],
@@ -78,7 +92,8 @@ try {
   const nonmatchesPath = join(target, "src/nonmatches.tsx");
   const appBeforeTransform = readFileSync(appPath, "utf8");
   const nonmatchesBeforeTransform = readFileSync(nonmatchesPath, "utf8");
-  run("transform:web-imports", target);
+  rmSync(join(target, ".codemod-reports"), { recursive: true, force: true });
+  run("transform", target);
   const appAfterTransform = readFileSync(appPath, "utf8");
   assert.equal(
     appAfterTransform,
@@ -87,8 +102,9 @@ try {
       .replace('import "solid-js/web"', 'import "@solidjs/web"'),
   );
   assert.equal(readFileSync(nonmatchesPath, "utf8"), nonmatchesBeforeTransform);
+  assert.equal(existsSync(join(target, reportRelativePath)), false);
 
-  run("transform:web-imports", target);
+  run("transform", target);
   assert.equal(readFileSync(appPath, "utf8"), appAfterTransform);
 
   run("analyze", target);
@@ -105,12 +121,14 @@ try {
   cpSync(resolve(packageDirectory, "tests/empty"), emptyTarget, {
     recursive: true,
   });
+  const staleReportDirectory = join(emptyTarget, ".codemod-reports", "solid-v2");
+  mkdirSync(staleReportDirectory, { recursive: true });
+  writeFileSync(join(emptyTarget, htmlRelativePath), "stale");
   const emptyBefore = sourceSnapshot(emptyTarget);
   run("analyze", emptyTarget);
   assert.deepEqual(sourceSnapshot(emptyTarget), emptyBefore);
-  const emptyReport = readReport(emptyTarget);
-  assert.equal(emptyReport.summary.findings, 0);
-  assert.deepEqual(emptyReport.findings, []);
+  assert.equal(existsSync(join(emptyTarget, reportRelativePath)), false);
+  assert.equal(existsSync(join(emptyTarget, htmlRelativePath)), false);
 
   console.log("workflow verification passed");
 } finally {
@@ -119,8 +137,8 @@ try {
 
 function run(mode, target) {
   const result = spawnSync(
-    process.execPath,
-    [runner, mode, "--target", target],
+    "pnpm",
+    [mode, "--target", target],
     {
       cwd: packageDirectory,
       encoding: "utf8",
@@ -132,18 +150,25 @@ function run(mode, target) {
   assert.equal(result.status, 0, `${mode} exited ${result.status}`);
 }
 
-function runFailure(mode, target, expectedStatus) {
-  const result = spawnSync(
-    process.execPath,
-    [runner, mode, "--target", target],
-    {
-      cwd: packageDirectory,
-      encoding: "utf8",
-      env: { ...process.env, CI: "true" },
-    },
-  );
-  assert.equal(result.status, expectedStatus);
-  assert.match(result.stderr, /target does not exist/);
+function runFromWorkspace(mode, target) {
+  const result = spawnSync("pnpm", [mode, "--target", target], {
+    cwd: workspaceDirectory,
+    encoding: "utf8",
+    env: { ...process.env, CI: "true", INIT_CWD: workspaceDirectory },
+  });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  assert.equal(result.status, 0, `${mode} exited ${result.status}`);
+}
+
+function runFailure(mode, argumentsList, message) {
+  const result = spawnSync("pnpm", [mode, ...argumentsList], {
+    cwd: packageDirectory,
+    encoding: "utf8",
+    env: { ...process.env, CI: "true" },
+  });
+  assert.equal(result.status, 2, `${mode} exited ${result.status}`);
+  assert.match(`${result.stdout}\n${result.stderr}`, message);
 }
 
 function readReport(target) {

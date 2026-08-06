@@ -12,11 +12,11 @@ An exact local change with one proven output. Safe transforms live in an explici
 
 **Agent-guided change**
 
-A detected migration site where an agent can explain a narrow known shape, but must inspect intent and may need to stop. Analysis never applies these changes.
+A detected migration site whose finding contains narrow migration guidance, but where an agent must inspect intent and may need to stop. Analysis never applies these changes.
 
 **Manual decision**
 
-A detected site that requires application behavior or ownership information beyond the available migration skill. The report schema supports this route even though the first slice emits none.
+A detected site that requires application behavior or ownership information beyond the available local evidence. The report schema supports this route even though the current rules emit none.
 
 **Read-only analysis**
 

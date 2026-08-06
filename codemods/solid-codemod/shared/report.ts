@@ -1,51 +1,10 @@
+import type {
+  FindingRoute,
+  MigrationFinding,
+  RuleMetadata,
+} from "./types.ts";
+
 export const REPORT_SCHEMA_VERSION = 1;
-export const REPORT_STATE_KEY = "solid-v2-analysis-findings";
-
-export const RULE_IDS = {
-  effect: "S2-EFFECT-001",
-  webImport: "S2-IMPORT-WEB-001",
-} as const;
-
-export type RuleId = (typeof RULE_IDS)[keyof typeof RULE_IDS];
-export type FindingRoute = "safe-transform" | "agent-guided" | "manual";
-export type FindingConfidence = "high" | "medium" | "low";
-
-export type SourceLocation = {
-  file: string;
-  line: number;
-  column: number;
-  endLine: number;
-  endColumn: number;
-};
-
-export type MigrationFinding = {
-  id: string;
-  ruleId: RuleId;
-  title: string;
-  route: FindingRoute;
-  confidence: FindingConfidence;
-  location: SourceLocation;
-  excerpt: {
-    startLine: number;
-    text: string;
-  };
-  reason: string;
-  evidence: Record<string, string | number | boolean>;
-  nextAction:
-    | {
-        kind: "workflow";
-        command: "pnpm transform:web-imports --target .";
-      }
-    | {
-        kind: "skill";
-        skill: "migrate-solid-create-effect";
-        prompt: string;
-      }
-    | {
-        kind: "manual";
-        instruction: string;
-      };
-};
 
 export type MigrationReport = {
   schemaVersion: typeof REPORT_SCHEMA_VERSION;
@@ -57,40 +16,40 @@ export type MigrationReport = {
     upstreamCommit: "edb3e36faad698d0368d5eade19e4cb3b5d5cf10";
   };
   coverage: {
-    profile: "single-package Vite TypeScript client app";
-    supportedRules: Array<{
-      ruleId: RuleId;
-      description: string;
-    }>;
+    profile: "single-package Vite TSX client app";
+    supportedRules: RuleMetadata[];
     excluded: string[];
   };
   summary: {
     findings: number;
     files: number;
     byRoute: Record<FindingRoute, number>;
-    byRule: Record<RuleId, number>;
+    byRule: Record<string, number>;
   };
   findings: MigrationFinding[];
 };
 
 export function buildReport(input: {
+  rules: RuleMetadata[];
   findings: MigrationFinding[];
   generatedAt?: string;
 }): MigrationReport {
+  const supportedRules = [...new Map(input.rules.map((rule) => [rule.ruleId, rule])).values()].sort(
+    (left, right) => left.ruleId.localeCompare(right.ruleId),
+  );
   const findings = [...input.findings].sort(compareFindings);
   const byRoute: Record<FindingRoute, number> = {
     "safe-transform": 0,
     "agent-guided": 0,
     manual: 0,
   };
-  const byRule: Record<RuleId, number> = {
-    [RULE_IDS.effect]: 0,
-    [RULE_IDS.webImport]: 0,
-  };
+  const byRule: Record<string, number> = Object.fromEntries(
+    supportedRules.map((rule) => [rule.ruleId, 0]),
+  );
 
   for (const finding of findings) {
     byRoute[finding.route] += 1;
-    byRule[finding.ruleId] += 1;
+    byRule[finding.ruleId] = (byRule[finding.ruleId] ?? 0) + 1;
   }
 
   return {
@@ -103,21 +62,11 @@ export function buildReport(input: {
       upstreamCommit: "edb3e36faad698d0368d5eade19e4cb3b5d5cf10",
     },
     coverage: {
-      profile: "single-package Vite TypeScript client app",
-      supportedRules: [
-        {
-          ruleId: RULE_IDS.effect,
-          description:
-            "Direct one-argument createEffect calls bound to an exact named import from solid-js.",
-        },
-        {
-          ruleId: RULE_IDS.webImport,
-          description:
-            "Static ES imports whose module source is exactly solid-js/web.",
-        },
-      ],
+      profile: "single-package Vite TSX client app",
+      supportedRules,
       excluded: [
         "JavaScript files",
+        "TypeScript files without JSX (.ts)",
         "Aliased and namespace createEffect calls",
         "Two-argument and three-argument createEffect calls",
         "Re-exports, dynamic imports, require calls, and TypeScript import types",
@@ -196,7 +145,7 @@ export function renderHtmlReport(report: MigrationReport): string {
     <header>
       <p class="eyebrow">Read-only analysis</p>
       <h1>Solid 2 migration report</h1>
-      <p class="muted">Two exact rules for a small, verified Solid 1.9 TypeScript client-app slice.</p>
+      <p class="muted">${report.coverage.supportedRules.length} exact rules for a small, verified Solid 1.9 TSX client-app slice.</p>
       <div class="meta"><span>Target: <code>.</code></span><span>Solid: <code>${escapeHtml(report.migration.from)}</code> → <code>${escapeHtml(report.migration.to)}</code></span><span>Generated: ${escapeHtml(report.generatedAt)}</span></div>
     </header>
     <section class="cards" aria-label="Summary">
@@ -224,11 +173,10 @@ export function renderHtmlReport(report: MigrationReport): string {
     const search = document.getElementById('search')
     const route = document.getElementById('route')
     const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]))
-    const action = finding => finding.nextAction.kind === 'workflow' ? finding.nextAction.command : finding.nextAction.kind === 'skill' ? '$' + finding.nextAction.skill : finding.nextAction.instruction
     const render = () => {
       const query = search.value.trim().toLowerCase()
-      const visible = report.findings.filter(finding => (route.value === 'all' || finding.route === route.value) && (!query || (finding.location.file + ' ' + finding.ruleId + ' ' + finding.reason).toLowerCase().includes(query)))
-      results.innerHTML = visible.length ? visible.map(finding => '<article class="finding"><div class="finding-head"><div><h2>' + esc(finding.title) + '</h2><div class="path"><code>' + esc(finding.location.file) + ':' + finding.location.line + ':' + finding.location.column + '</code> · ' + esc(finding.ruleId) + '</div></div><span class="badge ' + finding.route + '">' + esc(finding.route) + '</span></div><p class="reason">' + esc(finding.reason) + '</p><pre><code>' + esc(finding.excerpt.text) + '</code></pre><p class="action">Next: <code>' + esc(action(finding)) + '</code></p></article>').join('') : '<div class="empty">No findings match this filter.</div>'
+      const visible = report.findings.filter(finding => (route.value === 'all' || finding.route === route.value) && (!query || (finding.location.file + ' ' + finding.ruleId + ' ' + finding.reason + ' ' + finding.guidance).toLowerCase().includes(query)))
+      results.innerHTML = visible.length ? visible.map(finding => '<article class="finding"><div class="finding-head"><div><h2>' + esc(finding.title) + '</h2><div class="path"><code>' + esc(finding.location.file) + ':' + finding.location.line + ':' + finding.location.column + '</code> · ' + esc(finding.ruleId) + '</div></div><span class="badge ' + finding.route + '">' + esc(finding.route) + '</span></div><p class="reason">' + esc(finding.reason) + '</p><pre><code>' + esc(finding.excerpt.text) + '</code></pre><p class="action">Guidance: ' + esc(finding.guidance) + '</p></article>').join('') : '<div class="empty">No findings match this filter.</div>'
     }
     search.addEventListener('input', render)
     route.addEventListener('change', render)

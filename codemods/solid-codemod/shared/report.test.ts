@@ -4,13 +4,24 @@ import {
   buildReport,
   renderHtmlReport,
   renderJsonReport,
-  RULE_IDS,
-  type MigrationFinding,
 } from "./report.ts";
+import type { MigrationFinding, RuleMetadata } from "./types.ts";
+
+const rules: RuleMetadata[] = [
+  {
+    ruleId: "S2-EFFECT-001",
+    description:
+      "Direct one-argument createEffect calls bound to an exact named import from solid-js.",
+  },
+  {
+    ruleId: "S2-IMPORT-WEB-001",
+    description: "Static ES imports whose module source is exactly solid-js/web.",
+  },
+];
 
 const webFinding: MigrationFinding = {
-  id: `${RULE_IDS.webImport}:src/App.tsx:2:24`,
-  ruleId: RULE_IDS.webImport,
+  id: "S2-IMPORT-WEB-001:src/App.tsx:2:24",
+  ruleId: "S2-IMPORT-WEB-001",
   title: "Move the Solid web renderer import",
   route: "safe-transform",
   confidence: "high",
@@ -27,15 +38,12 @@ const webFinding: MigrationFinding = {
   },
   reason: "Move the renderer package.",
   evidence: { moduleSource: "solid-js/web", syntax: "static-import" },
-  nextAction: {
-    kind: "workflow",
-    command: "pnpm transform:web-imports --target .",
-  },
+  guidance: "Run `pnpm transform --target .`.",
 };
 
 const effectFinding: MigrationFinding = {
-  id: `${RULE_IDS.effect}:src/App.tsx:4:1`,
-  ruleId: RULE_IDS.effect,
+  id: "S2-EFFECT-001:src/App.tsx:4:1",
+  ruleId: "S2-EFFECT-001",
   title: "Split this one-argument createEffect",
   route: "agent-guided",
   confidence: "high",
@@ -52,15 +60,12 @@ const effectFinding: MigrationFinding = {
   },
   reason: "Split compute and side effect.",
   evidence: { importedName: "createEffect", argumentCount: 1 },
-  nextAction: {
-    kind: "skill",
-    skill: "migrate-solid-create-effect",
-    prompt: "Explain this effect.",
-  },
+  guidance: "Explain the migration and stop when intent is unclear.",
 };
 
 test("builds a sorted report with complete route buckets", () => {
   const report = buildReport({
+    rules,
     findings: [effectFinding, webFinding],
     generatedAt: "2026-08-05T12:00:00.000Z",
   });
@@ -74,6 +79,10 @@ test("builds a sorted report with complete route buckets", () => {
     "agent-guided": 1,
     manual: 0,
   });
+  assert.deepEqual(report.summary.byRule, {
+    "S2-EFFECT-001": 1,
+    "S2-IMPORT-WEB-001": 1,
+  });
   assert.equal(report.summary.findings, 2);
   assert.equal(report.migration.to, "solid-js@2.0.0-beta.30");
   assert.equal(JSON.parse(renderJsonReport(report)).schemaVersion, 1);
@@ -81,6 +90,7 @@ test("builds a sorted report with complete route buckets", () => {
 
 test("renders self-contained HTML from the same escaped report data", () => {
   const report = buildReport({
+    rules,
     findings: [
       {
         ...effectFinding,
@@ -94,6 +104,7 @@ test("renders self-contained HTML from the same escaped report data", () => {
   assert.match(html, /<!doctype html>/);
   assert.match(html, /id="report-data"/);
   assert.match(html, /Coverage and deliberate limits/);
+  assert.match(html, /finding\.guidance/);
   assert.doesNotMatch(html, /<\/script><b>unsafe<\/b>/);
   assert.match(html, /\\u003c\/script>\\u003cb>unsafe\\u003c\/b>/);
   const embedded = html.match(
@@ -105,10 +116,16 @@ test("renders self-contained HTML from the same escaped report data", () => {
 
 test("builds a valid empty report", () => {
   const report = buildReport({
+    rules,
     findings: [],
     generatedAt: "2026-08-05T12:00:00.000Z",
   });
   assert.equal(report.summary.findings, 0);
   assert.equal(report.summary.files, 0);
   assert.equal(report.findings.length, 0);
+  assert.deepEqual(report.coverage.supportedRules, rules);
+  assert.deepEqual(report.summary.byRule, {
+    "S2-EFFECT-001": 0,
+    "S2-IMPORT-WEB-001": 0,
+  });
 });

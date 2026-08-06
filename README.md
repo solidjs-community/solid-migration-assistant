@@ -1,10 +1,10 @@
-# Solid 2 migration analysis
+# Solid 2 migration codemod
 
-This repository is rebuilding the Solid 1 to Solid 2 migration workflow around read-only detection. The first vertical slice reports exact migration sites and keeps safe source changes behind a separate explicit workflow.
+This repository provides read-only Solid 2 migration analysis and a separate workflow that applies every registered safe transform.
 
 ```sh
 pnpm analyze --target /path/to/vite-solid-app
-pnpm transform:web-imports --target /path/to/vite-solid-app
+pnpm transform --target /path/to/vite-solid-app
 pnpm verify
 ```
 

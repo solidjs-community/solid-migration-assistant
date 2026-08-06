@@ -3,17 +3,16 @@
 version: "1"
 
 nodes:
-  - id: transform-static-web-imports
-    name: Transform exact static Solid web imports
+  - id: transform-solid-v2-safe-rules
+    name: Transform all supported safe Solid 2 rules
     type: automatic
     steps:
-      - name: Rewrite solid-js/web to @solidjs/web
+      - name: Apply all registered safe transforms
         js-ast-grep:
-          js_file: scripts/transform-web-imports.ts
+          js_file: scripts/transform.ts
           base_path: "."
           language: "tsx"
           include:
-            - "**/*.ts"
             - "**/*.tsx"
           exclude:
             - "**/.codemod-reports/**"
