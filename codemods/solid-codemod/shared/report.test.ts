@@ -87,12 +87,22 @@ test("builds a sorted report with complete route buckets", () => {
   assert.equal(report.migration.to, "solid-js@2.0.0-beta.30");
   assert.ok(
     report.coverage.excluded.includes(
-      "Aliased and namespace createEffect and onMount calls",
+      "Aliased and namespace createComputed, createEffect, createMemo, mergeProps, and onMount calls",
     ),
   );
   assert.ok(
     report.coverage.excluded.includes(
-      "Unsupported createEffect and onMount argument counts",
+      "Unsupported createEffect, createMemo, and onMount argument counts",
+    ),
+  );
+  assert.ok(
+    report.coverage.excluded.includes(
+      "Indirect calls and shadowed bindings for analyzed Solid APIs",
+    ),
+  );
+  assert.ok(
+    report.coverage.excluded.includes(
+      "Similar API names imported from packages other than solid-js",
     ),
   );
   assert.equal(JSON.parse(renderJsonReport(report)).schemaVersion, 1);

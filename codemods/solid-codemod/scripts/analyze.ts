@@ -4,7 +4,10 @@ import { useMetricAtom } from "codemod:metrics";
 import { acquireLock, getState, setState } from "codemod:workflow";
 import { analyzeWebImport } from "../rules/imports/web-import.ts";
 import { analyzeOnMount } from "../rules/lifecycle/on-mount.ts";
+import { analyzeMergeProps } from "../rules/props/merge-props.ts";
+import { analyzeCreateComputed } from "../rules/reactivity/create-computed.ts";
 import { analyzeCreateEffect } from "../rules/reactivity/create-effect.ts";
+import { analyzeCreateMemo } from "../rules/reactivity/create-memo.ts";
 import {
   REPORT_STATE_KEY,
   type AnalysisState,
@@ -20,7 +23,10 @@ type Analyzer = (
 const analyzers: Analyzer[] = [
   analyzeWebImport,
   analyzeOnMount,
+  analyzeMergeProps,
+  analyzeCreateComputed,
   analyzeCreateEffect,
+  analyzeCreateMemo,
 ];
 
 const analyze: Codemod<TSX> = async (root) => {

@@ -67,8 +67,10 @@ export function buildReport(input: {
       excluded: [
         "JavaScript files",
         "TypeScript files without JSX (.ts)",
-        "Aliased and namespace createEffect and onMount calls",
-        "Unsupported createEffect and onMount argument counts",
+        "Aliased and namespace createComputed, createEffect, createMemo, mergeProps, and onMount calls",
+        "Indirect calls and shadowed bindings for analyzed Solid APIs",
+        "Similar API names imported from packages other than solid-js",
+        "Unsupported createEffect, createMemo, and onMount argument counts",
         "Re-exports, dynamic imports, require calls, and TypeScript import types",
         "Configuration and dependency changes",
         "SSR applications, libraries, and monorepos",

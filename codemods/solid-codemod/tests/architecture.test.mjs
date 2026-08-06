@@ -28,7 +28,20 @@ test("organizes existing rules by domain without an agent skill", () => {
     existsSync(resolve(packageDirectory, "rules/reactivity/create-effect.ts")),
     true,
   );
+  assert.equal(
+    existsSync(resolve(packageDirectory, "rules/reactivity/create-computed.ts")),
+    true,
+  );
+  assert.equal(
+    existsSync(resolve(packageDirectory, "rules/reactivity/create-memo.ts")),
+    true,
+  );
+  assert.equal(
+    existsSync(resolve(packageDirectory, "rules/props/merge-props.ts")),
+    true,
+  );
   assert.equal(existsSync(resolve(packageDirectory, "agents")), false);
+  assert.equal(existsSync(resolve(packageDirectory, "skills")), false);
 });
 
 test("exposes one aggregate transform command", () => {
