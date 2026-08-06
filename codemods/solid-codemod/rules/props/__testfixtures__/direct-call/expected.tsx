@@ -1,4 +1,5 @@
-import { /* before */ mergeProps /* after */ } from "solid\x2djs";
+import { /* before */ mergeProps /* after */ } from "solid\
+-js";
 import { mergeProps as merge } from "solid-js";
 import * as Solid from "solid-js";
 import * as Other from "other-library";

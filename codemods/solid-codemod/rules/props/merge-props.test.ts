@@ -19,7 +19,7 @@ const testMergePropsRule: Codemod<TSX> = async (root) => {
   }
   if (expectedFindings > 0) {
     const lines = result.findings.map((finding) => finding.location.line);
-    if (lines.join(",") !== "9,10,12,13") {
+    if (lines.join(",") !== "10,11,13,14") {
       throw new Error(`unexpected mergeProps finding lines: ${lines.join(",")}`);
     }
     const sourceCounts = result.findings.map(
