@@ -1,47 +1,34 @@
-# Solid 2 migration vertical slices
+# Solid 2 migration analyzer slices
 
-## 1. `solid-js/store` static imports
+The experimental preview registers six read-only TSX detections. Every match returns one detailed terminal guidance string and never edits the target.
 
-- **Status:** Deferred. A module-string-only rewrite is unsafe because Solid 2 removes or renames store exports and changes retained API behavior. Future store work must be split into usage-aware slices.
+## Implemented detections
 
-## 2. Direct `onMount(...)` calls
+1. **Static `solid-js/web` imports — `S2-IMPORT-WEB-001`**
+   Detects static ES imports whose source is exactly `solid-js/web` and explains the Solid 2 `@solidjs/web` package move.
+2. **Direct `onMount(...)` calls — `S2-LIFECYCLE-001`**
+   Detects one-argument calls reached through the exact named `solid-js` binding and explains the `onSettled` lifecycle decision and stop conditions.
+3. **Direct `createComputed(...)` calls — `S2-COMPUTED-001`**
+   Detects supported non-spread calls through the exact named binding and asks the user to choose among derived-value, effect, or stateful-update replacements based on intent.
+4. **Direct `createEffect(...)` calls — `S2-EFFECT-001`**
+   Detects one-argument calls through the exact named binding and explains how to investigate Solid 2's compute/effect split.
+5. **Legacy `createMemo(...)` initial arguments — `S2-MEMO-001`**
+   Detects two- and three-argument calls through the exact named binding and explains why the Solid 1 initial-value position requires behavioral review.
+6. **Direct `mergeProps(...)` calls — `S2-PROPS-001`**
+   Detects calls through the exact named binding and explains Solid 2 `merge` precedence, identity, and reactivity hazards.
 
-- **Status:** Implemented as `S2-LIFECYCLE-001` (`agent-guided`, analysis only, no skill).
-- **Coverage:** Exact named bindings, one semantic argument, parenthesized callees, comments, cleanup and async examples, and alias/namespace/shadowed/non-Solid/spread exclusions.
+## Deferred work
 
-## 3. Direct `createComputed(...)` calls
+- `solid-js/store` analysis is deferred until it can be divided into usage-aware rules.
+- JavaScript, `.ts` source, aliases, namespaces, re-exports, dynamic imports, `require`, SSR, libraries, monorepos, configuration, dependencies, and cross-file intent are outside the current boundary.
+- Automated transforms are roadmap-only and have no executable workflow, command, or implementation in this preview.
 
-- **Status:** Implemented as `S2-COMPUTED-001` (`agent-guided`, analysis only, no skill).
-- **Coverage:** One- to three-argument callbacks covering readonly derivation, side effects, writeback, previous/initial values, and several operations. Parenthesized callees match; zero-/four-argument calls, spreads, aliases, namespaces, shadowing, and non-Solid imports are excluded. Guidance covers `createMemo`, split `createEffect`, function-form `createSignal`, and derived `createStore`.
+## Verification contract
 
-## 4. Direct `mergeProps(...)` calls
-
-- **Status:** Implemented as `S2-PROPS-001` (`agent-guided`, analysis only, no skill).
-- **Coverage:** Plain, possibly-undefined, zero-/one-source, and spread calls; parenthesized callees; and alias/namespace/shadowed/non-Solid exclusions. Guidance stops when runtime values decide `undefined` precedence or when spreads, functions, getters, proxies, result identity, or mutation make a rename unsafe.
-
-## 5. Legacy `createMemo` initial arguments
-
-- **Status:** Implemented as `S2-MEMO-001` (`manual`, analysis only, no skill).
-- **Coverage:** Two- and three-argument calls, option-shaped initial values, comments, parenthesized callees, and one-/four-argument, spread, alias, namespace, shadowed, and non-Solid exclusions.
-
-## Current verification state
-
-- [x] The committed fixture remains on `solid-js/web`; transformation runs only in a temporary copy.
-- [x] Analysis is read-only and reports all six registered rules deterministically.
-- [x] Transform remains fixed-point and only rewrites exact static web imports.
-
-## Checklist for every slice
-
-- [x] Cite the pinned Solid `2.0.0-beta.30` source behavior that requires each rule.
-- [x] Add one rule ID, route, reason, evidence shape, and self-contained guidance.
-- [x] Start from the direct import binding so shadowed and unrelated names do not match.
-- [x] Keep aliases, namespaces, JavaScript, SSR, libraries, monorepos, and cross-file reasoning excluded until their own slices.
-- [x] Keep analysis read-only: return `null`, aggregate findings in workflow state, and write only under `.codemod-reports/solid-v2/`.
-- [x] Update deterministic counts, IDs, bounded excerpts, coverage limits, JSON, and HTML from the same report object.
-- [x] Add small positive fixtures and nearby negative cases.
-- [x] Prove source hashes do not change during analysis and findings do not cause a failing exit code.
-- [x] Keep the existing web transform separate, report-independent, formatting-preserving, overlap-safe, and fixed-point.
-- [x] Keep guidance in findings; no skill is installed or invoked.
-- [x] Run unit tests, type checks, workflow/package validation, path-safety tests, and the full end-to-end flow.
-- [x] Leave the report renderer unchanged, so Chrome report QA is not required.
-- [x] Update README coverage limits and the migration roadmap.
+- [x] Use colocated input/expected rule fixtures to prove analyzers return no edits.
+- [x] Cover supported syntax plus aliases, namespaces, indirect calls, shadowing, spreads, unsupported arities, and non-Solid imports.
+- [x] Run an end-to-end project fixture from a temporary copy and assert exact deterministic terminal order.
+- [x] Run analysis twice and compare the complete normalized guidance text.
+- [x] Hash every fixture file before analysis and prove analysis changes no files.
+- [x] Validate the analyzer package types and workflow schema.
+- [x] Keep all executable transforms and generated reporting outside the repository.

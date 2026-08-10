@@ -1,18 +1,13 @@
 {
-  "name": "solid-v2-analysis-fixture",
+  "name": "solid-v2-analyzer-fixture",
   "private": true,
   "version": "0.0.0",
+  "description": "Analyzer-only end-to-end fixture for terminal guidance",
   "type": "module",
-  "scripts": {
-    "build": "vite build",
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
     "solid-js": "1.9.14"
   },
   "devDependencies": {
-    "typescript": "6.0.3",
-    "vite": "6.1.0",
-    "vite-plugin-solid": "2.11.1"
+    "typescript": "6.0.3"
   }
 }

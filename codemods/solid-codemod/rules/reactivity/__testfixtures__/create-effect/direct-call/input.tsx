@@ -1,25 +1,37 @@
 import { /* before */ createEffect /* after */ } from "solid\x2djs";
+import { createEffect as effect } from "solid-js";
+import * as Solid from "solid-js";
+import * as Other from "other-library";
 
 createEffect(() => {
   document.title = "supported";
 });
 
+// prettier-ignore
 (createEffect /* callee */)(() => {
   document.title = "parenthesized";
 });
 
 createEffect(/* no argument */);
 createEffect(/* leading */ () => console.log("leading comment"));
-createEffect(() => console.log("trailing comment"), /* trailing */);
+createEffect(() => console.log("trailing comment") /* trailing */);
+// prettier-ignore
 (createEffect)(/* parenthesized */ () => console.log("parenthesized comment"));
 
 createEffect(
   () => "already split",
-  value => console.log(value),
+  (value) => console.log(value),
 );
 
 declare const callbacks: [() => void];
 createEffect(...callbacks);
+
+effect(() => console.log("alias"));
+Solid.createEffect(() => console.log("namespace"));
+Other.createEffect(() => console.log("other package"));
+
+const indirect = createEffect;
+indirect(() => console.log("indirect"));
 
 function shadowed(createEffect: (callback: () => void) => void) {
   createEffect(() => console.log("local"));

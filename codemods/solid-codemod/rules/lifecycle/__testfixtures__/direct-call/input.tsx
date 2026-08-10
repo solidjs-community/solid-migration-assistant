@@ -1,4 +1,7 @@
-import { /* lifecycle */ onCleanup, /* before */ onMount /* after */ } from "solid\u002djs";
+import {
+  /* lifecycle */ onCleanup,
+  /* before */ onMount /* after */,
+} from "solid\u002djs";
 import { onMount as mount } from "solid-js";
 import * as Solid from "solid-js";
 import * as Other from "other-library";
@@ -7,6 +10,7 @@ onMount(() => {
   document.querySelector("main")?.focus();
 });
 
+// prettier-ignore
 (onMount /* callee */)(() => {
   document.querySelector("aside")?.focus();
 });
@@ -23,7 +27,8 @@ onMount(async () => {
 
 onMount(/* no argument */);
 onMount(/* leading */ () => console.log("leading comment"));
-onMount(() => console.log("trailing comment"), /* trailing */);
+onMount(() => console.log("trailing comment") /* trailing */);
+// prettier-ignore
 (onMount)(/* parenthesized */ () => console.log("parenthesized comment"));
 
 mount(() => console.log("alias"));
@@ -31,7 +36,10 @@ Solid.onMount(() => console.log("namespace"));
 Other.onMount(() => console.log("other package"));
 
 onMount();
-onMount(() => console.log("first"), () => console.log("second"));
+onMount(
+  () => console.log("first"),
+  () => console.log("second"),
+);
 declare const callbacks: [() => void];
 onMount(...callbacks);
 

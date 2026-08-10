@@ -2,56 +2,29 @@ import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 import {
   findDirectImportedCalls,
-  sourceExcerpt,
+  siteGuidance,
 } from "../../shared/analysis.ts";
 
-export const createMemoRule = {
-  ruleId: "S2-MEMO-001",
-  description:
-    "Direct two- and three-argument createMemo calls bound to an exact named import from solid-js.",
-};
+const RULE_ID = "S2-MEMO-001";
 
 export function analyzeCreateMemo(
   rootNode: SgNode<TSX>,
-  context: { filename: string; source: string },
-) {
-  const findings = findDirectImportedCalls(rootNode, "solid-js", "createMemo")
+  context: { filename: string },
+): string[] {
+  return findDirectImportedCalls(rootNode, "solid-js", "createMemo")
     .filter(
       ({ argumentNodes }) =>
         (argumentNodes.length === 2 || argumentNodes.length === 3) &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call, argumentNodes }) => {
-      const range = call.range();
-      const line = range.start.line + 1;
-      const column = range.start.column + 1;
-      return {
-        id: `${createMemoRule.ruleId}:${context.filename}:${line}:${column}`,
-        ruleId: createMemoRule.ruleId,
-        title: "Migrate this createMemo initial value manually",
-        route: "manual" as const,
-        confidence: "high" as const,
-        location: {
-          file: context.filename,
-          line,
-          column,
-          endLine: range.end.line + 1,
-          endColumn: range.end.column + 1,
-        },
-        excerpt: sourceExcerpt(context.source, range.start.line, range.end.line),
-        reason:
-          "Solid 1 uses createMemo's second argument as an initial value and optional third argument as options, while Solid 2 uses the second argument for options and has no initial-value parameter.",
-        evidence: {
-          importedName: "createMemo",
-          argumentCount: argumentNodes.length,
-          hasLegacyInitialValue: true,
-          hasLegacyOptions: argumentNodes.length === 3,
-          syntax: "direct-call",
-        },
-        guidance:
-          "Migrate this call manually. First establish why the callback needs the initial value and what it must receive on its first run. Remove the legacy initial-value argument only after preserving that behavior explicitly in surrounding state or callback logic. For a three-argument call, review the legacy options object separately and move only still-supported Solid 2 options into the new second-argument position. An option-shaped second argument is still treated as a Solid 1 initial value in this migration scope. Do not perform a positional rewrite without a focused test that observes the first computed value and subsequent updates.",
-      };
-    });
-
-  return { rule: createMemoRule, findings };
+    .map(({ call, argumentNodes }) =>
+      siteGuidance(
+        call,
+        context.filename,
+        RULE_ID,
+        "Migrate this createMemo initial value manually.",
+        `Solid 1 uses createMemo's second argument as an initial value${argumentNodes.length === 3 ? " and its third argument as options" : ""}, while Solid 2 uses the second argument for options and has no initial-value parameter.`,
+        "Migrate this call manually. First establish why the callback needs the initial value and what it must receive on its first run. Remove the legacy initial-value argument only after preserving that behavior explicitly in surrounding state or callback logic. For a three-argument call, review the legacy options object separately and move only still-supported Solid 2 options into the new second-argument position. An option-shaped second argument is still treated as a Solid 1 initial value in this migration scope. Do not perform a positional rewrite without a focused test that observes the first computed value and subsequent updates.",
+      ),
+    );
 }

@@ -5,18 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const invocationDirectory = process.env.INIT_CWD ?? process.cwd();
-const workflows = {
-  analyze: "workflow.yaml",
-  transform: "workflow.transform.yaml",
-};
-const [mode, ...rawArguments] = process.argv.slice(2);
-
-if (!(mode in workflows)) {
-  fail("expected workflow mode analyze or transform");
-}
-
-const targetArgument = parseTarget(rawArguments);
+const targetArgument = parseTarget(process.argv.slice(2));
 const target = resolve(invocationDirectory, targetArgument);
+
 try {
   if (!statSync(target).isDirectory()) {
     fail(`target is not a directory: ${target}`);
@@ -41,7 +32,7 @@ const result = spawnSync(
     "workflow",
     "run",
     "-w",
-    resolve(packageDirectory, workflows[mode]),
+    resolve(packageDirectory, "workflow.yaml"),
     "-t",
     target,
     "--allow-dirty",

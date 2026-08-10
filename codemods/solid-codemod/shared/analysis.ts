@@ -1,6 +1,8 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 
+export const ANALYSIS_STATE_KEY = "solid-v2-analysis-guidance";
+
 export type DirectImportedCall = {
   call: SgNode<TSX>;
   argumentNodes: SgNode<TSX>[];
@@ -51,21 +53,58 @@ export function findDirectImportedCalls(
   return [...calls.values()];
 }
 
-export function sourceExcerpt(
-  source: string,
-  startLineIndex: number,
-  endLineIndex: number,
-) {
-  const lines = source.split(/\r?\n/);
-  const first = Math.max(0, startLineIndex - 1);
-  const last = Math.min(lines.length, Math.max(endLineIndex + 2, first + 1));
+export function siteGuidance(
+  node: SgNode<TSX>,
+  filename: string,
+  ruleId: string,
+  title: string,
+  reason: string,
+  guidance: string,
+): string {
+  const start = node.range().start;
+  return `${filename}:${start.line + 1}:${start.column + 1} [${ruleId}] ${title}
+Why: ${reason}
+Guidance: ${guidance}`;
+}
+
+export function compareGuidance(left: string, right: string): number {
+  const leftLocation = guidanceLocation(left);
+  const rightLocation = guidanceLocation(right);
+
+  if (leftLocation && rightLocation) {
+    return (
+      compareText(leftLocation.file, rightLocation.file) ||
+      leftLocation.line - rightLocation.line ||
+      leftLocation.column - rightLocation.column ||
+      compareText(leftLocation.ruleId, rightLocation.ruleId) ||
+      compareText(left, right)
+    );
+  }
+
+  return compareText(left, right);
+}
+
+function guidanceLocation(value: string): {
+  file: string;
+  line: number;
+  column: number;
+  ruleId: string;
+} | null {
+  const match = /^(.*):(\d+):(\d+) \[([^\]]+)\]/.exec(value);
+  if (!match?.[1] || !match[2] || !match[3] || !match[4]) return null;
   return {
-    startLine: first + 1,
-    text: lines.slice(first, Math.min(last, first + 5)).join("\n"),
+    file: match[1],
+    line: Number(match[2]),
+    column: Number(match[3]),
+    ruleId: match[4],
   };
 }
 
-function stringLiteralValue(node: SgNode<TSX>): string | null {
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+export function stringLiteralValue(node: SgNode<TSX>): string | null {
   const text = node.text();
   if (text.length < 2) return null;
   const quote = text[0];
@@ -85,7 +124,8 @@ function stringLiteralValue(node: SgNode<TSX>): string | null {
     index++;
     if (index >= end) return null;
     const escaped = text[index]!;
-    if (escaped === "\n" || escaped === "\u2028" || escaped === "\u2029") continue;
+    if (escaped === "\n" || escaped === "\u2028" || escaped === "\u2029")
+      continue;
     if (escaped === "\r") {
       if (text[index + 1] === "\n") index++;
       continue;

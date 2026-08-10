@@ -1,7 +1,14 @@
-import { render } from "@solidjs/web";
-import '@solidjs/web';
-import { render as escapedDouble } from "@solidjs/web";
-import { render as escapedSingle } from '@solidjs/web';
+import { render } from "solid-js/web";
+import "solid-js/web";
+import { render as escapedDouble } from "solid-js\/web";
+// prettier-ignore
+import { render as escapedSingle } from 'solid-js\/web';
+import { render as escapedHex } from "solid-js\x2fweb";
+import { render as escapedUnicode } from "solid-js\u002fweb";
+import { render as escapedCodePoint } from "solid-js\u{2f}web";
+import { render as continued } from "solid-js/\
+web";
+import { render as escapedNearMiss } from "solid-js\\x2fweb";
 
 export { hydrate } from "solid-js/web";
 
@@ -13,6 +20,11 @@ type WebTypes = import("solid-js/web").JSX;
 void render;
 void escapedDouble;
 void escapedSingle;
+void escapedHex;
+void escapedUnicode;
+void escapedCodePoint;
+void continued;
+void escapedNearMiss;
 void dynamicModule;
 void commonJsModule;
 type _WebTypes = WebTypes;

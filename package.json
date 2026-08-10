@@ -1,11 +1,10 @@
 {
   "name": "solid-codemod-workspace",
   "private": true,
-  "description": "Solid 1 to Solid 2 migration analysis and safe transforms",
+  "description": "Read-only Solid 1.9 to Solid 2 migration analyzer",
   "packageManager": "pnpm@11.20.0",
   "scripts": {
     "analyze": "pnpm --dir ./codemods/solid-codemod analyze",
-    "transform": "pnpm --dir ./codemods/solid-codemod transform",
     "test": "pnpm --dir ./codemods/solid-codemod test",
     "check-types": "pnpm --dir ./codemods/solid-codemod check-types",
     "verify": "pnpm --dir ./codemods/solid-codemod verify"

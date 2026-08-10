@@ -15,5 +15,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true
   },
-  "exclude": ["tests", "**/*.test.ts", "**/__testfixtures__/**"]
+  "exclude": ["tests", "**/*.test.ts", "rules/**/__testfixtures__/**"]
 }

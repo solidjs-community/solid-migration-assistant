@@ -7,15 +7,6 @@ nodes:
     name: Analyze supported Solid 2 migration sites
     type: automatic
     steps:
-      - name: Remove stale generated reports
-        js-ast-grep:
-          js_file: scripts/write-report.ts
-          base_path: "."
-          language: "tsx"
-          max_threads: 1
-          include:
-            - ".codemod-reports/solid-v2/solid-v2-migration-report.json"
-            - ".codemod-reports/solid-v2/solid-v2-migration-report.html"
       - name: Detect exact migration sites without changing source
         js-ast-grep:
           js_file: scripts/analyze.ts
@@ -25,22 +16,20 @@ nodes:
           include:
             - "**/*.tsx"
           exclude:
-            - "**/.codemod-reports/**"
             - "**/node_modules/**"
             - "**/dist/**"
             - "**/build/**"
             - "**/coverage/**"
             - "**/*.d.ts"
-      - name: Write canonical JSON and self-contained HTML reports
+      - name: Emit all guidance once in deterministic source order
         js-ast-grep:
-          js_file: scripts/write-report.ts
+          js_file: scripts/emit.ts
           base_path: "."
           language: "tsx"
           max_threads: 1
           include:
             - "**/*.tsx"
           exclude:
-            - "**/.codemod-reports/**"
             - "**/node_modules/**"
             - "**/dist/**"
             - "**/build/**"

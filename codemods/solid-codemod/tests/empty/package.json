@@ -1,0 +1,7 @@
+{
+  "name": "solid-v2-analyzer-empty-target",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Analyzer-only target with no supported migration sites",
+  "type": "module"
+}

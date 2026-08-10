@@ -1,31 +1,27 @@
-# Solid migration analysis language
+# Solid migration analyzer language
 
-Use these terms for the current vertical slice.
+Use these terms for the current experimental preview.
 
-**Finding**
+**Detection**
 
-One exact source location matched by a supported rule. A finding records evidence and a next route; it does not claim that the whole codebase was analyzed for every Solid 2 change.
+One exact source location matched by a supported rule. A detection does not claim that the entire application was analyzed for every Solid 2 change.
 
-**Safe transform**
+**Guidance string**
 
-An exact local change with one proven output. Safe transforms live in an explicit workflow separate from analysis.
-
-**Agent-guided change**
-
-A detected migration site whose finding contains narrow migration guidance, but where an agent must inspect intent and may need to stop. Analysis never applies these changes.
-
-**Manual decision**
-
-A detected site that requires application behavior or ownership information beyond the available local evidence. Legacy two- and three-argument `createMemo` calls use this route.
+A location-bearing terminal message containing a rule ID, the migration reason, a recommended investigation path, and explicit stop conditions. Each detected site produces exactly one plain string.
 
 **Read-only analysis**
 
-A workflow whose transforms always return `null`. It may write canonical JSON and self-contained HTML under `.codemod-reports/`, but it does not edit scanned source or configuration.
+The analyzer inspects the selected target and prints guidance. It does not edit source, configuration, dependencies, or Git state, and it does not generate persistent artifacts.
 
 **Coverage boundary**
 
-The exact project profile, syntax, and rule set the report can claim. Every report lists unsupported syntax and project types rather than implying broad coverage.
+The exact language, syntax, project profile, and direct-import shapes supported by the registered rules. Unsupported shapes remain outside the preview rather than being assigned a confidence level or category.
 
 **Target contract**
 
-The pinned Solid version and upstream source commit used to define a rule. The current implementation targets `solid-js@2.0.0-beta.30` at `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.
+The pinned Solid version and upstream source commit used to define the rules. The current implementation targets `solid-js@2.0.0-beta.30` at `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.
+
+**Roadmap item**
+
+A possible future capability that has no executable implementation in this preview. Automated transforms are roadmap-only.

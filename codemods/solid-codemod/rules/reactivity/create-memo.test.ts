@@ -3,50 +3,60 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 import { analyzeCreateMemo } from "./create-memo.ts";
 
 const testCreateMemoRule: Codemod<TSX> = async (root) => {
-  const source = root.source();
-  const result = analyzeCreateMemo(root.root(), {
-    filename: root.relativeFilename().replaceAll("\\", "/"),
-    source,
-  });
-  if (result.rule.ruleId !== "S2-MEMO-001") {
-    throw new Error(`unexpected rule metadata: ${result.rule.ruleId}`);
-  }
-  const expectedFindings = source.includes('from "solid-js"') ? 5 : 0;
-  if (result.findings.length !== expectedFindings) {
-    throw new Error(
-      `expected ${expectedFindings} createMemo findings, got ${result.findings.length}`,
+  const filename = root.relativeFilename().replaceAll("\\", "/");
+  const guidance = analyzeCreateMemo(root.root(), { filename });
+  const locations = root.source().includes('from "solid-js"')
+    ? ["6:1", "7:1", "8:1", "9:1", "11:1"]
+    : [];
+
+  assertGuidance(guidance, filename, locations, [
+    "[S2-MEMO-001]",
+    "initial value",
+    "second argument for options",
+    "Do not perform a positional rewrite",
+    "focused test",
+  ]);
+  if (guidance.length > 0) {
+    const optionFlags = guidance.map((entry) =>
+      entry.includes("and its third argument as options"),
     );
-  }
-  if (expectedFindings > 0) {
-    const lines = result.findings.map((finding) => finding.location.line);
-    if (lines.join(",") !== "6,7,8,9,10") {
-      throw new Error(`unexpected createMemo finding lines: ${lines.join(",")}`);
-    }
-    const argumentCounts = result.findings.map(
-      (finding) => finding.evidence.argumentCount,
-    );
-    if (argumentCounts.join(",") !== "2,3,2,2,3") {
-      throw new Error(`unexpected createMemo argument counts: ${argumentCounts.join(",")}`);
-    }
-    const legacyOptions = result.findings.map(
-      (finding) => finding.evidence.hasLegacyOptions,
-    );
-    if (legacyOptions.join(",") !== "false,true,false,false,true") {
-      throw new Error(`unexpected createMemo option evidence: ${legacyOptions.join(",")}`);
-    }
-  }
-  for (const finding of result.findings) {
-    if (
-      finding.route !== "manual" ||
-      finding.evidence.importedName !== "createMemo" ||
-      finding.evidence.hasLegacyInitialValue !== true ||
-      !finding.guidance.includes("initial value") ||
-      !finding.guidance.includes("Do not perform")
-    ) {
-      throw new Error("createMemo finding must contain route, evidence, and guidance");
+    if (optionFlags.join(",") !== "false,true,false,false,true") {
+      throw new Error(
+        `unexpected createMemo legacy-options guidance: ${optionFlags.join(",")}`,
+      );
     }
   }
   return null;
 };
+
+function assertGuidance(
+  guidance: string[],
+  filename: string,
+  locations: string[],
+  requiredText: string[],
+): void {
+  if (guidance.length !== locations.length) {
+    throw new Error(
+      `expected ${locations.length} createMemo guidance entries, got ${guidance.length}`,
+    );
+  }
+  const actualLocations = guidance.map((entry) => {
+    const match = /^(.*):(\d+):(\d+) \[/.exec(entry);
+    return match ? `${match[2]}:${match[3]}` : "invalid";
+  });
+  if (actualLocations.join(",") !== locations.join(",")) {
+    throw new Error(
+      `unexpected createMemo locations: ${actualLocations.join(",")}`,
+    );
+  }
+  for (const entry of guidance) {
+    if (
+      !entry.startsWith(`${filename}:`) ||
+      requiredText.some((text) => !entry.includes(text))
+    ) {
+      throw new Error(`incomplete createMemo guidance: ${entry}`);
+    }
+  }
+}
 
 export default testCreateMemoRule;

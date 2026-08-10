@@ -8,7 +8,10 @@ yarn-error.log*
 target/
 dist/
 build/
-.codemod-reports/
+coverage/
+
+# Local research checkouts
+.repos/
 
 # Temporary files
 *.tmp

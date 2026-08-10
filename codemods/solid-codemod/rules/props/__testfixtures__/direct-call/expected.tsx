@@ -11,6 +11,7 @@ mergeProps(defaults, { enabled: false });
 mergeProps(defaults, maybeProps);
 declare const propSources: [{ enabled: boolean }, { label: string }];
 mergeProps(...propSources);
+// prettier-ignore
 (mergeProps /* callee */)(/* leading */ defaults, { label: "ok" });
 
 merge(defaults, {});

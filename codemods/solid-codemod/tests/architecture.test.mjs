@@ -5,62 +5,135 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const workspaceDirectory = resolve(packageDirectory, "../..");
+const testsDirectory = resolve(packageDirectory, "tests");
 
-test("keeps production composition to two workflows and three entry scripts", () => {
-  assert.deepEqual(productionScripts(), [
-    "analyze.ts",
-    "transform.ts",
-    "write-report.ts",
-  ]);
-  assert.deepEqual(workflowFiles(), ["workflow.transform.yaml", "workflow.yaml"]);
+test("keeps the production workflow detection-only", () => {
+  assert.deepEqual(productionScripts(), ["analyze.ts", "emit.ts"]);
+  assert.deepEqual(workflowFiles(), ["workflow.yaml"]);
 
-  for (const workflow of workflowFiles()) {
-    const source = readFileSync(resolve(packageDirectory, workflow), "utf8");
-    assert.match(source, /\*\*\/\*\.tsx/);
-    assert.doesNotMatch(source, /\*\*\/\*\.ts(?:"|$)/m);
+  for (const path of [
+    "scripts/transform.ts",
+    "scripts/write-report.ts",
+    "shared/report.ts",
+    "shared/report-path.ts",
+    "workflow.transform.yaml",
+  ]) {
+    assert.equal(existsSync(resolve(packageDirectory, path)), false, path);
   }
+
+  const workflow = readFileSync(
+    resolve(packageDirectory, "workflow.yaml"),
+    "utf8",
+  );
+  assert.deepEqual(
+    [...workflow.matchAll(/js_file:\s*(\S+)/g)].map((match) => match[1]),
+    ["scripts/analyze.ts", "scripts/emit.ts"],
+  );
+  assert.equal((workflow.match(/- "\*\*\/\*\.tsx"/g) ?? []).length, 2);
+  assert.doesNotMatch(workflow, /transform|write.report|\.codemod-reports/i);
 });
 
-test("organizes existing rules by domain without an agent skill", () => {
-  assert.equal(existsSync(resolve(packageDirectory, "rules/imports/web-import.ts")), true);
-  assert.equal(
-    existsSync(resolve(packageDirectory, "rules/reactivity/create-effect.ts")),
-    true,
+test("registers every supported detector and one deterministic emitter", () => {
+  for (const path of [
+    "rules/imports/web-import.ts",
+    "rules/lifecycle/on-mount.ts",
+    "rules/props/merge-props.ts",
+    "rules/reactivity/create-computed.ts",
+    "rules/reactivity/create-effect.ts",
+    "rules/reactivity/create-memo.ts",
+  ]) {
+    assert.equal(existsSync(resolve(packageDirectory, path)), true, path);
+  }
+
+  const analyzer = readFileSync(
+    resolve(packageDirectory, "scripts/analyze.ts"),
+    "utf8",
   );
-  assert.equal(
-    existsSync(resolve(packageDirectory, "rules/reactivity/create-computed.ts")),
-    true,
+  for (const name of [
+    "analyzeWebImport",
+    "analyzeOnMount",
+    "analyzeMergeProps",
+    "analyzeCreateComputed",
+    "analyzeCreateEffect",
+    "analyzeCreateMemo",
+  ]) {
+    assert.match(analyzer, new RegExp(name));
+  }
+
+  const emitter = readFileSync(
+    resolve(packageDirectory, "scripts/emit.ts"),
+    "utf8",
   );
-  assert.equal(
-    existsSync(resolve(packageDirectory, "rules/reactivity/create-memo.ts")),
-    true,
-  );
-  assert.equal(
-    existsSync(resolve(packageDirectory, "rules/props/merge-props.ts")),
-    true,
-  );
-  assert.equal(existsSync(resolve(packageDirectory, "agents")), false);
-  assert.equal(existsSync(resolve(packageDirectory, "skills")), false);
+  assert.match(emitter, /\.sort\(compareGuidance\)/);
+  assert.equal((emitter.match(/console\.warn\(/g) ?? []).length, 1);
 });
 
-test("exposes one aggregate transform command", () => {
+test("exposes analysis without report or transform commands", () => {
   const packageJson = JSON.parse(
     readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
   );
-  const workspacePackageJson = JSON.parse(
-    readFileSync(resolve(workspaceDirectory, "package.json"), "utf8"),
+  const codemod = readFileSync(
+    resolve(packageDirectory, "codemod.yaml"),
+    "utf8",
   );
 
-  assert.equal(typeof packageJson.scripts.transform, "string");
-  assert.equal(packageJson.scripts["transform:web-imports"], undefined);
-  assert.equal(packageJson.scripts["test:skill"], undefined);
-  assert.equal(typeof workspacePackageJson.scripts.transform, "string");
-  assert.equal(workspacePackageJson.scripts["transform:web-imports"], undefined);
+  assert.equal(typeof packageJson.scripts.analyze, "string");
+  assert.deepEqual(
+    Object.keys(packageJson.scripts).filter((name) =>
+      /transform|report/i.test(name),
+    ),
+    [],
+  );
+  assert.match(codemod, /- name: analyze/);
+  assert.doesNotMatch(codemod, /name: transform|workflow\.transform|report/i);
 });
 
+test("uses normal analyzer end-to-end fixtures", () => {
+  assert.deepEqual(readdirSync(testsDirectory).sort(), [
+    "architecture.test.mjs",
+    "empty",
+    "fixture",
+    "workflow.test.mjs",
+  ]);
+  assert.equal(existsSync(resolve(testsDirectory, "transform.test.ts")), false);
+
+  const fixturePackage = JSON.parse(
+    readFileSync(resolve(testsDirectory, "fixture/package.json"), "utf8"),
+  );
+  const emptyPackage = JSON.parse(
+    readFileSync(resolve(testsDirectory, "empty/package.json"), "utf8"),
+  );
+  assert.match(fixturePackage.description, /Analyzer-only.*terminal guidance/);
+  assert.match(emptyPackage.description, /Analyzer-only.*no supported/);
+  assert.equal(fixturePackage.scripts, undefined);
+  assert.equal(fixturePackage.dependencies["solid-js"], "1.9.14");
+  assert.equal(fixturePackage.devDependencies.typescript, "6.0.3");
+  assert.equal(fixturePackage.devDependencies.vite, undefined);
+  assert.equal(emptyPackage.scripts, undefined);
+  assert.equal(emptyPackage.dependencies, undefined);
+  assert.doesNotMatch(readFixtureText(), /codemod-reports|transform|report/i);
+});
+
+function readFixtureText() {
+  const contents = [];
+  for (const fixture of ["fixture", "empty"]) {
+    visit(resolve(testsDirectory, fixture), contents);
+  }
+  return contents.join("\n");
+}
+
+function visit(directory, contents) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) visit(path, contents);
+    if (entry.isFile()) contents.push(readFileSync(path, "utf8"));
+  }
+}
+
 function productionScripts() {
-  return readdirSync(resolve(packageDirectory, "scripts"), { withFileTypes: true })
+  return readdirSync(resolve(packageDirectory, "scripts"), {
+    withFileTypes: true,
+  })
     .filter((entry) => entry.isFile() && !entry.name.includes(".test."))
     .map((entry) => entry.name)
     .sort();
