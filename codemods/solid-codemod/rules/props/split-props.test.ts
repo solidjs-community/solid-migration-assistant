@@ -5,7 +5,7 @@ import { analyzeSplitProps } from "./split-props.ts";
 const testSplitPropsRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
   const guidance = analyzeSplitProps(root.root(), { filename });
-  const locations = root.source().includes('from "solid-js/store"')
+  const locations = root.source().includes('from "solid-js"')
     ? ["9:23", "10:16", "12:1"]
     : [];
 

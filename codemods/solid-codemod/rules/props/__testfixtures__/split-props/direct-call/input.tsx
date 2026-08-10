@@ -1,6 +1,6 @@
-import { /* before */ splitProps /* after */ } from "solid-js/store";
-import { splitProps as split } from "solid-js/store";
-import * as Store from "solid-js/store";
+import { /* before */ splitProps /* after */ } from "solid-js";
+import { splitProps as split } from "solid-js";
+import * as Store from "solid-js";
 import * as Other from "other-library";
 
 const props = { id: "item", class: "active", title: "Title" };

@@ -6,13 +6,13 @@ import {
 } from "../../shared/analysis.ts";
 
 const RULE_ID = "S2-STORE-SPLIT-PROPS-001";
-const STORE_MODULE = "solid-js/store";
+const SOLID_MODULE = "solid-js";
 
 export function analyzeSplitProps(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, STORE_MODULE, "splitProps")
+  return findDirectImportedCalls(rootNode, SOLID_MODULE, "splitProps")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 2 &&
