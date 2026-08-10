@@ -2,15 +2,15 @@
 
 Solid Migration Assistant is an experimental, read-only analyzer for selected Solid 1.9 migration sites targeting Solid `2.0.0-beta.32`.
 
-The assistant scans TSX source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed only in the terminal. The analyzer never edits the target and does not generate reports, dashboards, telemetry, or other persistent artifacts. Codemod runtime state is confined to a private per-run home/config/cache/temp sandbox and removed after the child process exits.
+The assistant scans TSX source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed only in the terminal. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 
 ## Run the beta analyzer
 
-> **Beta scope:** this `0.1.0` analyzer targets Solid `2.0.0-beta.32`, scans TSX only, and covers only the detections listed below. A clean run is not proof that a project is ready for Solid 2.
+> **Beta scope:** this `0.1.1` analyzer targets Solid `2.0.0-beta.32`, scans TSX only, and covers only the detections listed below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run the package from a project root with Node 20 or newer and npm (no pnpm installation is needed):
 
-Runtime platform support is limited to macOS x64 and arm64 and glibc Linux x64 and arm64. Windows x64 is temporarily unsupported because upstream Codemod 1.12.13 does not expose an isolatable state-directory override; Windows ARM64 is also unsupported and has no published native binary. Alpine/musl Linux is unsupported because 1.12.13 publishes only glibc Linux binaries. The packaged smoke test is currently exercised on macOS arm64; Linux support follows upstream native artifact metadata and is not yet physically smoke-tested by this project.
+The assistant itself imposes no operating-system, CPU-architecture, or libc restriction in its npm metadata or launcher. Actual execution support depends on native runtime availability from the pinned Codemod 1.12.13 dependency and on the installing package manager and platform. This project does not claim that Codemod provides a working native runtime for every platform or architecture; installation or launch errors from Codemod remain authoritative.
 
 ```sh
 npx --yes solid-migration-assistant@latest

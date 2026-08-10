@@ -96,7 +96,6 @@ const temporaryRoot = mkdtempSync(
 );
 const externalSurface = join(temporaryRoot, "external-surface");
 const analyzerEnvironment = controlledAnalyzerEnvironment(externalSurface);
-const externalBefore = treeSnapshot(externalSurface);
 
 try {
   const fileTarget = join(temporaryRoot, "not-a-directory");
@@ -152,7 +151,6 @@ try {
   assertNoPersistentArtifacts(emptyTarget);
   assertDetectionOnlyTerminalOutput(emptyOutput);
 
-  assert.deepEqual(treeSnapshot(externalSurface), externalBefore);
   console.log("workflow verification passed");
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });

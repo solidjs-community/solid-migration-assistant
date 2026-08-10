@@ -6,11 +6,11 @@ The migration target is pinned to Solid `2.0.0-beta.32` at upstream commit [`319
 
 ## Analyze with npm
 
-> **Beta scope:** version `0.1.0` targets Solid `2.0.0-beta.32`, analyzes TSX only, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
+> **Beta scope:** version `0.1.1` targets Solid `2.0.0-beta.32`, analyzes TSX only, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 
-Runtime platform support is limited to macOS x64 and arm64 and glibc Linux x64 and arm64. Windows x64 is temporarily unsupported because upstream Codemod 1.12.13 does not expose an isolatable state-directory override; Windows ARM64 is also unsupported and has no published native binary. Alpine/musl Linux is unsupported because 1.12.13 publishes only glibc Linux binaries. The packaged smoke test is currently exercised on macOS arm64; Linux support follows upstream native artifact metadata and is not yet physically smoke-tested by this project.
+The assistant itself imposes no operating-system, CPU-architecture, or libc restriction in its npm metadata or launcher. Actual execution support depends on native runtime availability from the pinned Codemod 1.12.13 dependency and on the installing package manager and platform. This project does not claim that Codemod provides a working native runtime for every platform or architecture; installation or launch errors from Codemod remain authoritative.
 
 ```sh
 npx --yes solid-migration-assistant@latest
@@ -22,7 +22,7 @@ The current directory is the default target. An explicit target may be absolute 
 npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
 ```
 
-A run with detections exits successfully. Guidance is deduplicated, sorted by file, line, column, and rule ID, and printed once as a terminal aggregate. The analyzer does not edit the target, create persistent output, or send Codemod analytics. Codemod runtime state is confined to a private per-run home/config/cache/temp sandbox and recursively removed after the child process exits.
+A run with detections exits successfully. Guidance is deduplicated, sorted by file, line, column, and rule ID, and printed once as a terminal aggregate. The analyzer does not edit the target or create persistent output there, and Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 
 ## Supported detections
 

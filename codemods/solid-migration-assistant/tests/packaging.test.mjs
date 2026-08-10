@@ -50,13 +50,13 @@ test("publishes complete public npm metadata", () => {
     readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
   );
   assert.equal(packageJson.name, "solid-migration-assistant");
-  assert.equal(packageJson.version, "0.1.0");
+  assert.equal(packageJson.version, "0.1.1");
   assert.equal(packageJson.license, "MIT");
   assert.equal(packageJson.dependencies.codemod, "1.12.13");
   assert.equal(packageJson.engines.node, ">=20.0.0");
   assert.equal(packageJson.publishConfig.access, "public");
-  assert.deepEqual(packageJson.os, ["darwin", "linux"]);
-  assert.deepEqual(packageJson.cpu, ["x64", "arm64"]);
+  assert.equal(packageJson.os, undefined);
+  assert.equal(packageJson.cpu, undefined);
   assert.equal(packageJson.libc, undefined);
   assert.deepEqual(packageJson.bin, {
     "solid-migration-assistant": "./bin/solid-migration-assistant.mjs",
@@ -76,15 +76,18 @@ test("publishes complete public npm metadata", () => {
     resolve(packageDirectory, "../../README.md"),
   ]) {
     const contents = readFileSync(readme, "utf8");
-    assert.match(contents, /macOS x64 and arm64/);
-    assert.match(contents, /glibc Linux x64 and arm64/);
     assert.match(
       contents,
-      /Windows x64 is temporarily unsupported.*isolatable state-directory override/,
+      /assistant itself imposes no operating-system, CPU-architecture, or libc restriction/,
     );
-    assert.match(contents, /Windows ARM64 is also unsupported/);
-    assert.match(contents, /Alpine\/musl Linux is unsupported/);
-    assert.match(contents, /Linux support.*not yet physically smoke-tested/);
+    assert.match(
+      contents,
+      /Actual execution support depends on native runtime availability from the pinned Codemod 1\.12\.13 dependency/,
+    );
+    assert.match(
+      contents,
+      /may persist workflow and task state in normal platform user-data directories/,
+    );
   }
 });
 
@@ -96,6 +99,7 @@ test(
     );
 
     try {
+      assert.equal(expectedFiles.length, 22);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(
@@ -148,7 +152,6 @@ test(
       const externalSurface = join(temporaryRoot, "external-surface");
       const analyzerEnvironment =
         controlledAnalyzerEnvironment(externalSurface);
-      const externalBefore = treeSnapshot(externalSurface);
 
       const executable = join(
         consumer,
@@ -188,7 +191,6 @@ test(
       assert.equal(smoke.status, 0, output(smoke));
       assert.match(output(smoke), /\[S2-IMPORT-WEB-001\]/);
       assert.deepEqual(treeSnapshot(consumer), before);
-      assert.deepEqual(treeSnapshot(externalSurface), externalBefore);
       assertNoAnalyzerArtifacts(consumer);
     } finally {
       rmSync(temporaryRoot, { recursive: true, force: true });
