@@ -16,7 +16,7 @@ export function analyzeWebImport(
       RULE_ID,
       "Move this Solid web renderer import.",
       "Solid 2 publishes the web renderer from @solidjs/web instead of the solid-js/web subpath.",
-      "Change only this static import's module source to @solidjs/web, preserve its import form and quote style, and then run the application's typecheck and build. This analyzer does not edit source. Re-exports, dynamic imports, require calls, and TypeScript import types are deliberately outside this rule.",
+      "Change only this static import's module source to @solidjs/web, preserve its import form and quote style, and then run the application's typecheck and build. This analyzer does not edit source. Re-exports, dynamic imports, require calls, and TypeScript import() type expressions are deliberately outside this rule.",
     ),
   );
 }

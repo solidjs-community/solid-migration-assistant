@@ -20,7 +20,7 @@ The exact language, syntax, project profile, and direct-import shapes supported 
 
 **Target contract**
 
-The pinned Solid version and upstream source commit used to define the rules. The current implementation targets `solid-js@2.0.0-beta.30` at `edb3e36faad698d0368d5eade19e4cb3b5d5cf10`.
+The pinned Solid version and upstream source commit used to define the rules. The current implementation targets `solid-js@2.0.0-beta.32` at `3194631aeeb2b2e360817dc887ab5cbce7548359`.
 
 **Roadmap item**
 

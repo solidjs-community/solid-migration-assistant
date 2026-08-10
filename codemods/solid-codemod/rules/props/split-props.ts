@@ -5,7 +5,7 @@ import {
   siteGuidance,
 } from "../../shared/analysis.ts";
 
-const RULE_ID = "S2-STORE-SPLIT-PROPS-001";
+const RULE_ID = "S2-PROPS-SPLIT-001";
 const SOLID_MODULE = "solid-js";
 
 export function analyzeSplitProps(

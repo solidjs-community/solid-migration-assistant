@@ -2,7 +2,7 @@ schema_version: "1.0"
 
 name: "solid-v2-codemod"
 version: "0.1.0"
-description: "Detect supported Solid 1.9 migration sites for Solid 2 beta.30 and print detailed guidance"
+description: "Detect supported Solid 1.9 migration sites for Solid 2 beta.32 and print detailed guidance"
 author: "Solid Codemod Contributors"
 license: "MIT"
 category: "migration"
