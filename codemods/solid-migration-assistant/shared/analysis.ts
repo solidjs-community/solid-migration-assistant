@@ -1,7 +1,7 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 
-export const ANALYSIS_STATE_KEY = "solid-v2-analysis-guidance";
+export const ANALYSIS_STATE_KEY = "solid-migration-assistant-guidance";
 
 export type DirectImportedCall = {
   call: SgNode<TSX>;

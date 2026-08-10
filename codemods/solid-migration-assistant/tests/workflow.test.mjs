@@ -90,21 +90,29 @@ const expectedRuleIds = [
   "S2-JSX-COMPONENT-001",
   "S2-JSX-CLASSLIST-001",
 ];
-const temporaryRoot = mkdtempSync(join(tmpdir(), "solid-v2-analysis-"));
+const temporaryRoot = mkdtempSync(
+  join(tmpdir(), "solid-migration-assistant-analysis-"),
+);
 
 try {
   const fileTarget = join(temporaryRoot, "not-a-directory");
   writeFileSync(fileTarget, "not a directory\n");
-  runFailure([], "[solid-v2-codemod] --target is required");
-  runFailure(["--target"], "[solid-v2-codemod] --target requires a value");
-  runFailure(["--unknown"], "[solid-v2-codemod] unknown argument: --unknown");
+  runFailure([], "[solid-migration-assistant] --target is required");
+  runFailure(
+    ["--target"],
+    "[solid-migration-assistant] --target requires a value",
+  );
+  runFailure(
+    ["--unknown"],
+    "[solid-migration-assistant] unknown argument: --unknown",
+  );
   runFailure(
     ["--target", join(temporaryRoot, "missing")],
-    "[solid-v2-codemod] target does not exist:",
+    "[solid-migration-assistant] target does not exist:",
   );
   runFailure(
     ["--target", fileTarget],
-    "[solid-v2-codemod] target is not a directory:",
+    "[solid-migration-assistant] target is not a directory:",
   );
 
   const target = join(temporaryRoot, "fixture");
@@ -200,7 +208,7 @@ function output(result) {
 function cliDiagnostics(value) {
   return stripAnsi(value)
     .split(/\r?\n/)
-    .filter((line) => line.startsWith("[solid-v2-codemod]"))
+    .filter((line) => line.startsWith("[solid-migration-assistant]"))
     .map((line) =>
       line.replace(/(target (?:does not exist|is not a directory):).*$/, "$1"),
     );

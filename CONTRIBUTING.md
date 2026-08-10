@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve the Solid 2 migration analyzer.
+Thanks for helping improve Solid Migration Assistant.
 
 ## Preview status
 
@@ -18,7 +18,7 @@ If a run changes the target or creates an analyzer artifact, stop using it and o
 
 ## Give feedback in public issues
 
-Open an ordinary issue in the [public issue tracker](https://github.com/devagrawal09/solid-codemod/issues/new). In the title, identify whether the feedback is a false positive, missed migration, unclear guidance, or analyzer failure.
+Open an ordinary issue in the [public issue tracker](https://github.com/devagrawal09/solid-migration-assistant/issues/new). In the title, identify whether the feedback is a false positive, missed migration, unclear guidance, or analyzer failure.
 
 Issues and attachments are public. Reduce examples to the smallest reproduction you can share, remove credentials and identifying data, and never paste proprietary source code or private repository links. Include the analyzer commit, a sanitized command, the relevant terminal guidance, the expected behavior, and the actual behavior. Search existing issues first and submit unrelated problems separately.
 

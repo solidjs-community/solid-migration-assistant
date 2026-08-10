@@ -1,5 +1,5 @@
 {
-  "name": "solid-v2-analyzer-fixture",
+  "name": "solid-migration-assistant-fixture",
   "private": true,
   "version": "0.0.0",
   "description": "Analyzer-only end-to-end fixture for terminal guidance",

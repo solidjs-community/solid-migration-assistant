@@ -1,12 +1,12 @@
 {
-  "name": "solid-codemod-workspace",
+  "name": "solid-migration-assistant-workspace",
   "private": true,
-  "description": "Read-only Solid 1.9 to Solid 2 migration analyzer",
+  "description": "Read-only Solid 1.9 to Solid 2 migration assistant",
   "packageManager": "pnpm@11.20.0",
   "scripts": {
-    "analyze": "pnpm --dir ./codemods/solid-codemod analyze",
-    "test": "pnpm --dir ./codemods/solid-codemod test",
-    "check-types": "pnpm --dir ./codemods/solid-codemod check-types",
-    "verify": "pnpm --dir ./codemods/solid-codemod verify"
+    "analyze": "pnpm --dir ./codemods/solid-migration-assistant analyze",
+    "test": "pnpm --dir ./codemods/solid-migration-assistant test",
+    "check-types": "pnpm --dir ./codemods/solid-migration-assistant check-types",
+    "verify": "pnpm --dir ./codemods/solid-migration-assistant verify"
   }
 }

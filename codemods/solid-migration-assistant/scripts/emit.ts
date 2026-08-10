@@ -3,7 +3,7 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 import { acquireLock, getState, setState } from "codemod:workflow";
 import { ANALYSIS_STATE_KEY, compareGuidance } from "../shared/analysis.ts";
 
-const EMITTED_STATE_KEY = "solid-v2-analysis-guidance-emitted";
+const EMITTED_STATE_KEY = "solid-migration-assistant-guidance-emitted";
 
 const emit: Codemod<TSX> = async () => {
   const release = acquireLock(EMITTED_STATE_KEY);

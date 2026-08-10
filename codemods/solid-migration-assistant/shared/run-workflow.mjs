@@ -63,6 +63,6 @@ function parseTarget(argumentsList) {
 }
 
 function fail(message) {
-  console.error(`[solid-v2-codemod] ${message}`);
+  console.error(`[solid-migration-assistant] ${message}`);
   process.exit(2);
 }

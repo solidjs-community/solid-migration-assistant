@@ -1,6 +1,6 @@
-# Solid 2 migration analyzer
+# Solid Migration Assistant
 
-This package implements a single read-only workflow for a narrow Solid 1.9 client-application profile. It scans TSX files and prints one detailed, location-bearing guidance string per supported migration site. The workflow returns no edits and writes no files.
+This package implements Solid Migration Assistant as a single read-only workflow for a narrow Solid 1.9 client-application profile. It scans TSX files and prints one detailed, location-bearing guidance string per supported migration site. The workflow returns no edits and writes no files.
 
 The migration target is pinned to Solid `2.0.0-beta.32` at upstream commit [`3194631`](https://github.com/solidjs/solid/tree/3194631aeeb2b2e360817dc887ab5cbce7548359).
 

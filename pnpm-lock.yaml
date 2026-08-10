@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  codemods/solid-codemod:
+  codemods/solid-migration-assistant:
     devDependencies:
       '@codemod.com/jssg-types':
         specifier: 1.6.2

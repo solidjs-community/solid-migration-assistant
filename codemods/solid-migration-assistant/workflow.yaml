@@ -3,7 +3,7 @@
 version: "1"
 
 nodes:
-  - id: analyze-solid-v2-sites
+  - id: analyze-solid-migration-sites
     name: Analyze supported Solid 2 migration sites
     type: automatic
     steps:

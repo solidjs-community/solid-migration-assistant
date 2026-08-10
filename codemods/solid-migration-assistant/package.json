@@ -1,5 +1,5 @@
 {
-  "name": "solid-v2-codemod",
+  "name": "solid-migration-assistant",
   "version": "0.1.0",
   "description": "Detect supported Solid 2 migration sites and print detailed guidance",
   "packageManager": "pnpm@11.20.0",
