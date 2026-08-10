@@ -115,7 +115,7 @@ export function main(
   argumentsList = process.argv.slice(2),
   {
     architecture = process.arch,
-    cwd = process.cwd(),
+    cwd,
     platform = process.platform,
     glibcVersionRuntime = detectGlibcVersionRuntime(platform),
     runImpl = runCodemod,
@@ -138,7 +138,8 @@ export function main(
     return fail(`unsupported platform: ${unsupportedReason}`);
   }
 
-  const target = resolve(cwd, targetArgument);
+  const invocationDirectory = cwd ?? process.cwd();
+  const target = resolve(invocationDirectory, targetArgument);
   try {
     if (!statSync(target).isDirectory()) {
       return fail(`target is not a directory: ${target}`);

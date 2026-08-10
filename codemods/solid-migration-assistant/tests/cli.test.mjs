@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -150,6 +151,44 @@ test("rejects Windows before starting the Codemod child", () => {
     "[solid-migration-assistant] unsupported platform: Windows is temporarily unsupported because codemod@1.12.13 does not expose an isolatable state-directory override",
   ]);
 });
+
+test(
+  "rejects unsupported platforms before reading a vanished cwd",
+  { skip: process.platform === "win32" },
+  () => {
+    const originalCwd = process.cwd();
+    const vanishedCwd = mkdtempSync(join(tmpdir(), "sma-vanished-cwd-"));
+    let spawned = false;
+    const diagnostics = [];
+    const originalError = console.error;
+
+    process.chdir(vanishedCwd);
+    rmSync(vanishedCwd, { recursive: true, force: true });
+    console.error = (...values) => diagnostics.push(values.join(" "));
+    try {
+      assert.throws(() => process.cwd(), { code: "ENOENT" });
+      const status = main([], {
+        platform: "win32",
+        architecture: "x64",
+        cwd: undefined,
+        runImpl: () => {
+          spawned = true;
+          return { status: 0 };
+        },
+      });
+      assert.equal(status, 2);
+    } finally {
+      console.error = originalError;
+      process.chdir(originalCwd);
+    }
+
+    assert.equal(spawned, false);
+    assert.equal(existsSync(vanishedCwd), false);
+    assert.deepEqual(diagnostics, [
+      "[solid-migration-assistant] unsupported platform: Windows is temporarily unsupported because codemod@1.12.13 does not expose an isolatable state-directory override",
+    ]);
+  },
+);
 
 test("cleans the private child sandbox on nonzero and thrown failures", () => {
   const surface = mkdtempSync(join(tmpdir(), "sma-sandbox-test-"));
