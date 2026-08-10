@@ -28,6 +28,8 @@ function findClassListAttributeNames(rootNode: SgNode<TSX>): SgNode<TSX>[] {
     "jsx_self_closing_element",
   ] as const) {
     for (const element of rootNode.findAll({ rule: { kind: elementKind } })) {
+      if (!isIntrinsicElement(element)) continue;
+
       for (const attribute of element
         .children()
         .filter((child) => child.kind() === "jsx_attribute")) {
@@ -46,4 +48,11 @@ function findClassListAttributeNames(rootNode: SgNode<TSX>): SgNode<TSX>[] {
       leftStart.line - rightStart.line || leftStart.column - rightStart.column
     );
   });
+}
+
+function isIntrinsicElement(element: SgNode<TSX>): boolean {
+  const name = element.field("name");
+  return (
+    name?.kind() === "identifier" && /^[a-z][A-Za-z0-9-]*$/.test(name.text())
+  );
 }

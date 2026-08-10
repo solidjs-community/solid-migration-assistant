@@ -12,7 +12,7 @@ const BETA32_SUBPATH_REPLACEMENTS: Readonly<Record<string, string>> = {
 };
 const RULE_ID = "S2-IMPORT-BETA32-001";
 const STORE_STOP_CONDITION =
-  "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, splitProps, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
+  "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
 
 type Beta32SubpathImport = {
   source: SgNode<TSX>;
