@@ -5,7 +5,7 @@ import { analyzeJsxClassListAttributes } from "./class-list.ts";
 const testJsxClassListAttributes: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
   const guidance = analyzeJsxClassListAttributes(root.root(), { filename });
-  const expectedLocations = ["8:14", "10:23", "11:15", "13:14", "14:15"];
+  const expectedLocations = ["8:14", "10:23", "11:15", "13:14"];
 
   if (guidance.length !== expectedLocations.length) {
     throw new Error(

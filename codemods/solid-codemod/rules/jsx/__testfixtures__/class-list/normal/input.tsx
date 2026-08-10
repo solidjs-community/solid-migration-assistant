@@ -12,6 +12,7 @@ export function View() {
       </div>
       <input classList={{ ready: true }} />
       <Widget classList={["base", { selected: true }]} />
+      <Components.Widget classList={{ member: true }} />
 
       <div class="already-new" />
       <div className="near-miss" />
@@ -25,6 +26,8 @@ export function View() {
 function Widget(props: { classList: unknown }) {
   return <pre>{String(props.classList)}</pre>;
 }
+
+const Components = { Widget };
 
 void classList;
 void text;
