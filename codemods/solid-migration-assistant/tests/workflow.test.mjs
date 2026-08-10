@@ -97,7 +97,6 @@ const temporaryRoot = mkdtempSync(
 try {
   const fileTarget = join(temporaryRoot, "not-a-directory");
   writeFileSync(fileTarget, "not a directory\n");
-  runFailure([], "[solid-migration-assistant] --target is required");
   runFailure(
     ["--target"],
     "[solid-migration-assistant] --target requires a value",
@@ -121,7 +120,7 @@ try {
   const sourceBefore = treeSnapshot(join(target, "src"));
   const targetBefore = treeSnapshot(target);
 
-  const firstOutput = runFromWorkspace(relative(workspaceDirectory, target));
+  const firstOutput = run([], target);
   const firstGuidance = normalizeGuidance(firstOutput);
   assert.equal(firstGuidance, expectedGuidance);
   assert.deepEqual(ruleIds(firstGuidance), expectedRuleIds);
@@ -130,7 +129,7 @@ try {
   assertNoPersistentArtifacts(target);
   assertDetectionOnlyTerminalOutput(firstOutput);
 
-  const secondOutput = runDirect(target);
+  const secondOutput = runFromWorkspace(relative(workspaceDirectory, target));
   const secondGuidance = normalizeGuidance(secondOutput);
   assert.deepEqual(Buffer.from(secondGuidance), Buffer.from(firstGuidance));
   assert.equal(secondGuidance, expectedGuidance);
@@ -165,7 +164,10 @@ function runFromWorkspace(target) {
 function run(argumentsList, cwd) {
   const result = spawnSync(
     process.execPath,
-    [resolve(packageDirectory, "shared/run-workflow.mjs"), ...argumentsList],
+    [
+      resolve(packageDirectory, "bin/solid-migration-assistant.mjs"),
+      ...argumentsList,
+    ],
     {
       cwd,
       encoding: "utf8",
@@ -185,7 +187,10 @@ function run(argumentsList, cwd) {
 function runFailure(argumentsList, expectedDiagnostic) {
   const result = spawnSync(
     process.execPath,
-    [resolve(packageDirectory, "shared/run-workflow.mjs"), ...argumentsList],
+    [
+      resolve(packageDirectory, "bin/solid-migration-assistant.mjs"),
+      ...argumentsList,
+    ],
     {
       cwd: packageDirectory,
       encoding: "utf8",

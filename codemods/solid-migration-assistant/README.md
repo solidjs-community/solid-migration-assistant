@@ -4,15 +4,23 @@ This package implements Solid Migration Assistant as a single read-only workflow
 
 The migration target is pinned to Solid `2.0.0-beta.32` at upstream commit [`3194631`](https://github.com/solidjs/solid/tree/3194631aeeb2b2e360817dc887ab5cbce7548359).
 
-## Analyze
+## Analyze with npm
 
-From the workspace root:
+> **Beta scope:** version `0.1.0` targets Solid `2.0.0-beta.32`, analyzes TSX only, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
+
+After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 
 ```sh
-pnpm analyze --target /absolute/path/to/a/solid-project
+npx --yes solid-migration-assistant@latest
 ```
 
-A run with detections exits successfully. Guidance is deduplicated, sorted by file, line, column, and rule ID, and printed once as a terminal aggregate. The analyzer does not edit the target or create persistent output.
+The current directory is the default target. An explicit target may be absolute or relative to the current directory:
+
+```sh
+npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
+```
+
+A run with detections exits successfully. Guidance is deduplicated, sorted by file, line, column, and rule ID, and printed once as a terminal aggregate. The analyzer does not edit the target, create persistent output, or send Codemod analytics.
 
 ## Supported detections
 
@@ -51,13 +59,13 @@ scripts/analyze.ts  # run every registered analyzer and aggregate guidance
 scripts/emit.ts     # sort and print the complete aggregate once
 ```
 
-Rule modules are grouped by domain under `rules/`. Shared direct-import resolution, guidance formatting, and deterministic ordering live under `shared/`. `shared/run-workflow.mjs` validates `--target` and invokes the single workflow.
+Rule modules are grouped by domain under `rules/`. Shared direct-import resolution, guidance formatting, and deterministic ordering live under `shared/`. The package executable defaults to the current directory, validates an optional `--target`, and uses the pinned package-local Codemod runtime to invoke the single workflow noninteractively with analytics disabled.
 
 Each rule has its own folder under its domain, with the production module, matching detection-only assertion adapter, and direct `*.fixture.tsx` sources colocated in that folder. Each adapter executes every colocated fixture case in dry-run mode and verifies the target file's SHA-256 hash is unchanged. Legacy `__testfixtures__`, `input.tsx`, and `expected.tsx` layouts are forbidden. Production end-to-end workflow tests separately copy whole project fixtures to a temporary directory and prove analyzer runs leave the entire tree byte-for-byte unchanged.
 
 ## Deliberate limits
 
-The preview does not cover JavaScript, `.ts` files, indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. A clean run does not imply complete Solid 2 migration coverage.
+Current coverage is deliberately limited: the analyzer does not cover JavaScript, `.ts` files, indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. No guidance—or a clean run—is not a readiness result and does not imply complete Solid 2 migration coverage.
 
 Automated transforms are roadmap-only. This package exposes no transform command, workflow, test, or implementation.
 

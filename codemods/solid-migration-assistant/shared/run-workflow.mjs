@@ -1,34 +1,46 @@
 import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const invocationDirectory = process.env.INIT_CWD ?? process.cwd();
-const targetArgument = parseTarget(process.argv.slice(2));
-const target = resolve(invocationDirectory, targetArgument);
+const require = createRequire(import.meta.url);
 
-try {
-  if (!statSync(target).isDirectory()) {
-    fail(`target is not a directory: ${target}`);
+export class CliUsageError extends Error {}
+
+export function parseTarget(argumentsList) {
+  let target = ".";
+  let hasExplicitTarget = false;
+
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    if (argument !== "--target") {
+      throw new CliUsageError(`unknown argument: ${argument}`);
+    }
+    if (hasExplicitTarget) {
+      throw new CliUsageError("--target may only be specified once");
+    }
+
+    const value = argumentsList[index + 1];
+    if (!value || value.startsWith("--")) {
+      throw new CliUsageError("--target requires a value");
+    }
+    target = value;
+    hasExplicitTarget = true;
+    index += 1;
   }
-} catch (error) {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    error.code === "ENOENT"
-  ) {
-    fail(`target does not exist: ${target}`);
-  }
-  throw error;
+
+  return target;
 }
 
-const result = spawnSync(
-  "pnpm",
-  [
-    "dlx",
-    "codemod@1.12.13",
+export function resolveCodemodLauncher() {
+  return resolve(dirname(require.resolve("codemod/package.json")), "codemod");
+}
+
+export function buildCodemodArguments(target) {
+  return [
+    "--disable-analytics",
     "workflow",
     "run",
     "-w",
@@ -37,32 +49,49 @@ const result = spawnSync(
     target,
     "--allow-dirty",
     "--no-interactive",
-  ],
-  {
-    cwd: packageDirectory,
-    stdio: "inherit",
-  },
-);
+  ];
+}
 
-if (result.error) throw result.error;
-process.exit(result.status ?? 1);
-
-function parseTarget(argumentsList) {
-  let target;
-
-  for (let index = 0; index < argumentsList.length; index += 1) {
-    const argument = argumentsList[index];
-    if (argument !== "--target") fail(`unknown argument: ${argument}`);
-    target = argumentsList[index + 1];
-    if (!target) fail("--target requires a value");
-    index += 1;
+export function main(argumentsList = process.argv.slice(2)) {
+  let targetArgument;
+  try {
+    targetArgument = parseTarget(argumentsList);
+  } catch (error) {
+    if (error instanceof CliUsageError) return fail(error.message);
+    throw error;
   }
 
-  if (!target) fail("--target is required");
-  return target;
+  const target = resolve(process.cwd(), targetArgument);
+  try {
+    if (!statSync(target).isDirectory()) {
+      return fail(`target is not a directory: ${target}`);
+    }
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return fail(`target does not exist: ${target}`);
+    }
+    throw error;
+  }
+
+  const result = spawnSync(
+    process.execPath,
+    [resolveCodemodLauncher(), ...buildCodemodArguments(target)],
+    {
+      cwd: packageDirectory,
+      stdio: "inherit",
+    },
+  );
+
+  if (result.error) throw result.error;
+  return result.status ?? 1;
 }
 
 function fail(message) {
   console.error(`[solid-migration-assistant] ${message}`);
-  process.exit(2);
+  return 2;
 }
