@@ -67,6 +67,20 @@ test("publishes complete public npm metadata", () => {
     readFileSync(resolve(packageDirectory, "LICENSE"), "utf8"),
     /^MIT License/,
   );
+
+  for (const readme of [
+    resolve(packageDirectory, "README.md"),
+    resolve(packageDirectory, "../../README.md"),
+  ]) {
+    const contents = readFileSync(readme, "utf8");
+    assert.match(contents, /macOS x64 and arm64/);
+    assert.match(contents, /glibc Linux x64 and arm64/);
+    assert.match(contents, /Windows x64/);
+    assert.match(
+      contents,
+      /Alpine\/musl Linux and Windows ARM64 are not supported/,
+    );
+  }
 });
 
 test(
@@ -126,6 +140,11 @@ test(
       );
       assert.equal(install.status, 0, output(install));
 
+      const externalSurface = join(temporaryRoot, "external-surface");
+      const analyzerEnvironment =
+        controlledAnalyzerEnvironment(externalSurface);
+      const externalBefore = treeSnapshot(externalSurface);
+
       const executable = join(
         consumer,
         `node_modules/.bin/solid-migration-assistant${
@@ -148,19 +167,23 @@ test(
             ),
           ],
           consumer,
-          { PATH: "" },
+          { ...analyzerEnvironment, PATH: "" },
         );
       } else {
         const nodeLink = join(isolatedPath, "node");
         symlinkSync(process.execPath, nodeLink);
         assert.deepEqual(readdirSync(isolatedPath), ["node"]);
         chmodSync(executable, 0o755);
-        smoke = command(executable, [], consumer, { PATH: isolatedPath });
+        smoke = command(executable, [], consumer, {
+          ...analyzerEnvironment,
+          PATH: isolatedPath,
+        });
       }
 
       assert.equal(smoke.status, 0, output(smoke));
       assert.match(output(smoke), /\[S2-IMPORT-WEB-001\]/);
       assert.deepEqual(treeSnapshot(consumer), before);
+      assert.deepEqual(treeSnapshot(externalSurface), externalBefore);
       assertNoAnalyzerArtifacts(consumer);
     } finally {
       rmSync(temporaryRoot, { recursive: true, force: true });
@@ -168,6 +191,27 @@ test(
   },
   { timeout: 120_000 },
 );
+
+function controlledAnalyzerEnvironment(root) {
+  const paths = {
+    HOME: join(root, "home"),
+    USERPROFILE: join(root, "home"),
+    XDG_CONFIG_HOME: join(root, "xdg-config"),
+    XDG_DATA_HOME: join(root, "xdg-data"),
+    XDG_STATE_HOME: join(root, "xdg-state"),
+    XDG_CACHE_HOME: join(root, "xdg-cache"),
+    XDG_RUNTIME_DIR: join(root, "xdg-runtime"),
+    APPDATA: join(root, "appdata"),
+    LOCALAPPDATA: join(root, "local-appdata"),
+    TMPDIR: join(root, "temporary"),
+    TMP: join(root, "temporary"),
+    TEMP: join(root, "temporary"),
+  };
+  for (const path of new Set(Object.values(paths))) {
+    mkdirSync(path, { recursive: true });
+  }
+  return paths;
+}
 
 function command(executable, argumentsList, cwd, environment = {}) {
   return spawnSync(executable, argumentsList, {

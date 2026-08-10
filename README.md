@@ -2,13 +2,15 @@
 
 Solid Migration Assistant is an experimental, read-only analyzer for selected Solid 1.9 migration sites targeting Solid `2.0.0-beta.32`.
 
-The assistant scans TSX source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed only in the terminal. The analyzer never edits the target and does not generate reports, dashboards, telemetry, or other persistent artifacts.
+The assistant scans TSX source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed only in the terminal. The analyzer never edits the target and does not generate reports, dashboards, telemetry, or other persistent artifacts. Codemod runtime state is confined to a private per-run home/config/cache/temp sandbox and removed after the child process exits.
 
 ## Run the beta analyzer
 
 > **Beta scope:** this `0.1.0` analyzer targets Solid `2.0.0-beta.32`, scans TSX only, and covers only the detections listed below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run the package from a project root with Node 20 or newer and npm (no pnpm installation is needed):
+
+Runtime platform support is limited by the native binaries published for the pinned Codemod 1.12.13 dependency: macOS x64 and arm64, glibc Linux x64 and arm64, and Windows x64. Alpine/musl Linux and Windows ARM64 are not supported.
 
 ```sh
 npx --yes solid-migration-assistant@latest

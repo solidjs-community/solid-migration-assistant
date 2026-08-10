@@ -10,6 +10,8 @@ The migration target is pinned to Solid `2.0.0-beta.32` at upstream commit [`319
 
 After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 
+Runtime platform support is limited by the native binaries published for the pinned Codemod 1.12.13 dependency: macOS x64 and arm64, glibc Linux x64 and arm64, and Windows x64. Alpine/musl Linux and Windows ARM64 are not supported.
+
 ```sh
 npx --yes solid-migration-assistant@latest
 ```
@@ -20,7 +22,7 @@ The current directory is the default target. An explicit target may be absolute 
 npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
 ```
 
-A run with detections exits successfully. Guidance is deduplicated, sorted by file, line, column, and rule ID, and printed once as a terminal aggregate. The analyzer does not edit the target, create persistent output, or send Codemod analytics.
+A run with detections exits successfully. Guidance is deduplicated, sorted by file, line, column, and rule ID, and printed once as a terminal aggregate. The analyzer does not edit the target, create persistent output, or send Codemod analytics. Codemod runtime state is confined to a private per-run home/config/cache/temp sandbox and recursively removed after the child process exits.
 
 ## Supported detections
 

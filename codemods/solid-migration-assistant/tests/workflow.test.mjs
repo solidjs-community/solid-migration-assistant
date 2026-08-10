@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -93,6 +94,9 @@ const expectedRuleIds = [
 const temporaryRoot = mkdtempSync(
   join(tmpdir(), "solid-migration-assistant-analysis-"),
 );
+const externalSurface = join(temporaryRoot, "external-surface");
+const analyzerEnvironment = controlledAnalyzerEnvironment(externalSurface);
+const externalBefore = treeSnapshot(externalSurface);
 
 try {
   const fileTarget = join(temporaryRoot, "not-a-directory");
@@ -148,6 +152,7 @@ try {
   assertNoPersistentArtifacts(emptyTarget);
   assertDetectionOnlyTerminalOutput(emptyOutput);
 
+  assert.deepEqual(treeSnapshot(externalSurface), externalBefore);
   console.log("workflow verification passed");
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
@@ -173,6 +178,7 @@ function run(argumentsList, cwd) {
       encoding: "utf8",
       env: {
         ...process.env,
+        ...analyzerEnvironment,
         CI: "true",
         FORCE_COLOR: undefined,
         INIT_CWD: cwd,
@@ -196,6 +202,7 @@ function runFailure(argumentsList, expectedDiagnostic) {
       encoding: "utf8",
       env: {
         ...process.env,
+        ...analyzerEnvironment,
         CI: "true",
         FORCE_COLOR: undefined,
         INIT_CWD: packageDirectory,
@@ -204,6 +211,27 @@ function runFailure(argumentsList, expectedDiagnostic) {
   );
   assert.equal(result.status, 2, `analyze exited ${result.status}`);
   assert.deepEqual(cliDiagnostics(output(result)), [expectedDiagnostic]);
+}
+
+function controlledAnalyzerEnvironment(root) {
+  const environment = {
+    HOME: join(root, "home"),
+    USERPROFILE: join(root, "home"),
+    XDG_CONFIG_HOME: join(root, "xdg-config"),
+    XDG_DATA_HOME: join(root, "xdg-data"),
+    XDG_STATE_HOME: join(root, "xdg-state"),
+    XDG_CACHE_HOME: join(root, "xdg-cache"),
+    XDG_RUNTIME_DIR: join(root, "xdg-runtime"),
+    APPDATA: join(root, "appdata"),
+    LOCALAPPDATA: join(root, "local-appdata"),
+    TMPDIR: join(root, "temporary"),
+    TMP: join(root, "temporary"),
+    TEMP: join(root, "temporary"),
+  };
+  for (const path of new Set(Object.values(environment))) {
+    mkdirSync(path, { recursive: true });
+  }
+  return environment;
 }
 
 function output(result) {
