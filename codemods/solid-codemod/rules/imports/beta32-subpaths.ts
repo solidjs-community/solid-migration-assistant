@@ -11,6 +11,8 @@ const BETA32_SUBPATH_REPLACEMENTS: Readonly<Record<string, string>> = {
   "solid-js/jsx-dev-runtime": "@solidjs/web/jsx-dev-runtime",
 };
 const RULE_ID = "S2-IMPORT-BETA32-001";
+const STORE_STOP_CONDITION =
+  "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, splitProps, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
 
 type Beta32SubpathImport = {
   source: SgNode<TSX>;
@@ -30,7 +32,7 @@ export function analyzeBeta32SubpathImports(
         RULE_ID,
         "Move this Solid 2 beta.32 subpath import.",
         `Solid 2 beta.32 publishes ${legacyModule} from ${replacementModule}.`,
-        `Change only this static import's module source from ${legacyModule} to ${replacementModule}, preserve its import form and quote style, and then run the application's typecheck and build. This analyzer does not edit source. Re-exports, dynamic imports, require calls, and TypeScript import types are deliberately outside this rule.`,
+        `Change only this static import's module source from ${legacyModule} to ${replacementModule}, preserve its import form and quote style, and then run the application's typecheck and build. This analyzer does not edit source. Re-exports, dynamic imports, require calls, and TypeScript import() type expressions are deliberately outside this rule.${legacyModule === "solid-js/store" ? ` ${STORE_STOP_CONDITION}` : ""}`,
       ),
   );
 }

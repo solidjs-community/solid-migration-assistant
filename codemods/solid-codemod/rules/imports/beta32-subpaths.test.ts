@@ -35,6 +35,9 @@ const EXPECTED_SITES = [
   },
 ] as const;
 
+const STORE_STOP_CONDITION =
+  "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, splitProps, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
+
 const testBeta32SubpathRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
   const guidance = analyzeBeta32SubpathImports(root.root(), { filename });
@@ -55,13 +58,16 @@ const testBeta32SubpathRule: Codemod<TSX> = async (root) => {
       `from ${expected.legacy} to ${expected.replacement}`,
       "static import",
       "does not edit source",
-      "Re-exports, dynamic imports, require calls, and TypeScript import types",
+      "Re-exports, dynamic imports, require calls, and TypeScript import() type expressions",
     ];
+    const isStoreImport = expected.legacy === "solid-js/store";
 
     if (
       location !== expected.location ||
       !entry.startsWith(`${filename}:`) ||
-      requiredText.some((text) => !entry.includes(text))
+      requiredText.some((text) => !entry.includes(text)) ||
+      entry.includes("TypeScript import types") ||
+      entry.includes(STORE_STOP_CONDITION) !== isStoreImport
     ) {
       throw new Error(`unexpected beta.32 subpath guidance: ${entry}`);
     }
