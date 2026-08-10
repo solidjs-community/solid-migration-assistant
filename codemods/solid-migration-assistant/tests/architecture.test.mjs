@@ -208,8 +208,10 @@ test("colocates exact rule production, adapters, and fixtures", () => {
 test("uses normal analyzer end-to-end fixtures", () => {
   assert.deepEqual(readdirSync(testsDirectory).sort(), [
     "architecture.test.mjs",
+    "cli.test.mjs",
     "empty",
     "fixture",
+    "packaging.test.mjs",
     "rules.test.mjs",
     "workflow.test.mjs",
   ]);

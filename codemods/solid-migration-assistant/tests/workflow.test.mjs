@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -93,11 +94,13 @@ const expectedRuleIds = [
 const temporaryRoot = mkdtempSync(
   join(tmpdir(), "solid-migration-assistant-analysis-"),
 );
+const externalSurface = join(temporaryRoot, "external-surface");
+const analyzerEnvironment = controlledAnalyzerEnvironment(externalSurface);
+const externalBefore = treeSnapshot(externalSurface);
 
 try {
   const fileTarget = join(temporaryRoot, "not-a-directory");
   writeFileSync(fileTarget, "not a directory\n");
-  runFailure([], "[solid-migration-assistant] --target is required");
   runFailure(
     ["--target"],
     "[solid-migration-assistant] --target requires a value",
@@ -121,7 +124,7 @@ try {
   const sourceBefore = treeSnapshot(join(target, "src"));
   const targetBefore = treeSnapshot(target);
 
-  const firstOutput = runFromWorkspace(relative(workspaceDirectory, target));
+  const firstOutput = run([], target);
   const firstGuidance = normalizeGuidance(firstOutput);
   assert.equal(firstGuidance, expectedGuidance);
   assert.deepEqual(ruleIds(firstGuidance), expectedRuleIds);
@@ -130,7 +133,7 @@ try {
   assertNoPersistentArtifacts(target);
   assertDetectionOnlyTerminalOutput(firstOutput);
 
-  const secondOutput = runDirect(target);
+  const secondOutput = runFromWorkspace(relative(workspaceDirectory, target));
   const secondGuidance = normalizeGuidance(secondOutput);
   assert.deepEqual(Buffer.from(secondGuidance), Buffer.from(firstGuidance));
   assert.equal(secondGuidance, expectedGuidance);
@@ -149,6 +152,7 @@ try {
   assertNoPersistentArtifacts(emptyTarget);
   assertDetectionOnlyTerminalOutput(emptyOutput);
 
+  assert.deepEqual(treeSnapshot(externalSurface), externalBefore);
   console.log("workflow verification passed");
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
@@ -165,12 +169,16 @@ function runFromWorkspace(target) {
 function run(argumentsList, cwd) {
   const result = spawnSync(
     process.execPath,
-    [resolve(packageDirectory, "shared/run-workflow.mjs"), ...argumentsList],
+    [
+      resolve(packageDirectory, "bin/solid-migration-assistant.mjs"),
+      ...argumentsList,
+    ],
     {
       cwd,
       encoding: "utf8",
       env: {
         ...process.env,
+        ...analyzerEnvironment,
         CI: "true",
         FORCE_COLOR: undefined,
         INIT_CWD: cwd,
@@ -185,12 +193,16 @@ function run(argumentsList, cwd) {
 function runFailure(argumentsList, expectedDiagnostic) {
   const result = spawnSync(
     process.execPath,
-    [resolve(packageDirectory, "shared/run-workflow.mjs"), ...argumentsList],
+    [
+      resolve(packageDirectory, "bin/solid-migration-assistant.mjs"),
+      ...argumentsList,
+    ],
     {
       cwd: packageDirectory,
       encoding: "utf8",
       env: {
         ...process.env,
+        ...analyzerEnvironment,
         CI: "true",
         FORCE_COLOR: undefined,
         INIT_CWD: packageDirectory,
@@ -199,6 +211,27 @@ function runFailure(argumentsList, expectedDiagnostic) {
   );
   assert.equal(result.status, 2, `analyze exited ${result.status}`);
   assert.deepEqual(cliDiagnostics(output(result)), [expectedDiagnostic]);
+}
+
+function controlledAnalyzerEnvironment(root) {
+  const environment = {
+    HOME: join(root, "home"),
+    USERPROFILE: join(root, "home"),
+    XDG_CONFIG_HOME: join(root, "xdg-config"),
+    XDG_DATA_HOME: join(root, "xdg-data"),
+    XDG_STATE_HOME: join(root, "xdg-state"),
+    XDG_CACHE_HOME: join(root, "xdg-cache"),
+    XDG_RUNTIME_DIR: join(root, "xdg-runtime"),
+    APPDATA: join(root, "appdata"),
+    LOCALAPPDATA: join(root, "local-appdata"),
+    TMPDIR: join(root, "temporary"),
+    TMP: join(root, "temporary"),
+    TEMP: join(root, "temporary"),
+  };
+  for (const path of new Set(Object.values(environment))) {
+    mkdirSync(path, { recursive: true });
+  }
+  return environment;
 }
 
 function output(result) {
