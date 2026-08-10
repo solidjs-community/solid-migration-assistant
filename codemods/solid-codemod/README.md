@@ -53,7 +53,7 @@ scripts/emit.ts     # sort and print the complete aggregate once
 
 Rule modules are grouped by domain under `rules/`. Shared direct-import resolution, guidance formatting, and deterministic ordering live under `shared/`. `shared/run-workflow.mjs` validates `--target` and invokes the single workflow.
 
-Detection-only rule assertion adapters are colocated with each domain module. Each adapter executes its single `input.tsx` fixture in dry-run mode; `input.tsx` is the only rule-fixture source, so duplicate `expected.tsx` snapshots are intentionally forbidden. Production end-to-end tests separately copy project fixtures to a temporary directory and prove analyzer runs leave them byte-for-byte unchanged.
+Each rule has its own folder under its domain, with the production module, matching detection-only assertion adapter, and direct `*.fixture.tsx` sources colocated in that folder. Each adapter executes every colocated fixture case in dry-run mode and verifies the target file's SHA-256 hash is unchanged. Legacy `__testfixtures__`, `input.tsx`, and `expected.tsx` layouts are forbidden. Production end-to-end workflow tests separately copy whole project fixtures to a temporary directory and prove analyzer runs leave the entire tree byte-for-byte unchanged.
 
 ## Deliberate limits
 

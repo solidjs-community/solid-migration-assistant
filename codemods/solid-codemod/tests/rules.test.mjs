@@ -1,77 +1,58 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rulesDirectory = resolve(packageDirectory, "rules");
 const ruleCases = [
+  { directory: "rules/imports/web-import" },
+  { directory: "rules/imports/beta32-subpaths" },
   {
-    adapter: "rules/imports/web-import.test.ts",
-    fixtures: "rules/imports/__testfixtures__/web-import",
+    directory: "rules/jsx/component-renames",
+    semanticWorkspace: true,
   },
+  { directory: "rules/jsx/class-list" },
   {
-    adapter: "rules/imports/beta32-subpaths.test.ts",
-    fixtures: "rules/imports/__testfixtures__/beta32-subpaths",
-  },
-  {
-    adapter: "rules/jsx/component-renames.test.ts",
-    fixtures: "rules/jsx/__testfixtures__/component-renames",
+    directory: "rules/lifecycle/on-mount",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/jsx/class-list.test.ts",
-    fixtures: "rules/jsx/__testfixtures__/class-list",
-  },
-  {
-    adapter: "rules/lifecycle/on-mount.test.ts",
-    fixtures: "rules/lifecycle/__testfixtures__",
+    directory: "rules/reactivity/create-effect",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/reactivity/create-effect.test.ts",
-    fixtures: "rules/reactivity/__testfixtures__/create-effect",
+    directory: "rules/reactivity/create-computed",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/reactivity/create-computed.test.ts",
-    fixtures: "rules/reactivity/__testfixtures__/create-computed",
+    directory: "rules/reactivity/create-memo",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/reactivity/create-memo.test.ts",
-    fixtures: "rules/reactivity/__testfixtures__/create-memo",
+    directory: "rules/props/merge-props",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/props/merge-props.test.ts",
-    fixtures: "rules/props/__testfixtures__/merge-props",
+    directory: "rules/props/split-props",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/props/split-props.test.ts",
-    fixtures: "rules/props/__testfixtures__/split-props",
+    directory: "rules/store/mutable",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/store/mutable.test.ts",
-    fixtures: "rules/store/__testfixtures__/mutable",
+    directory: "rules/store/produce",
     semanticWorkspace: true,
   },
   {
-    adapter: "rules/store/produce.test.ts",
-    fixtures: "rules/store/__testfixtures__/produce",
-    semanticWorkspace: true,
-  },
-  {
-    adapter: "rules/store/unwrap.test.ts",
-    fixtures: "rules/store/__testfixtures__/unwrap",
+    directory: "rules/store/unwrap",
     semanticWorkspace: true,
   },
 ];
 
-const configuredAdapters = ruleCases.map(({ adapter }) => adapter).sort();
+const configuredAdapters = ruleCases.map(adapterForRule).sort();
 const existingAdapters = findFiles(rulesDirectory, (name) =>
   name.endsWith(".test.ts"),
 )
@@ -89,26 +70,28 @@ if (configuredAdapters.join("\n") !== existingAdapters.join("\n")) {
   );
 }
 
-const cases = ruleCases.flatMap((ruleCase) =>
-  findFiles(
-    resolve(packageDirectory, ruleCase.fixtures),
-    (name) => name === "input.tsx",
-  ).map((target) => ({ ...ruleCase, target })),
-);
+const cases = ruleCases.flatMap((ruleCase) => {
+  const ruleDirectory = resolve(packageDirectory, ruleCase.directory);
+  const adapter = adapterForRule(ruleCase);
+  return directFixtureFiles(ruleDirectory).map((target) => ({
+    ...ruleCase,
+    adapter,
+    target,
+  }));
+});
 
 const configuredFixtures = cases
   .map(({ target }) => relative(packageDirectory, target))
   .sort();
-const existingFixtures = findFiles(
-  rulesDirectory,
-  (name) => name === "input.tsx",
+const existingFixtures = findFiles(rulesDirectory, (name) =>
+  name.endsWith(".fixture.tsx"),
 )
   .map((path) => relative(packageDirectory, path))
   .sort();
 
 if (configuredFixtures.length !== 22 || existingFixtures.length !== 22) {
   throw new Error(
-    `Expected 22 input.tsx fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
+    `Expected 22 colocated fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
   );
 }
 if (configuredFixtures.join("\n") !== existingFixtures.join("\n")) {
@@ -124,6 +107,17 @@ for (const ruleCase of cases) {
 console.log(
   `Rule detection passed: ${ruleCases.length} adapters, ${cases.length} fixture cases, 0 targets changed.`,
 );
+
+function adapterForRule({ directory }) {
+  return `${directory}/${basename(directory)}.test.ts`;
+}
+
+function directFixtureFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".fixture.tsx"))
+    .map((entry) => resolve(directory, entry.name))
+    .sort((left, right) => left.localeCompare(right));
+}
 
 function runRuleCase({ adapter, semanticWorkspace, target }) {
   const adapterPath = resolve(packageDirectory, adapter);

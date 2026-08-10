@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -8,30 +8,64 @@ const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rulesDirectory = resolve(packageDirectory, "rules");
 const testsDirectory = resolve(packageDirectory, "tests");
 
-const EXPECTED_RULE_INPUTS = [
-  "imports/__testfixtures__/beta32-subpaths/static-imports/input.tsx",
-  "imports/__testfixtures__/web-import/static-imports/input.tsx",
-  "jsx/__testfixtures__/class-list/normal/input.tsx",
-  "jsx/__testfixtures__/component-renames/normal/input.tsx",
-  "lifecycle/__testfixtures__/direct-call/input.tsx",
-  "lifecycle/__testfixtures__/non-solid/input.tsx",
-  "props/__testfixtures__/merge-props/direct-call/input.tsx",
-  "props/__testfixtures__/merge-props/non-solid/input.tsx",
-  "props/__testfixtures__/split-props/direct-call/input.tsx",
-  "props/__testfixtures__/split-props/non-solid/input.tsx",
-  "reactivity/__testfixtures__/create-computed/direct-call/input.tsx",
-  "reactivity/__testfixtures__/create-computed/non-solid/input.tsx",
-  "reactivity/__testfixtures__/create-effect/direct-call/input.tsx",
-  "reactivity/__testfixtures__/create-effect/non-solid/input.tsx",
-  "reactivity/__testfixtures__/create-memo/direct-call/input.tsx",
-  "reactivity/__testfixtures__/create-memo/non-solid/input.tsx",
-  "store/__testfixtures__/mutable/direct-call/input.tsx",
-  "store/__testfixtures__/mutable/non-solid/input.tsx",
-  "store/__testfixtures__/produce/direct-call/input.tsx",
-  "store/__testfixtures__/produce/non-solid/input.tsx",
-  "store/__testfixtures__/unwrap/direct-call/input.tsx",
-  "store/__testfixtures__/unwrap/non-solid/input.tsx",
+const EXPECTED_RULE_PRODUCTION = [
+  "imports/beta32-subpaths/beta32-subpaths.ts",
+  "imports/web-import/web-import.ts",
+  "jsx/class-list/class-list.ts",
+  "jsx/component-renames/component-renames.ts",
+  "lifecycle/on-mount/on-mount.ts",
+  "props/merge-props/merge-props.ts",
+  "props/split-props/split-props.ts",
+  "reactivity/create-computed/create-computed.ts",
+  "reactivity/create-effect/create-effect.ts",
+  "reactivity/create-memo/create-memo.ts",
+  "store/mutable/mutable.ts",
+  "store/produce/produce.ts",
+  "store/unwrap/unwrap.ts",
 ];
+const EXPECTED_RULE_TESTS = [
+  "imports/beta32-subpaths/beta32-subpaths.test.ts",
+  "imports/web-import/web-import.test.ts",
+  "jsx/class-list/class-list.test.ts",
+  "jsx/component-renames/component-renames.test.ts",
+  "lifecycle/on-mount/on-mount.test.ts",
+  "props/merge-props/merge-props.test.ts",
+  "props/split-props/split-props.test.ts",
+  "reactivity/create-computed/create-computed.test.ts",
+  "reactivity/create-effect/create-effect.test.ts",
+  "reactivity/create-memo/create-memo.test.ts",
+  "store/mutable/mutable.test.ts",
+  "store/produce/produce.test.ts",
+  "store/unwrap/unwrap.test.ts",
+];
+const EXPECTED_RULE_FIXTURES = [
+  "imports/beta32-subpaths/static-imports.fixture.tsx",
+  "imports/web-import/static-imports.fixture.tsx",
+  "jsx/class-list/normal.fixture.tsx",
+  "jsx/component-renames/normal.fixture.tsx",
+  "lifecycle/on-mount/direct-call.fixture.tsx",
+  "lifecycle/on-mount/non-solid.fixture.tsx",
+  "props/merge-props/direct-call.fixture.tsx",
+  "props/merge-props/non-solid.fixture.tsx",
+  "props/split-props/direct-call.fixture.tsx",
+  "props/split-props/non-solid.fixture.tsx",
+  "reactivity/create-computed/direct-call.fixture.tsx",
+  "reactivity/create-computed/non-solid.fixture.tsx",
+  "reactivity/create-effect/direct-call.fixture.tsx",
+  "reactivity/create-effect/non-solid.fixture.tsx",
+  "reactivity/create-memo/direct-call.fixture.tsx",
+  "reactivity/create-memo/non-solid.fixture.tsx",
+  "store/mutable/direct-call.fixture.tsx",
+  "store/mutable/non-solid.fixture.tsx",
+  "store/produce/direct-call.fixture.tsx",
+  "store/produce/non-solid.fixture.tsx",
+  "store/unwrap/direct-call.fixture.tsx",
+  "store/unwrap/non-solid.fixture.tsx",
+];
+
+const EXPECTED_RULE_FOLDERS = EXPECTED_RULE_PRODUCTION.map((path) =>
+  dirname(path),
+).sort();
 
 test("keeps the production workflow detection-only", () => {
   assert.deepEqual(productionScripts(), ["analyze.ts", "emit.ts"]);
@@ -60,22 +94,8 @@ test("keeps the production workflow detection-only", () => {
 });
 
 test("registers every supported detector and one deterministic emitter", () => {
-  for (const path of [
-    "rules/imports/beta32-subpaths.ts",
-    "rules/imports/web-import.ts",
-    "rules/jsx/class-list.ts",
-    "rules/jsx/component-renames.ts",
-    "rules/lifecycle/on-mount.ts",
-    "rules/props/merge-props.ts",
-    "rules/props/split-props.ts",
-    "rules/reactivity/create-computed.ts",
-    "rules/reactivity/create-effect.ts",
-    "rules/reactivity/create-memo.ts",
-    "rules/store/mutable.ts",
-    "rules/store/produce.ts",
-    "rules/store/unwrap.ts",
-  ]) {
-    assert.equal(existsSync(resolve(packageDirectory, path)), true, path);
+  for (const path of EXPECTED_RULE_PRODUCTION) {
+    assert.equal(existsSync(resolve(rulesDirectory, path)), true, path);
   }
 
   const analyzer = readFileSync(
@@ -129,16 +149,60 @@ test("exposes analysis without report or transform commands", () => {
   assert.doesNotMatch(codemod, /name: transform|workflow\.transform|report/i);
 });
 
-test("keeps rule fixtures single-source", () => {
-  const fixtureFiles = ruleFixtureFiles();
-  const inputFiles = fixtureFiles.filter((path) => path.endsWith("/input.tsx"));
-  const expectedFiles = fixtureFiles.filter((path) =>
-    path.endsWith("/expected.tsx"),
+test("colocates exact rule production, adapters, and fixtures", () => {
+  assert.deepEqual(directRuleFolders(), EXPECTED_RULE_FOLDERS);
+  assert.deepEqual(
+    ruleFiles((name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+    EXPECTED_RULE_PRODUCTION,
+  );
+  assert.deepEqual(
+    ruleFiles((name) => name.endsWith(".test.ts")),
+    EXPECTED_RULE_TESTS,
+  );
+  assert.deepEqual(
+    ruleFiles((name) => name.endsWith(".fixture.tsx")),
+    EXPECTED_RULE_FIXTURES,
   );
 
-  assert.equal(fixtureFiles.length, EXPECTED_RULE_INPUTS.length);
-  assert.deepEqual(inputFiles, EXPECTED_RULE_INPUTS);
-  assert.deepEqual(expectedFiles, []);
+  for (const path of ruleEntries()) {
+    assert.equal(path.split("/").includes("__testfixtures__"), false, path);
+    assert.notEqual(basename(path), "input.tsx", path);
+    assert.notEqual(basename(path), "expected.tsx", path);
+  }
+
+  for (const production of EXPECTED_RULE_PRODUCTION) {
+    const folder = dirname(production);
+    const ruleName = basename(production, ".ts");
+    const entries = readdirSync(resolve(rulesDirectory, folder), {
+      withFileTypes: true,
+    });
+    const files = entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .sort();
+    const directories = entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+
+    assert.deepEqual(directories, [], folder);
+    assert.deepEqual(
+      files.filter(
+        (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
+      ),
+      [`${ruleName}.ts`],
+      folder,
+    );
+    assert.deepEqual(
+      files.filter((name) => name.endsWith(".test.ts")),
+      [`${ruleName}.test.ts`],
+      folder,
+    );
+    assert.ok(
+      files.some((name) => name.endsWith(".fixture.tsx")),
+      `${folder} must contain at least one fixture`,
+    );
+  }
 });
 
 test("uses normal analyzer end-to-end fixtures", () => {
@@ -168,21 +232,35 @@ test("uses normal analyzer end-to-end fixtures", () => {
   assert.doesNotMatch(readFixtureText(), /codemod-reports|transform|report/i);
 });
 
-function ruleFixtureFiles() {
-  const files = [];
-  visitRuleFixtures(rulesDirectory, false, files);
-  return files.sort();
+function directRuleFolders() {
+  const folders = [];
+  for (const domain of readdirSync(rulesDirectory, { withFileTypes: true })) {
+    if (!domain.isDirectory()) continue;
+    const domainDirectory = resolve(rulesDirectory, domain.name);
+    for (const rule of readdirSync(domainDirectory, { withFileTypes: true })) {
+      if (rule.isDirectory()) folders.push(`${domain.name}/${rule.name}`);
+    }
+  }
+  return folders.sort();
 }
 
-function visitRuleFixtures(directory, insideFixtures, files) {
+function ruleFiles(predicate) {
+  return ruleEntries((entry) => entry.isFile() && predicate(entry.name));
+}
+
+function ruleEntries(predicate = () => true) {
+  const entries = [];
+  visitRules(rulesDirectory, entries, predicate);
+  return entries.sort();
+}
+
+function visitRules(directory, entries, predicate) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = resolve(directory, entry.name);
-    const isFixture = insideFixtures || entry.name === "__testfixtures__";
-
-    if (entry.isDirectory()) visitRuleFixtures(path, isFixture, files);
-    if (entry.isFile() && isFixture) {
-      files.push(relative(rulesDirectory, path).replaceAll("\\", "/"));
+    if (predicate(entry)) {
+      entries.push(relative(rulesDirectory, path).replaceAll("\\", "/"));
     }
+    if (entry.isDirectory()) visitRules(path, entries, predicate);
   }
 }
 
