@@ -13,9 +13,11 @@ import { dirname, join, relative, resolve } from "node:path";
 import { test } from "node:test";
 import {
   buildCodemodArguments,
+  main,
   parseTarget,
   resolveCodemodLauncher,
   runCodemod,
+  unsupportedPlatformReason,
 } from "../shared/run-workflow.mjs";
 
 const packageDirectory = resolve(import.meta.dirname, "..");
@@ -66,6 +68,86 @@ test("runs the pinned package-local Codemod launcher with safe flags", () => {
     target,
     "--allow-dirty",
     "--no-interactive",
+  ]);
+});
+
+test("accepts only the supported native platform matrix", () => {
+  assert.equal(
+    unsupportedPlatformReason({
+      platform: "darwin",
+      architecture: "arm64",
+    }),
+    undefined,
+  );
+  assert.equal(
+    unsupportedPlatformReason({
+      platform: "darwin",
+      architecture: "x64",
+    }),
+    undefined,
+  );
+  assert.equal(
+    unsupportedPlatformReason({
+      platform: "linux",
+      architecture: "arm64",
+      glibcVersionRuntime: "2.39",
+    }),
+    undefined,
+  );
+  assert.equal(
+    unsupportedPlatformReason({
+      platform: "linux",
+      architecture: "x64",
+      glibcVersionRuntime: "2.39",
+    }),
+    undefined,
+  );
+  assert.match(
+    unsupportedPlatformReason({
+      platform: "win32",
+      architecture: "x64",
+    }),
+    /Windows is temporarily unsupported.*isolatable state-directory override/,
+  );
+  assert.match(
+    unsupportedPlatformReason({
+      platform: "linux",
+      architecture: "x64",
+    }),
+    /Alpine\/musl Linux is unsupported/,
+  );
+  assert.match(
+    unsupportedPlatformReason({
+      platform: "darwin",
+      architecture: "ia32",
+    }),
+    /supports only macOS x64\/arm64 and glibc Linux x64\/arm64/,
+  );
+});
+
+test("rejects Windows before starting the Codemod child", () => {
+  let spawned = false;
+  const diagnostics = [];
+  const originalError = console.error;
+  console.error = (...values) => diagnostics.push(values.join(" "));
+  try {
+    const status = main([], {
+      platform: "win32",
+      architecture: "x64",
+      cwd: packageDirectory,
+      runImpl: () => {
+        spawned = true;
+        return { status: 0 };
+      },
+    });
+    assert.equal(status, 2);
+  } finally {
+    console.error = originalError;
+  }
+
+  assert.equal(spawned, false);
+  assert.deepEqual(diagnostics, [
+    "[solid-migration-assistant] unsupported platform: Windows is temporarily unsupported because codemod@1.12.13 does not expose an isolatable state-directory override",
   ]);
 });
 

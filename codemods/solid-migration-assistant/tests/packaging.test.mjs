@@ -55,6 +55,9 @@ test("publishes complete public npm metadata", () => {
   assert.equal(packageJson.dependencies.codemod, "1.12.13");
   assert.equal(packageJson.engines.node, ">=20.0.0");
   assert.equal(packageJson.publishConfig.access, "public");
+  assert.deepEqual(packageJson.os, ["darwin", "linux"]);
+  assert.deepEqual(packageJson.cpu, ["x64", "arm64"]);
+  assert.equal(packageJson.libc, undefined);
   assert.deepEqual(packageJson.bin, {
     "solid-migration-assistant": "./bin/solid-migration-assistant.mjs",
   });
@@ -75,11 +78,13 @@ test("publishes complete public npm metadata", () => {
     const contents = readFileSync(readme, "utf8");
     assert.match(contents, /macOS x64 and arm64/);
     assert.match(contents, /glibc Linux x64 and arm64/);
-    assert.match(contents, /Windows x64/);
     assert.match(
       contents,
-      /Alpine\/musl Linux and Windows ARM64 are not supported/,
+      /Windows x64 is temporarily unsupported.*isolatable state-directory override/,
     );
+    assert.match(contents, /Windows ARM64 is also unsupported/);
+    assert.match(contents, /Alpine\/musl Linux is unsupported/);
+    assert.match(contents, /Linux support.*not yet physically smoke-tested/);
   }
 });
 

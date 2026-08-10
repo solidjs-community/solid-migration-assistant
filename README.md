@@ -10,7 +10,7 @@ The assistant scans TSX source, prints one detailed guidance string for each sup
 
 After npm publication, run the package from a project root with Node 20 or newer and npm (no pnpm installation is needed):
 
-Runtime platform support is limited by the native binaries published for the pinned Codemod 1.12.13 dependency: macOS x64 and arm64, glibc Linux x64 and arm64, and Windows x64. Alpine/musl Linux and Windows ARM64 are not supported.
+Runtime platform support is limited to macOS x64 and arm64 and glibc Linux x64 and arm64. Windows x64 is temporarily unsupported because upstream Codemod 1.12.13 does not expose an isolatable state-directory override; Windows ARM64 is also unsupported and has no published native binary. Alpine/musl Linux is unsupported because 1.12.13 publishes only glibc Linux binaries. The packaged smoke test is currently exercised on macOS arm64; Linux support follows upstream native artifact metadata and is not yet physically smoke-tested by this project.
 
 ```sh
 npx --yes solid-migration-assistant@latest

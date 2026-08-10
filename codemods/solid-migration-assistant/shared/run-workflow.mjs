@@ -53,6 +53,31 @@ export function buildCodemodArguments(target) {
   ];
 }
 
+export function unsupportedPlatformReason({
+  platform = process.platform,
+  architecture = process.arch,
+  glibcVersionRuntime = detectGlibcVersionRuntime(platform),
+} = {}) {
+  if (platform === "win32") {
+    return "Windows is temporarily unsupported because codemod@1.12.13 does not expose an isolatable state-directory override";
+  }
+  if (
+    platform === "darwin" &&
+    (architecture === "x64" || architecture === "arm64")
+  ) {
+    return undefined;
+  }
+  if (platform === "linux") {
+    if (!glibcVersionRuntime) {
+      return "Alpine/musl Linux is unsupported because codemod@1.12.13 publishes only glibc binaries";
+    }
+    if (architecture === "x64" || architecture === "arm64") {
+      return undefined;
+    }
+  }
+  return "solid-migration-assistant@0.1.0 supports only macOS x64/arm64 and glibc Linux x64/arm64";
+}
+
 export function runCodemod(
   target,
   { spawnImpl = spawnSync, temporaryDirectory = tmpdir() } = {},
@@ -86,7 +111,16 @@ export function runCodemod(
   }
 }
 
-export function main(argumentsList = process.argv.slice(2)) {
+export function main(
+  argumentsList = process.argv.slice(2),
+  {
+    architecture = process.arch,
+    cwd = process.cwd(),
+    platform = process.platform,
+    glibcVersionRuntime = detectGlibcVersionRuntime(platform),
+    runImpl = runCodemod,
+  } = {},
+) {
   let targetArgument;
   try {
     targetArgument = parseTarget(argumentsList);
@@ -95,7 +129,16 @@ export function main(argumentsList = process.argv.slice(2)) {
     throw error;
   }
 
-  const target = resolve(process.cwd(), targetArgument);
+  const unsupportedReason = unsupportedPlatformReason({
+    platform,
+    architecture,
+    glibcVersionRuntime,
+  });
+  if (unsupportedReason) {
+    return fail(`unsupported platform: ${unsupportedReason}`);
+  }
+
+  const target = resolve(cwd, targetArgument);
   try {
     if (!statSync(target).isDirectory()) {
       return fail(`target is not a directory: ${target}`);
@@ -112,10 +155,15 @@ export function main(argumentsList = process.argv.slice(2)) {
     throw error;
   }
 
-  const result = runCodemod(target);
+  const result = runImpl(target);
 
   if (result.error) throw result.error;
   return result.status ?? 1;
+}
+
+function detectGlibcVersionRuntime(platform) {
+  if (platform !== "linux") return undefined;
+  return process.report?.getReport()?.header?.glibcVersionRuntime;
 }
 
 function createSandboxEnvironment(sandboxRoot) {
