@@ -35,12 +35,19 @@ test("keeps the production workflow detection-only", () => {
 
 test("registers every supported detector and one deterministic emitter", () => {
   for (const path of [
+    "rules/imports/beta32-subpaths.ts",
     "rules/imports/web-import.ts",
+    "rules/jsx/class-list.ts",
+    "rules/jsx/component-renames.ts",
     "rules/lifecycle/on-mount.ts",
     "rules/props/merge-props.ts",
+    "rules/props/split-props.ts",
     "rules/reactivity/create-computed.ts",
     "rules/reactivity/create-effect.ts",
     "rules/reactivity/create-memo.ts",
+    "rules/store/mutable.ts",
+    "rules/store/produce.ts",
+    "rules/store/unwrap.ts",
   ]) {
     assert.equal(existsSync(resolve(packageDirectory, path)), true, path);
   }
@@ -50,12 +57,20 @@ test("registers every supported detector and one deterministic emitter", () => {
     "utf8",
   );
   for (const name of [
+    "analyzeBeta32SubpathImports",
     "analyzeWebImport",
+    "analyzeJsxClassListAttributes",
+    "analyzeJsxComponentRenames",
     "analyzeOnMount",
     "analyzeMergeProps",
+    "analyzeSplitProps",
     "analyzeCreateComputed",
     "analyzeCreateEffect",
     "analyzeCreateMemo",
+    "analyzeCreateMutable",
+    "analyzeModifyMutable",
+    "analyzeProduce",
+    "analyzeUnwrap",
   ]) {
     assert.match(analyzer, new RegExp(name));
   }

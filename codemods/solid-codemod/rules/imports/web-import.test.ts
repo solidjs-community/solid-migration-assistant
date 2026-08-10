@@ -15,7 +15,7 @@ const testWebImportRule: Codemod<TSX> = async (root) => {
       "@solidjs/web",
       "static import",
       "does not edit source",
-      "Re-exports, dynamic imports, require calls, and TypeScript import types",
+      "Re-exports, dynamic imports, require calls, and TypeScript import() type expressions",
     ],
   );
   return null;

@@ -9,7 +9,7 @@ const testSplitPropsRule: Codemod<TSX> = async (root) => {
     ? ["9:23", "10:16", "12:1"]
     : [];
 
-  assertGuidance(guidance, filename, locations, "S2-STORE-SPLIT-PROPS-001", [
+  assertGuidance(guidance, filename, locations, "S2-PROPS-SPLIT-001", [
     "omit",
     "tuple",
     "call-site",
