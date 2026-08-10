@@ -146,6 +146,7 @@ test("uses normal analyzer end-to-end fixtures", () => {
     "architecture.test.mjs",
     "empty",
     "fixture",
+    "rules.test.mjs",
     "workflow.test.mjs",
   ]);
   assert.equal(existsSync(resolve(testsDirectory, "transform.test.ts")), false);
