@@ -1,4 +1,4 @@
-import { /* before */ produce /* after */ } from "solid-js/store";
+import { /* before */ produce /* after */ } from "solid-js\u002fstore";
 import { produce as makeProducer } from "solid-js/store";
 import * as Store from "solid-js/store";
 import * as Other from "other-library";

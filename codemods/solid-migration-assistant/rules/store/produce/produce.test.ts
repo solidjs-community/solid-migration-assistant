@@ -2,55 +2,39 @@ import type { Codemod } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 import { analyzeProduce } from "./produce.ts";
 
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#produce--now-the-default-setter-behavior";
+
 const testProduceRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const guidance = analyzeProduce(root.root(), { filename });
+  const guidance = analyzeProduce(root.root(), {
+    filename: "ignored-context-filename.tsx",
+  });
   const locations = root.source().includes('from "solid-js/store"')
     ? ["8:1", "13:3", "20:1", "23:1", "24:23"]
     : [];
+  const expected = locations.map(
+    (location) => `${filename}:${location} Manual review required: migrate this produce wrapper to draft-first setter behavior.
+Why: Solid 2.0.0-beta.32 store setters are draft-first and receive a mutable draft in their mutation callback, so a legacy produce wrapper is unnecessary only after the surrounding call is proven to use the intended store-setter overload.
+Guidance: Read the immediate parent call, identify the exact store setter overload and any path arguments, and review the full mutation callback. Pass the callback directly to the setter only after proving that this wrapper supplies that setter's mutation callback. For nested produce calls, review each wrapper, its containing call, and its full callback independently. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing wrapper removal when the result is stored, returned, composed, passed through another function, used with a non-store setter, or when callback returns, nested control flow, async work, external mutation, or target ownership make draft behavior unclear. Ask for the smallest focused test or runtime observation that exposes the selected setter overload and resulting store update. Official migration guide: ${MIGRATION_GUIDE}`,
+  );
 
-  assertGuidance(guidance, filename, locations, "S2-STORE-PRODUCE-001", [
-    "produce wrapper",
-    "draft-first",
-    "setter",
-  ]);
+  if (guidance.join("\n---finding---\n") !== expected.join("\n---finding---\n")) {
+    throw new Error(
+      `unexpected produce guidance:\n${guidance.join("\n---finding---\n")}`,
+    );
+  }
+  if (guidance.some((entry) => !entry.includes(MIGRATION_GUIDE))) {
+    throw new Error("every produce finding must link the migration guide");
+  }
+  if (guidance.some((entry) => entry.includes("[S2-STORE-PRODUCE-001]"))) {
+    throw new Error("produce guidance must not expose the old rule ID");
+  }
+  if (guidance.some((entry) => !entry.includes("Manual review required"))) {
+    throw new Error("every produce finding must require manual review");
+  }
+
   return null;
 };
-
-function assertGuidance(
-  guidance: string[],
-  filename: string,
-  locations: string[],
-  ruleId: string,
-  requiredText: string[],
-): void {
-  if (guidance.length !== locations.length) {
-    throw new Error(
-      `expected ${locations.length} ${ruleId} guidance entries, got ${guidance.length}`,
-    );
-  }
-  const actualLocations = guidance.map((entry) => {
-    const match = /^(.*):(\d+):(\d+) \[/.exec(entry);
-    return match ? `${match[2]}:${match[3]}` : "invalid";
-  });
-  if (actualLocations.join(",") !== locations.join(",")) {
-    throw new Error(
-      `unexpected ${ruleId} locations: ${actualLocations.join(",")}`,
-    );
-  }
-  for (const entry of guidance) {
-    if (
-      !entry.startsWith(`${filename}:`) ||
-      !entry.includes(`[${ruleId}]`) ||
-      !entry.includes("\nWhy:") ||
-      !entry.includes("\nGuidance: Next step:") ||
-      !entry.includes("Stop") ||
-      !entry.includes("This analyzer does not edit code.") ||
-      requiredText.some((text) => !entry.includes(text))
-    ) {
-      throw new Error(`incomplete ${ruleId} guidance: ${entry}`);
-    }
-  }
-}
 
 export default testProduceRule;

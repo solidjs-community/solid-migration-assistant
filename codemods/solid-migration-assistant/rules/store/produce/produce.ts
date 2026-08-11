@@ -1,31 +1,24 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import {
-  findDirectImportedCalls,
-  siteGuidance,
-} from "../../../shared/analysis.ts";
+import { findDirectImportedCalls } from "../../../shared/analysis.ts";
 
-const RULE_ID = "S2-STORE-PRODUCE-001";
-const STORE_MODULE = "solid-js/store";
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#produce--now-the-default-setter-behavior";
 
 export function analyzeProduce(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, STORE_MODULE, "produce")
+  return findDirectImportedCalls(rootNode, "solid-js/store", "produce")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&
         argumentNodes[0]?.kind() !== "spread_element",
     )
-    .map(({ call, filename }) =>
-      siteGuidance(
-        call,
-        filename,
-        RULE_ID,
-        "Review removal of this produce wrapper.",
-        "Solid 2 removes produce wrappers because store setters are draft-first and accept the mutation callback directly, but removing a wrapper is safe only when this value is used in that setter role.",
-        "Next step: inspect the immediate parent call, identify the exact store setter overload and path arguments, and review the full mutation callback before passing that callback directly to the setter. For nested produce calls, review each wrapper and its containing setter independently. Stop without proposing wrapper removal when the result is stored, returned, composed, passed through another function, used with a non-store setter, or when callback returns, nested control flow, async work, external mutation, or target ownership make draft behavior unclear. This analyzer does not edit code.",
-      ),
-    );
+    .map(({ call, filename }) => {
+      const start = call.range().start;
+      return `${filename}:${start.line + 1}:${start.column + 1} Manual review required: migrate this produce wrapper to draft-first setter behavior.
+Why: Solid 2.0.0-beta.32 store setters are draft-first and receive a mutable draft in their mutation callback, so a legacy produce wrapper is unnecessary only after the surrounding call is proven to use the intended store-setter overload.
+Guidance: Read the immediate parent call, identify the exact store setter overload and any path arguments, and review the full mutation callback. Pass the callback directly to the setter only after proving that this wrapper supplies that setter's mutation callback. For nested produce calls, review each wrapper, its containing call, and its full callback independently. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing wrapper removal when the result is stored, returned, composed, passed through another function, used with a non-store setter, or when callback returns, nested control flow, async work, external mutation, or target ownership make draft behavior unclear. Ask for the smallest focused test or runtime observation that exposes the selected setter overload and resulting store update. Official migration guide: ${MIGRATION_GUIDE}`;
+    });
 }
