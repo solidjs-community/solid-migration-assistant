@@ -1,54 +1,42 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import {
-  findDirectImportedCalls,
-  siteGuidance,
-} from "../../../shared/analysis.ts";
+import { findDirectImportedCalls } from "../../../shared/analysis.ts";
 
-const CREATE_RULE_ID = "S2-STORE-CREATE-MUTABLE-001";
-const MODIFY_RULE_ID = "S2-STORE-MODIFY-MUTABLE-001";
-const STORE_MODULE = "solid-js/store";
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#createmutable--modifymutable--createstore-with-draft-setters";
 
 export function analyzeCreateMutable(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, STORE_MODULE, "createMutable")
+  return findDirectImportedCalls(rootNode, "solid-js/store", "createMutable")
     .filter(
       ({ argumentNodes }) =>
         (argumentNodes.length === 1 || argumentNodes.length === 2) &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call, argumentNodes, filename }) =>
-      siteGuidance(
-        call,
-        filename,
-        CREATE_RULE_ID,
-        "Plan this createMutable migration to createStore.",
-        `Solid 2 removes createMutable in favor of createStore with explicit setter-based updates; this call has ${argumentNodes.length} argument(s), while createStore also changes the created value from a directly mutable proxy to a store-and-setter tuple.`,
-        "Next step: trace this value through all call sites, aliases, returned values, and property writes; introduce createStore only after mapping every assignment, delete, and mutating array operation to an explicit setter update and reviewing any options argument separately. Stop without proposing a rewrite when the value escapes, consumers require direct mutation or proxy identity, mutation happens through unknown helpers, setter paths cannot be identified, ownership is unclear, or focused tests do not cover reads and writes. This analyzer does not edit code.",
-      ),
-    );
+    .map(({ call, argumentNodes, filename }) => {
+      const start = call.range().start;
+      return `${filename}:${start.line + 1}:${start.column + 1} Manual review required: migrate this createMutable call to an owned createStore tuple.
+Why: Solid 2.0.0-beta.32 removes createMutable in favor of createStore, which returns a store-and-setter tuple rather than the directly mutable proxy this call creates. This call has exactly ${argumentNodes.length} semantic argument(s), so its initial value and any second options argument require review before the value and every write can move to that tuple.
+Guidance: Trace the created value through every alias, return, call site, and write, identify its owner and every reader and writer, and review a second options argument separately. Introduce createStore only after mapping every property assignment, delete, and mutating array operation to the tuple's explicit setter, including the exact setter path or draft-first setter callback needed to preserve selection and sequencing. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when the value escapes, a consumer requires direct mutation or proxy identity, mutation happens through an unknown helper, setter paths cannot be identified, ownership is unclear, or focused tests do not cover the affected reads and writes. Ask for the smallest focused test or runtime observation that exposes the value's reads, writes, identity, and ownership boundary. Official migration guide: ${MIGRATION_GUIDE}`;
+    });
 }
 
 export function analyzeModifyMutable(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, STORE_MODULE, "modifyMutable")
+  return findDirectImportedCalls(rootNode, "solid-js/store", "modifyMutable")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 2 &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call, filename }) =>
-      siteGuidance(
-        call,
-        filename,
-        MODIFY_RULE_ID,
-        "Move this mutable update to an explicit store setter.",
-        "Solid 2 removes modifyMutable as mutable stores migrate to createStore; updates must go through an explicit setter, whose draft-first callback replaces this mutation entry point only after the target store is known.",
-        "Next step: resolve the first argument back to its createMutable owner, inspect the entire mutation recipe, and map the update to that createStore tuple's explicit setter while preserving any path selection and sequencing. Stop without proposing a rewrite when the target origin or setter is unknown, the state or recipe escapes, mutation is delegated to an unknown helper, the callback returns a meaningful value, nested updates or async work are present, or tests do not expose the affected reads and writes. This analyzer does not edit code.",
-      ),
-    );
+    .map(({ call, filename }) => {
+      const start = call.range().start;
+      return `${filename}:${start.line + 1}:${start.column + 1} Manual review required: migrate this modifyMutable call to its target store's setter.
+Why: Solid 2.0.0-beta.32 removes modifyMutable; a createStore tuple's draft-first setter can replace this mutation entry point only after the target is resolved to its store owner, the complete recipe is reviewed, and the exact setter mapping is established.
+Guidance: Resolve the first target argument to its exact createMutable owner and planned createStore tuple, inspect the complete second-argument mutation recipe, and map that recipe to the owner's explicit setter while preserving the setter overload, path selection, and update sequencing. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when the target origin or setter is unknown, the state or recipe escapes, mutation is delegated to an unknown helper, the callback returns a meaningful value, nested updates or async work are present, or focused tests do not expose the affected reads and writes. Ask for the smallest focused test or runtime observation that exposes the selected target owner, setter path, recipe result, and resulting store update. Official migration guide: ${MIGRATION_GUIDE}`;
+    });
 }
