@@ -45,13 +45,29 @@ const expectedFiles = [
   "shared/run-workflow.mjs",
   "workflow.yaml",
 ];
+const expectedDescription =
+  "Read-only Solid 1.9 to Solid 2 beta.32 migration analyzer for project-owned JavaScript and TypeScript source";
+const expectedKeywords = [
+  "solid",
+  "solidjs",
+  "solid-2",
+  "migration",
+  "codemod",
+  "analyzer",
+  "javascript",
+  "typescript",
+  "jsx",
+  "tsx",
+];
 
-test("publishes complete public npm metadata", () => {
+test("publishes complete public npm and Codemod metadata", () => {
   const packageJson = JSON.parse(
     readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
   );
   assert.equal(packageJson.name, "solid-migration-assistant");
-  assert.equal(packageJson.version, "0.1.1");
+  assert.equal(packageJson.version, "0.2.0");
+  assert.equal(packageJson.description, expectedDescription);
+  assert.deepEqual(packageJson.keywords, expectedKeywords);
   assert.equal(packageJson.license, "MIT");
   assert.equal(packageJson.dependencies.codemod, "1.12.13");
   assert.equal(packageJson.engines.node, ">=20.0.0");
@@ -66,7 +82,22 @@ test("publishes complete public npm metadata", () => {
   assert.match(packageJson.repository.url, /solid-migration-assistant/);
   assert.match(packageJson.homepage, /solid-migration-assistant/);
   assert.match(packageJson.bugs.url, /solid-migration-assistant\/issues/);
-  assert.ok(packageJson.keywords.includes("solidjs"));
+
+  const codemod = readFileSync(
+    resolve(packageDirectory, "codemod.yaml"),
+    "utf8",
+  );
+  assert.match(codemod, /^version: "0\.2\.0"$/m);
+  const codemodLines = codemod.split("\n");
+  assert.ok(codemodLines.includes(`description: "${expectedDescription}"`));
+  assert.ok(
+    codemodLines.includes('  languages: ["javascript", "typescript"]'),
+  );
+  assert.ok(
+    codemodLines.includes(
+      `keywords: [${expectedKeywords.map((keyword) => `"${keyword}"`).join(", ")}]`,
+    ),
+  );
   assert.match(
     readFileSync(resolve(packageDirectory, "LICENSE"), "utf8"),
     /^MIT License/,
@@ -165,40 +196,83 @@ test(
       const isolatedPath = join(temporaryRoot, "runtime-bin");
       mkdirSync(isolatedPath);
 
-      let smoke;
+      let analyzerExecutable = executable;
+      let analyzerArguments = [];
+      let runtimePath = isolatedPath;
       if (process.platform === "win32") {
-        smoke = command(
-          process.execPath,
-          [
-            join(
-              consumer,
-              "node_modules/solid-migration-assistant/bin/solid-migration-assistant.mjs",
-            ),
-          ],
-          consumer,
-          { ...analyzerEnvironment, PATH: "" },
-        );
+        analyzerExecutable = process.execPath;
+        analyzerArguments = [
+          join(
+            consumer,
+            "node_modules/solid-migration-assistant/bin/solid-migration-assistant.mjs",
+          ),
+        ];
+        runtimePath = "";
       } else {
         const nodeLink = join(isolatedPath, "node");
         symlinkSync(process.execPath, nodeLink);
         assert.deepEqual(readdirSync(isolatedPath), ["node"]);
         chmodSync(executable, 0o755);
-        smoke = command(executable, [], consumer, {
-          ...analyzerEnvironment,
-          PATH: isolatedPath,
-        });
       }
 
-      assert.equal(smoke.status, 0, output(smoke));
-      assert.match(output(smoke), /Move this Solid web renderer import/);
-      assert.match(
-        output(smoke),
-        /github\.com\/solidjs\/solid\/blob\/3194631a.*imports-where-things-live-now/,
+      const smokeRuns = [];
+      for (let run = 1; run <= 2; run += 1) {
+        const smoke = command(analyzerExecutable, analyzerArguments, consumer, {
+          ...analyzerEnvironment,
+          PATH: runtimePath,
+        });
+        smokeRuns.push(smoke);
+
+        assert.equal(smoke.status, 0, `packed run ${run}: ${output(smoke)}`);
+        assert.match(smoke.stderr, /Move this Solid web renderer import/);
+        assert.match(
+          smoke.stderr,
+          /github\.com\/solidjs\/solid\/blob\/3194631a.*imports-where-things-live-now/,
+        );
+        assert.doesNotMatch(smoke.stderr, /S2-IMPORT-WEB-001/);
+        assertFinalDisclosure(smoke.stderr);
+        assert.deepEqual(
+          treeSnapshot(consumer),
+          before,
+          `packed run ${run} changed the consumer tree`,
+        );
+        assertNoAnalyzerArtifacts(consumer);
+      }
+
+      assert.deepEqual(
+        Buffer.from(smokeRuns[0].stderr, "utf8"),
+        Buffer.from(smokeRuns[1].stderr, "utf8"),
+        "complete analyzer-owned guidance and final disclosure bytes changed",
       );
-      assert.doesNotMatch(output(smoke), /S2-IMPORT-WEB-001/);
-      assertFinalDisclosure(output(smoke));
-      assert.deepEqual(treeSnapshot(consumer), before);
-      assertNoAnalyzerArtifacts(consumer);
+      const comparableRuns = smokeRuns.map((smoke, index) => {
+        const workflowId =
+          /^(\u001b\[36mWorkflow started\u001b\[0m \u001b\[2m)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\u001b\[0m\r?)$/gm;
+        const workflowDuration =
+          /^(\u001b\[32mWorkflow completed\u001b\[0m \u001b\[2min )([0-9]+(?:\.[0-9]+)?(?:ms|s))(\u001b\[0m\r?)$/gm;
+        assert.equal(
+          [...smoke.stdout.matchAll(workflowId)].length,
+          1,
+          `packed run ${index + 1} workflow UUID envelope`,
+        );
+        assert.equal(
+          [...smoke.stdout.matchAll(workflowDuration)].length,
+          1,
+          `packed run ${index + 1} workflow timing envelope`,
+        );
+        const stableProgress = smoke.stdout
+          .replace(workflowId, "$1<generated-workflow-uuid>$3")
+          .replace(workflowDuration, "$1<generated-workflow-duration>$3");
+        return Buffer.concat([
+          Buffer.from(stableProgress, "utf8"),
+          Buffer.from([0]),
+          Buffer.from(smoke.stderr, "utf8"),
+        ]);
+      });
+      assert.deepEqual(
+        comparableRuns[0],
+        comparableRuns[1],
+        "packed runtime output changed outside Codemod's generated UUID/timing values",
+      );
     } finally {
       rmSync(temporaryRoot, { recursive: true, force: true });
     }
@@ -246,14 +320,8 @@ function output(result) {
 }
 
 function assertFinalDisclosure(value) {
-  const stripped = value
-    .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
-    .trimEnd();
-  assert.ok(stripped.endsWith(DISCLOSURE));
-  assert.equal(
-    stripped.split("[solid-migration-assistant] Final disclosure").length - 1,
-    1,
-  );
+  assert.ok(value.endsWith(`${DISCLOSURE}\n`));
+  assert.equal(value.split(DISCLOSURE).length - 1, 1);
 }
 
 function assertNoAnalyzerArtifacts(target) {

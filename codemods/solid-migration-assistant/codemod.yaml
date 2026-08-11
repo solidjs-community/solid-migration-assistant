@@ -1,16 +1,16 @@
 schema_version: "1.0"
 
 name: "solid-migration-assistant"
-version: "0.1.0"
-description: "Detect supported Solid 1.9 migration sites for Solid 2 beta.32 and print detailed guidance"
+version: "0.2.0"
+description: "Read-only Solid 1.9 to Solid 2 beta.32 migration analyzer for project-owned JavaScript and TypeScript source"
 author: "Solid Migration Assistant Contributors"
 license: "MIT"
 category: "migration"
 
 targets:
-  languages: ["typescript"]
+  languages: ["javascript", "typescript"]
 
-keywords: ["solid", "solidjs", "analysis", "detection", "migration"]
+keywords: ["solid", "solidjs", "solid-2", "migration", "codemod", "analyzer", "javascript", "typescript", "jsx", "tsx"]
 
 registry:
   access: "public"

@@ -6,7 +6,7 @@ The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, print
 
 ## Run the beta analyzer
 
-> **Beta scope:** this `0.1.1` analyzer targets Solid `2.0.0-beta.32`, scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and covers only the detections listed below. A clean run is not proof that a project is ready for Solid 2.
+> **Beta scope:** this `0.2.0` analyzer targets Solid `2.0.0-beta.32`, scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and covers only the detections listed below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run the package from a project root with Node 20 or newer and npm (no pnpm installation is needed):
 

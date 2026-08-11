@@ -6,7 +6,7 @@ The migration target is pinned to Solid `2.0.0-beta.32` at upstream commit [`319
 
 ## Analyze with npm
 
-> **Beta scope:** version `0.1.1` targets Solid `2.0.0-beta.32`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
+> **Beta scope:** version `0.2.0` targets Solid `2.0.0-beta.32`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 
