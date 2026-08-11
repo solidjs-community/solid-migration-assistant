@@ -36,7 +36,7 @@ A run with detections exits successfully. Complete opaque guidance strings are e
 - **`S2-PROPS-001`** — direct `mergeProps(...)` calls reached through the exact named binding.
 - **`S2-PROPS-SPLIT-001`** — supported direct `splitProps(...)` calls reached through the exact named `solid-js` binding.
 - **`onMount` lifecycle migration** — direct non-spread one-argument `onMount(...)` calls reached through the exact named `solid-js` binding; every finding requires manual review and links the immutable [effects, lifecycle, and cleanup guide](https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#effects-lifecycle-and-cleanup).
-- **`S2-STORE-UNWRAP-001`** — supported direct `unwrap(...)` calls from `solid-js/store`.
+- **`unwrap` snapshot migration** — direct non-spread one-argument `unwrap(...)` calls reached through the exact unaliased named `solid-js/store` binding; every finding requires manual review and links the immutable pinned [`unwrap(store)` → `snapshot(store)` guide](https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#unwrapstore--snapshotstore).
 - **`produce` wrapper migration** — direct non-spread one-argument `produce(...)` calls reached through the exact named `solid-js/store` binding, including nested wrappers; every finding requires manual review and links the immutable pinned [`produce` draft-first setter guide](https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#produce--now-the-default-setter-behavior).
 - **`S2-STORE-CREATE-MUTABLE-001`** and **`S2-STORE-MODIFY-MUTABLE-001`** — supported direct legacy mutable-store calls.
 
