@@ -18,10 +18,10 @@ export function analyzeCreateComputed(
         argumentNodes.length <= 3 &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call, argumentNodes }) =>
+    .map(({ call, argumentNodes, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         RULE_ID,
         "Choose a Solid 2 replacement for createComputed.",
         `Solid 2 removes createComputed; the correct replacement depends on whether the callback derives a value, performs an effect, or encodes stateful update logic. This call has ${argumentNodes.length} semantic argument(s).`,

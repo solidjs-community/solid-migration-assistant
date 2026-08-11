@@ -18,10 +18,10 @@ export function analyzeUnwrap(
         argumentNodes.length === 1 &&
         argumentNodes[0]?.kind() !== "spread_element",
     )
-    .map(({ call }) =>
+    .map(({ call, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         RULE_ID,
         "Replace this unwrap call with a reviewed snapshot.",
         "Solid 2 replaces unwrap with snapshot for reading a non-reactive snapshot of a reactive store, but consumers can still depend on when the value is captured and whether nested data is later observed or mutated.",

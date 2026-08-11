@@ -18,6 +18,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { DISCLOSURE } from "../shared/run-workflow.mjs";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const expectedFiles = [
@@ -190,6 +191,7 @@ test(
 
       assert.equal(smoke.status, 0, output(smoke));
       assert.match(output(smoke), /\[S2-IMPORT-WEB-001\]/);
+      assertFinalDisclosure(output(smoke));
       assert.deepEqual(treeSnapshot(consumer), before);
       assertNoAnalyzerArtifacts(consumer);
     } finally {
@@ -236,6 +238,17 @@ function command(executable, argumentsList, cwd, environment = {}) {
 
 function output(result) {
   return `${result.stdout ?? ""}${result.stderr ?? ""}`;
+}
+
+function assertFinalDisclosure(value) {
+  const stripped = value
+    .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
+    .trimEnd();
+  assert.ok(stripped.endsWith(DISCLOSURE));
+  assert.equal(
+    stripped.split("[solid-migration-assistant] Final disclosure").length - 1,
+    1,
+  );
 }
 
 function assertNoAnalyzerArtifacts(target) {

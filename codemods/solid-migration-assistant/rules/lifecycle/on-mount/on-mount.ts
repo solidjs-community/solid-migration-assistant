@@ -17,10 +17,10 @@ export function analyzeOnMount(
         argumentNodes.length === 1 &&
         argumentNodes[0]?.kind() !== "spread_element",
     )
-    .map(({ call }) =>
+    .map(({ call, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         RULE_ID,
         "Review this onMount lifecycle callback.",
         "Solid 2 removes onMount and replaces its lifecycle role with onSettled, but the correct migration depends on the callback's work and ownership.",

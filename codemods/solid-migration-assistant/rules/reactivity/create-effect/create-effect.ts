@@ -17,10 +17,10 @@ export function analyzeCreateEffect(
         argumentNodes.length === 1 &&
         argumentNodes[0]?.kind() !== "spread_element",
     )
-    .map(({ call }) =>
+    .map(({ call, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         RULE_ID,
         "Split this one-argument createEffect.",
         "Solid 2 requires separate compute and effect callbacks; the correct split depends on which reads are reactive inputs and which statements are side effects.",

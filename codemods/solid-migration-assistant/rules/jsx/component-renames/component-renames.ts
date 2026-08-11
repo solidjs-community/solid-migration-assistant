@@ -15,6 +15,7 @@ type LegacyComponent = keyof typeof COMPONENT_MIGRATIONS;
 
 type ComponentSite = {
   element: SgNode<TSX>;
+  filename: string;
   legacyName: LegacyComponent;
 };
 
@@ -24,13 +25,13 @@ export function analyzeJsxComponentRenames(
 ): string[] {
   return findImportedComponentSites(rootNode)
     .sort(compareSites)
-    .map(({ element, legacyName }) =>
-      componentGuidance(element, context.filename, legacyName),
+    .map(({ element, filename, legacyName }) =>
+      componentGuidance(element, filename, legacyName),
     );
 }
 
 function findImportedComponentSites(rootNode: SgNode<TSX>): ComponentSite[] {
-  const sites = new Map<number, ComponentSite>();
+  const sites = new Map<string, ComponentSite>();
 
   for (const statement of rootNode.findAll({
     rule: { kind: "import_statement" },
@@ -49,6 +50,9 @@ function findImportedComponentSites(rootNode: SgNode<TSX>): ComponentSite[] {
       if (!binding || identifiers.length !== 1) continue;
 
       for (const fileReferences of binding.references()) {
+        const filename = fileReferences.root
+          .relativeFilename()
+          .replaceAll("\\", "/");
         for (const reference of fileReferences.nodes) {
           const element = reference.parent();
           if (
@@ -59,7 +63,11 @@ function findImportedComponentSites(rootNode: SgNode<TSX>): ComponentSite[] {
           ) {
             continue;
           }
-          sites.set(element.id(), { element, legacyName });
+          sites.set(`${filename}:${element.id()}`, {
+            element,
+            filename,
+            legacyName,
+          });
         }
       }
     }
@@ -115,7 +123,11 @@ function componentGuidance(
 function compareSites(left: ComponentSite, right: ComponentSite): number {
   const leftStart = left.element.range().start;
   const rightStart = right.element.range().start;
+  const filenameOrder =
+    left.filename < right.filename ? -1 : left.filename > right.filename ? 1 : 0;
   return (
-    leftStart.line - rightStart.line || leftStart.column - rightStart.column
+    filenameOrder ||
+    leftStart.line - rightStart.line ||
+    leftStart.column - rightStart.column
   );
 }

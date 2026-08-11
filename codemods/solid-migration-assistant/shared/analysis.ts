@@ -6,6 +6,7 @@ export const ANALYSIS_STATE_KEY = "solid-migration-assistant-guidance";
 export type DirectImportedCall = {
   call: SgNode<TSX>;
   argumentNodes: SgNode<TSX>[];
+  filename: string;
 };
 
 export function findDirectImportedCalls(
@@ -13,7 +14,7 @@ export function findDirectImportedCalls(
   moduleName: string,
   importedName: string,
 ): DirectImportedCall[] {
-  const calls = new Map<number, DirectImportedCall>();
+  const calls = new Map<string, DirectImportedCall>();
 
   for (const statement of rootNode.findAll({
     rule: { kind: "import_statement" },
@@ -30,6 +31,9 @@ export function findDirectImportedCalls(
       if (!binding || identifiers.length !== 1) continue;
 
       for (const fileReferences of binding.references()) {
+        const filename = fileReferences.root
+          .relativeFilename()
+          .replaceAll("\\", "/");
         for (const reference of fileReferences.nodes) {
           let functionNode = reference;
           let call = reference.parent();
@@ -44,7 +48,11 @@ export function findDirectImportedCalls(
           const argumentNodes = argumentsNode
             .children()
             .filter((child) => child.isNamed() && child.kind() !== "comment");
-          calls.set(call.id(), { call, argumentNodes });
+          calls.set(`${filename}:${call.id()}`, {
+            call,
+            argumentNodes,
+            filename,
+          });
         }
       }
     }
@@ -65,43 +73,6 @@ export function siteGuidance(
   return `${filename}:${start.line + 1}:${start.column + 1} [${ruleId}] ${title}
 Why: ${reason}
 Guidance: ${guidance}`;
-}
-
-export function compareGuidance(left: string, right: string): number {
-  const leftLocation = guidanceLocation(left);
-  const rightLocation = guidanceLocation(right);
-
-  if (leftLocation && rightLocation) {
-    return (
-      compareText(leftLocation.file, rightLocation.file) ||
-      leftLocation.line - rightLocation.line ||
-      leftLocation.column - rightLocation.column ||
-      compareText(leftLocation.ruleId, rightLocation.ruleId) ||
-      compareText(left, right)
-    );
-  }
-
-  return compareText(left, right);
-}
-
-function guidanceLocation(value: string): {
-  file: string;
-  line: number;
-  column: number;
-  ruleId: string;
-} | null {
-  const match = /^(.*):(\d+):(\d+) \[([^\]]+)\]/.exec(value);
-  if (!match?.[1] || !match[2] || !match[3] || !match[4]) return null;
-  return {
-    file: match[1],
-    line: Number(match[2]),
-    column: Number(match[3]),
-    ruleId: match[4],
-  };
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 export function stringLiteralValue(node: SgNode<TSX>): string | null {

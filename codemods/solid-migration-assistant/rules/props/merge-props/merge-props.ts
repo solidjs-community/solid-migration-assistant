@@ -12,7 +12,7 @@ export function analyzeMergeProps(
   context: { filename: string },
 ): string[] {
   return findDirectImportedCalls(rootNode, "solid-js", "mergeProps").map(
-    ({ call, argumentNodes }) => {
+    ({ call, argumentNodes, filename }) => {
       const spreadDetail = argumentNodes.some(
         (argument) => argument.kind() === "spread_element",
       )
@@ -20,7 +20,7 @@ export function analyzeMergeProps(
         : "";
       return siteGuidance(
         call,
-        context.filename,
+        filename,
         RULE_ID,
         "Review mergeProps source precedence.",
         `Solid 2 replaces the user-facing mergeProps API with merge, but later properties whose value is undefined no longer fall through to an earlier source. This call has ${argumentNodes.length} source argument(s).${spreadDetail}`,

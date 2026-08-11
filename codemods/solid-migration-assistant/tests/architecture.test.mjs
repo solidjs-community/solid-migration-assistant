@@ -89,7 +89,37 @@ test("keeps the production workflow detection-only", () => {
     [...workflow.matchAll(/js_file:\s*(\S+)/g)].map((match) => match[1]),
     ["scripts/analyze.ts", "scripts/emit.ts"],
   );
-  assert.equal((workflow.match(/- "\*\*\/\*\.tsx"/g) ?? []).length, 2);
+  assert.deepEqual(
+    [...workflow.matchAll(/- "(\*\*\/\*\.(?:js|jsx|ts|tsx))"/g)].map(
+      (match) => match[1],
+    ),
+    [
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.ts",
+      "**/*.tsx",
+    ],
+  );
+  assert.equal((workflow.match(/semantic_analysis: workspace/g) ?? []).length, 1);
+  assert.doesNotMatch(workflow, /semantic_analysis: file/);
+  for (const exclusion of [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+  ]) {
+    assert.equal(
+      (workflow.match(new RegExp(`- "\\*\\*/${exclusion}/\\*\\*"`, "g")) ?? [])
+        .length,
+      2,
+      exclusion,
+    );
+  }
+  assert.equal((workflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length, 2);
   assert.doesNotMatch(workflow, /transform|write.report|\.codemod-reports/i);
 });
 
@@ -125,7 +155,13 @@ test("registers every supported detector and one deterministic emitter", () => {
     resolve(packageDirectory, "scripts/emit.ts"),
     "utf8",
   );
-  assert.match(emitter, /\.sort\(compareGuidance\)/);
+  assert.match(emitter, /\.sort\(\)/);
+  assert.doesNotMatch(emitter, /localeCompare|compareGuidance/);
+  const analysis = readFileSync(
+    resolve(packageDirectory, "shared/analysis.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(analysis, /compareGuidance|guidanceLocation/);
   assert.equal((emitter.match(/console\.warn\(/g) ?? []).length, 1);
 });
 

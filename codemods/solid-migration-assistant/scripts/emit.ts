@@ -1,7 +1,7 @@
 import type { Codemod } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 import { acquireLock, getState, setState } from "codemod:workflow";
-import { ANALYSIS_STATE_KEY, compareGuidance } from "../shared/analysis.ts";
+import { ANALYSIS_STATE_KEY } from "../shared/analysis.ts";
 
 const EMITTED_STATE_KEY = "solid-migration-assistant-guidance-emitted";
 
@@ -12,7 +12,7 @@ const emit: Codemod<TSX> = async () => {
 
     const guidance = [
       ...new Set(getState<string[]>(ANALYSIS_STATE_KEY) ?? []),
-    ].sort(compareGuidance);
+    ].sort();
     setState(EMITTED_STATE_KEY, true, false);
 
     if (guidance.length > 0) {

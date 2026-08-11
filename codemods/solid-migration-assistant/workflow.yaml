@@ -12,8 +12,11 @@ nodes:
           js_file: scripts/analyze.ts
           base_path: "."
           language: "tsx"
-          semantic_analysis: file
+          semantic_analysis: workspace
           include:
+            - "**/*.js"
+            - "**/*.jsx"
+            - "**/*.ts"
             - "**/*.tsx"
           exclude:
             - "**/node_modules/**"
@@ -21,13 +24,16 @@ nodes:
             - "**/build/**"
             - "**/coverage/**"
             - "**/*.d.ts"
-      - name: Emit all guidance once in deterministic source order
+      - name: Emit all guidance once in deterministic whole-string order
         js-ast-grep:
           js_file: scripts/emit.ts
           base_path: "."
           language: "tsx"
           max_threads: 1
           include:
+            - "**/*.js"
+            - "**/*.jsx"
+            - "**/*.ts"
             - "**/*.tsx"
           exclude:
             - "**/node_modules/**"

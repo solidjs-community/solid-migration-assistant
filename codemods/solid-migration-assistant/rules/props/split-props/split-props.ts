@@ -18,10 +18,10 @@ export function analyzeSplitProps(
         argumentNodes.length >= 2 &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call, argumentNodes }) =>
+    .map(({ call, argumentNodes, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         RULE_ID,
         "Review this splitProps tuple before using omit.",
         `Solid 2 replaces splitProps with omit, while this call supplies ${argumentNodes.length - 1} key group(s) and splitProps returns a tuple whose positions and remainder can be consumed differently at each call-site.`,

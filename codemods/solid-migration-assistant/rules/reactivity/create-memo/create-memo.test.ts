@@ -11,6 +11,7 @@ const testCreateMemoRule: Codemod<TSX> = async (root) => {
 
   assertGuidance(guidance, filename, locations, [
     "[S2-MEMO-001]",
+    "Manual review required",
     "initial value",
     "second argument for options",
     "Do not perform a positional rewrite",

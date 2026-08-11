@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import {
   buildCodemodArguments,
+  DISCLOSURE,
   main,
   parseTarget,
   resolveCodemodLauncher,
@@ -88,7 +89,7 @@ test("delegates runtime availability to the pinned Codemod launcher", () => {
 
 test("does not reject platforms before invoking Codemod", () => {
   let receivedTarget;
-  const status = main([], {
+  const result = captureMain([], {
     cwd: packageDirectory,
     platform: "assistant-does-not-preflight-this",
     architecture: "assistant-does-not-preflight-this",
@@ -99,40 +100,117 @@ test("does not reject platforms before invoking Codemod", () => {
     },
   });
 
-  assert.equal(status, 0);
+  assert.equal(result.status, 0);
   assert.equal(receivedTarget, packageDirectory);
+  assertFinalDisclosure(result.diagnostics);
 });
 
-test("reports deterministic missing and non-directory target diagnostics", () => {
+test("publishes exact immutable public-preview disclosure", () => {
+  const packageJson = require("../package.json");
+  assert.match(DISCLOSURE, /Final disclosure/);
+  assert.ok(
+    DISCLOSURE.includes(`Analyzer: ${packageJson.name}@${packageJson.version}`),
+  );
+  assert.match(DISCLOSURE, /solid-js@2\.0\.0-beta\.32/);
+  assert.match(DISCLOSURE, /3194631aeeb2b2e360817dc887ab5cbce7548359/);
+  assert.match(
+    DISCLOSURE,
+    /source-only.*incomplete.*no migration-readiness claim/is,
+  );
+  assert.match(
+    DISCLOSURE,
+    /does not run target typechecks, builds, tests, scripts, or applications/,
+  );
+  assert.match(DISCLOSURE, /Read-only/);
+  assert.match(
+    DISCLOSURE,
+    /only the exact destination above; other Solid versions are unsupported/,
+  );
+  assert.match(DISCLOSURE, /no analyzer telemetry or generated report/);
+  assert.match(DISCLOSURE, /Codemod may retain normal workflow or task state/);
+  assert.match(DISCLOSURE, /github\.com\/solidjs\/solid\/blob\/3194631a/);
+  assert.match(
+    DISCLOSURE,
+    /github\.com\/devagrawal09\/solid-migration-assistant\/issues/,
+  );
+  assert.match(DISCLOSURE, /End final disclosure$/);
+});
+
+test("ends successful, nonzero, and thrown engine invocations with disclosure", () => {
+  for (const childStatus of [0, 23]) {
+    const result = captureMain([], {
+      cwd: packageDirectory,
+      runImpl: () => ({ status: childStatus }),
+    });
+    assert.equal(result.status, childStatus);
+    assert.deepEqual(result.diagnostics, [DISCLOSURE]);
+    assertFinalDisclosure(result.diagnostics);
+  }
+
+  const thrown = captureMain([], {
+    cwd: packageDirectory,
+    runImpl: () => {
+      throw new Error("engine unavailable");
+    },
+  });
+  assert.equal(thrown.status, 1);
+  assert.deepEqual(thrown.diagnostics, [
+    "[solid-migration-assistant] analyzer execution failed: engine unavailable",
+    DISCLOSURE,
+  ]);
+  assertFinalDisclosure(thrown.diagnostics);
+});
+
+test("ends usage and target failures with disclosure", () => {
   const surface = mkdtempSync(join(tmpdir(), "sma-cli-target-test-"));
   const fileTarget = join(surface, "file-target");
   writeFileSync(fileTarget, "not a directory\n");
+
+  try {
+    const cases = [
+      {
+        argumentsList: ["--unknown"],
+        expected: "[solid-migration-assistant] unknown argument: --unknown",
+      },
+      {
+        argumentsList: ["--target", "missing"],
+        expected: `[solid-migration-assistant] target does not exist: ${join(surface, "missing")}`,
+      },
+      {
+        argumentsList: ["--target", fileTarget],
+        expected: `[solid-migration-assistant] target is not a directory: ${fileTarget}`,
+      },
+    ];
+
+    for (const { argumentsList, expected } of cases) {
+      const result = captureMain(argumentsList, {
+        cwd: surface,
+        runImpl: () => assert.fail("must not launch Codemod"),
+      });
+      assert.equal(result.status, 2);
+      assert.deepEqual(result.diagnostics, [expected, DISCLOSURE]);
+      assertFinalDisclosure(result.diagnostics);
+    }
+  } finally {
+    rmSync(surface, { recursive: true, force: true });
+  }
+});
+
+function captureMain(argumentsList, options) {
   const diagnostics = [];
   const originalError = console.error;
   console.error = (...values) => diagnostics.push(values.join(" "));
-
   try {
-    assert.equal(
-      main(["--target", "missing"], {
-        cwd: surface,
-        runImpl: () => assert.fail("must not launch Codemod"),
-      }),
-      2,
-    );
-    assert.equal(
-      main(["--target", fileTarget], {
-        cwd: surface,
-        runImpl: () => assert.fail("must not launch Codemod"),
-      }),
-      2,
-    );
+    return { status: main(argumentsList, options), diagnostics };
   } finally {
     console.error = originalError;
-    rmSync(surface, { recursive: true, force: true });
   }
+}
 
-  assert.deepEqual(diagnostics, [
-    `[solid-migration-assistant] target does not exist: ${join(surface, "missing")}`,
-    `[solid-migration-assistant] target is not a directory: ${fileTarget}`,
-  ]);
-});
+function assertFinalDisclosure(diagnostics) {
+  assert.equal(diagnostics.at(-1), DISCLOSURE);
+  assert.equal(
+    diagnostics.filter((diagnostic) => diagnostic === DISCLOSURE).length,
+    1,
+  );
+}

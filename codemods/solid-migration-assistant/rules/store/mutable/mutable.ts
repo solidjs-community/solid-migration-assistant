@@ -19,10 +19,10 @@ export function analyzeCreateMutable(
         (argumentNodes.length === 1 || argumentNodes.length === 2) &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call, argumentNodes }) =>
+    .map(({ call, argumentNodes, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         CREATE_RULE_ID,
         "Plan this createMutable migration to createStore.",
         `Solid 2 removes createMutable in favor of createStore with explicit setter-based updates; this call has ${argumentNodes.length} argument(s), while createStore also changes the created value from a directly mutable proxy to a store-and-setter tuple.`,
@@ -41,10 +41,10 @@ export function analyzeModifyMutable(
         argumentNodes.length === 2 &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call }) =>
+    .map(({ call, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         MODIFY_RULE_ID,
         "Move this mutable update to an explicit store setter.",
         "Solid 2 removes modifyMutable as mutable stores migrate to createStore; updates must go through an explicit setter, whose draft-first callback replaces this mutation entry point only after the target store is known.",

@@ -18,10 +18,10 @@ export function analyzeProduce(
         argumentNodes.length === 1 &&
         argumentNodes[0]?.kind() !== "spread_element",
     )
-    .map(({ call }) =>
+    .map(({ call, filename }) =>
       siteGuidance(
         call,
-        context.filename,
+        filename,
         RULE_ID,
         "Review removal of this produce wrapper.",
         "Solid 2 removes produce wrappers because store setters are draft-first and accept the mutation callback directly, but removing a wrapper is safe only when this value is used in that setter role.",
