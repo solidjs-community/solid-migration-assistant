@@ -1,31 +1,25 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import {
-  findDirectImportedCalls,
-  siteGuidance,
-} from "../../../shared/analysis.ts";
+import { findDirectImportedCalls } from "../../../shared/analysis.ts";
 
-const RULE_ID = "S2-PROPS-SPLIT-001";
-const SOLID_MODULE = "solid-js";
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#mergeprops--splitprops--merge--omit";
 
 export function analyzeSplitProps(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, SOLID_MODULE, "splitProps")
+  return findDirectImportedCalls(rootNode, "solid-js", "splitProps")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 2 &&
         !argumentNodes.some((argument) => argument.kind() === "spread_element"),
     )
-    .map(({ call, argumentNodes, filename }) =>
-      siteGuidance(
-        call,
-        filename,
-        RULE_ID,
-        "Review this splitProps tuple before using omit.",
-        `Solid 2 replaces splitProps with omit, while this call supplies ${argumentNodes.length - 1} key group(s) and splitProps returns a tuple whose positions and remainder can be consumed differently at each call-site.`,
-        "Next step: trace the complete tuple destructuring or other call-site use, list the keys represented by every group, and inspect downstream reads before designing an omit-based migration. Preserve reactive property access and prove how each old tuple member will be produced. Stop without proposing a rewrite when keys are dynamic or overlapping, more than one selected group is consumed, the tuple escapes or is indexed dynamically, rest/reassignment is involved, proxy identity matters, or any consumer is unclear. This analyzer does not edit code.",
-      ),
-    );
+    .map(({ call, argumentNodes, filename }) => {
+      const start = call.range().start;
+      const keyGroupCount = argumentNodes.length - 1;
+      return `${filename}:${start.line + 1}:${start.column + 1} Manual review required: migrate this splitProps tuple to reviewed omit-based values.
+Why: Solid 2.0.0-beta.32 replaces splitProps with omit, but omit returns one object while splitProps returns a tuple containing one selected object per key group plus a final remainder, so migration depends on how those positions are consumed. This call has ${keyGroupCount} key group(s).
+Guidance: Trace the complete tuple destructuring or other call-site use, list the exact keys represented by every group, and trace every downstream consumer and reactive property access for each selected value and the remainder. Design explicit omit-based values only after proving how every old tuple member will be produced and that live reactive property access is preserved. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a replacement when keys are dynamic or overlapping, more than one selected group is consumed, the tuple escapes or is indexed dynamically, rest destructuring or reassignment is involved, props or store proxy identity matters, or any consumer is unclear. Ask for the smallest focused test or runtime observation that exposes each consumed tuple member's keys, value, reactive updates, and identity boundary. Official migration guide: ${MIGRATION_GUIDE}`;
+    });
 }

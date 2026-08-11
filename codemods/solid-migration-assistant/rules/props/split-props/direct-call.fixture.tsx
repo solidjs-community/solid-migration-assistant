@@ -1,4 +1,4 @@
-import { /* before */ splitProps /* after */ } from "solid-js";
+import { /* before */ splitProps /* after */ } from "solid\x2djs";
 import { splitProps as split } from "solid-js";
 import * as Store from "solid-js";
 import * as Other from "other-library";
