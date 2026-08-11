@@ -31,7 +31,7 @@ A run with detections exits successfully. Complete opaque guidance strings are e
 - **`S2-JSX-COMPONENT-001`** — binding-resolved JSX uses of unaliased `Suspense`, `ErrorBoundary`, `SuspenseList`, and `Index` imports from `solid-js`.
 - **`S2-JSX-CLASSLIST-001`** — direct JSX `classList` attributes.
 - **`S2-COMPUTED-001`** — supported direct, non-spread `createComputed(...)` calls reached through the exact named `solid-js` binding.
-- **`S2-EFFECT-001`** — direct one-argument `createEffect(...)` calls reached through the exact named binding.
+- **`createEffect` compute/apply split** — direct non-spread one-argument `createEffect(...)` calls reached through the exact named `solid-js` binding; every finding requires manual review and links the immutable [effects, lifecycle, and cleanup guide](https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#effects-lifecycle-and-cleanup).
 - **`S2-MEMO-001`** — direct two- and three-argument `createMemo(...)` calls reached through the exact named binding.
 - **`S2-PROPS-001`** — direct `mergeProps(...)` calls reached through the exact named binding.
 - **`S2-PROPS-SPLIT-001`** — supported direct `splitProps(...)` calls reached through the exact named `solid-js` binding.
