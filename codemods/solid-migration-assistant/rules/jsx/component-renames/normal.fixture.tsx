@@ -1,4 +1,4 @@
-import { ErrorBoundary, Index, Suspense, SuspenseList } from "solid-js";
+import { ErrorBoundary, Index, Suspense, SuspenseList } from "solid\x2djs";
 import {
   ErrorBoundary as AliasedErrorBoundary,
   Index as AliasedIndex,

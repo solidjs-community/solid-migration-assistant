@@ -1,8 +1,13 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { siteGuidance, stringLiteralValue } from "../../../shared/analysis.ts";
+import { stringLiteralValue } from "../../../shared/analysis.ts";
 
-const RULE_ID = "S2-JSX-COMPONENT-001";
+const SUSPENSE_BOUNDARY_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#suspense--errorboundary--loading--errored";
+const INDEX_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#list-rendering-index-is-gone-and-for-handles-each-keying-mode";
+const SUSPENSE_LIST_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#coordinating-loading-boundaries-suspenselist--reveal";
 
 const COMPONENT_MIGRATIONS = {
   Suspense: "Loading",
@@ -86,38 +91,30 @@ function componentGuidance(
   filename: string,
   legacyName: LegacyComponent,
 ): string {
-  const replacement = COMPONENT_MIGRATIONS[legacyName];
+  const start = element.range().start;
+  const location = `${filename}:${start.line + 1}:${start.column + 1}`;
 
-  if (legacyName === "SuspenseList") {
-    return siteGuidance(
-      element,
-      filename,
-      RULE_ID,
-      `Migrate this imported ${legacyName} JSX site to ${replacement}.`,
-      `Solid 2 renames the imported solid-js ${legacyName} component to ${replacement} and changes the reveal-control prop names.`,
-      `Review this site's revealOrder and tail values while migrating them to Reveal's order and collapsed props, then replace this JSX use with ${replacement}. This analyzer does not edit source. Stop if either prop is dynamic, forwarded, spread, or its intended reveal behavior is unclear; preserve the site and add a focused behavior test before changing it.`,
-    );
+  if (legacyName === "Suspense") {
+    return `${location} Manual review required: migrate this imported Suspense JSX site to Loading.
+Why: Solid 2 replaces the solid-js Suspense component with Loading for initial not-ready fallback UI.
+Guidance: Read this complete boundary, its fallback, children, props, and corresponding import. Replace the unaliased named Suspense import and this JSX component with Loading only after confirming that the boundary owns initial not-ready UI and that its fallback and children preserve their rendering behavior. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when props are spread or forwarded, fallback ownership or evaluation is indirect, nested async boundaries make the intended initial-loading behavior unclear, or focused rendering tests do not cover the fallback and ready states. Ask for the smallest focused test or runtime observation that exposes both states. Official migration guide: ${SUSPENSE_BOUNDARY_GUIDE}`;
+  }
+
+  if (legacyName === "ErrorBoundary") {
+    return `${location} Manual review required: migrate this imported ErrorBoundary JSX site to Errored.
+Why: Solid 2 replaces the solid-js ErrorBoundary component with Errored, whose fallback receives an error accessor rather than a raw error value.
+Guidance: Read this complete boundary, its fallback, children, props, and corresponding import. Replace the unaliased named ErrorBoundary import and this JSX component with Errored only after updating every fallback use to read the error accessor, such as err(), while preserving error ownership and recovery behavior. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when props are spread or forwarded, the fallback is indirect or escapes, the error value is passed to unknown code, reset or recovery behavior is unclear, or focused tests do not cover thrown and recovered states. Ask for the smallest focused test or runtime observation that exposes the fallback value and recovery behavior. Official migration guide: ${SUSPENSE_BOUNDARY_GUIDE}`;
   }
 
   if (legacyName === "Index") {
-    return siteGuidance(
-      element,
-      filename,
-      RULE_ID,
-      `Migrate this imported ${legacyName} JSX site to ${replacement}.`,
-      `Solid 2 replaces the imported solid-js ${legacyName} component with ${replacement} configured for non-keyed iteration.`,
-      `Replace this JSX use with ${replacement} keyed={false}, and review the child callback shape, including whether the item and index are accessors, before adapting it. This analyzer does not edit source. Stop if callback shape, item identity, index behavior, or state preservation is unclear; keep the site unchanged and add a focused list-update test first.`,
-    );
+    return `${location} Manual review required: migrate this imported Index JSX site to For keyed={false}.
+Why: Solid 2 removes Index; its direct replacement is For with keyed={false}, whose child callback receives an item accessor and a stable numeric index.
+Guidance: Read the complete list site, its each value, child callback, props, and corresponding import. Replace the unaliased named Index import and this JSX component with For, add the literal keyed={false} mode, and review the callback so the item remains an accessor and the index remains a stable number. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when props are spread or forwarded, each or the child callback is indirect, callback parameters escape to unknown code, item identity or index behavior is unclear, or focused list-update tests do not prove state preservation. Ask for the smallest focused test or runtime observation that covers insertion, removal, reordering, and item updates. Official migration guide: ${INDEX_GUIDE}`;
   }
 
-  return siteGuidance(
-    element,
-    filename,
-    RULE_ID,
-    `Migrate this imported ${legacyName} JSX site to ${replacement}.`,
-    `Solid 2 renames the imported solid-js ${legacyName} component to ${replacement}.`,
-    `Replace only this binding-aware JSX use with ${replacement}, review its props and children against the new component contract, and update the corresponding unaliased named import separately. This analyzer does not edit source. Stop if props are spread or forwarded, fallback or error behavior is indirect, or the component contract cannot be verified; keep the site unchanged and add a focused rendering test first.`,
-  );
+  return `${location} Manual review required: migrate this imported SuspenseList JSX site to Reveal.
+Why: Solid 2 replaces SuspenseList with Reveal for coordinating sibling Loading boundaries and replaces revealOrder and tail controls with order and collapsed semantics.
+Guidance: Read the complete group, its revealOrder and tail values, children, nesting, props, and corresponding import. Replace the unaliased named SuspenseList import and this JSX component with Reveal only after mapping literal revealOrder="forwards" to the default or order="sequential", revealOrder="together" to order="together", and tail="collapsed" to collapsed only under sequential order; review the children as sibling Loading boundaries, and do not use the earlier-beta boolean together prop. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when props are spread or forwarded, revealOrder or tail is dynamic or has another value, child boundary ownership or nesting is unclear, intended reveal timing cannot be established, or focused behavior tests do not cover the coordinated states. Ask for the smallest focused test or runtime observation that exposes ordering, fallback, and collapsed-tail behavior. Official migration guide: ${SUSPENSE_LIST_GUIDE}`;
 }
 
 function compareSites(left: ComponentSite, right: ComponentSite): number {
