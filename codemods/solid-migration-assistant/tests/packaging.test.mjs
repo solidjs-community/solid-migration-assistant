@@ -190,7 +190,12 @@ test(
       }
 
       assert.equal(smoke.status, 0, output(smoke));
-      assert.match(output(smoke), /\[S2-IMPORT-WEB-001\]/);
+      assert.match(output(smoke), /Move this Solid web renderer import/);
+      assert.match(
+        output(smoke),
+        /github\.com\/solidjs\/solid\/blob\/3194631a.*imports-where-things-live-now/,
+      );
+      assert.doesNotMatch(output(smoke), /S2-IMPORT-WEB-001/);
       assertFinalDisclosure(output(smoke));
       assert.deepEqual(treeSnapshot(consumer), before);
       assertNoAnalyzerArtifacts(consumer);

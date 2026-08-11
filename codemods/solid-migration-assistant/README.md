@@ -22,11 +22,11 @@ The current directory is the default target. An explicit target may be absolute 
 npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
 ```
 
-A run with detections exits successfully. Guidance is deduplicated, sorted by file, line, column, and rule ID, and printed once as a terminal aggregate. The analyzer does not edit the target or create persistent output there, and Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
+A run with detections exits successfully. Complete opaque guidance strings are exact-deduplicated, sorted lexically as whole strings, and printed once as a terminal aggregate. The analyzer does not edit the target or create persistent output there, and Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 
 ## Supported detections
 
-- **`S2-IMPORT-WEB-001`** — static ES imports whose module source is exactly `solid-js/web`.
+- **Solid web package imports** — static ES imports whose module source is exactly `solid-js/web`; each finding links the immutable [beta.32 migration-guide requirement](https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now).
 - **`S2-IMPORT-BETA32-001`** — static imports from the legacy store, hyperscript, HTML, universal-renderer, and JSX runtime subpaths documented by Solid 2 beta.32.
 - **`S2-JSX-COMPONENT-001`** — binding-resolved JSX uses of unaliased `Suspense`, `ErrorBoundary`, `SuspenseList`, and `Index` imports from `solid-js`.
 - **`S2-JSX-CLASSLIST-001`** — direct JSX `classList` attributes.
