@@ -1,23 +1,19 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { siteGuidance } from "../../../shared/analysis.ts";
 
-const RULE_ID = "S2-JSX-CLASSLIST-001";
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#classlist--class-objectarray-forms";
 
 export function analyzeJsxClassListAttributes(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findClassListAttributeNames(rootNode).map((name) =>
-    siteGuidance(
-      name,
-      context.filename,
-      RULE_ID,
-      "Migrate this JSX classList attribute to class object/array form.",
-      "Solid 2 removes the JSX classList attribute in favor of the class attribute's object and array forms.",
-      "Move this classList value into a class object/array form, preserve static classes and conditional truthiness, and deliberately merge any existing class attribute on the same element. This analyzer does not edit source. Stop if the value is spread or forwarded, duplicate class sources have unclear precedence, or getter and side-effect evaluation could change; keep the attribute unchanged and add a focused rendering test first.",
-    ),
-  );
+  return findClassListAttributeNames(rootNode).map((name) => {
+    const start = name.range().start;
+    return `${context.filename}:${start.line + 1}:${start.column + 1} Manual review required: migrate this intrinsic JSX classList attribute to class.
+Why: Solid 2.0.0-beta.32 removes the JSX classList attribute in favor of the class attribute's object and array forms.
+Guidance: Read this complete intrinsic element, its classList value, and every class source. Move the classList value into the class attribute's object or array form, preserve static classes and conditional truthiness, and deliberately merge any existing class attribute on the same element. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when the value or another class source is spread or forwarded, duplicate class sources have unclear precedence, getters or side effects could change evaluation order or frequency, or a focused rendering test does not prove the resulting static and conditional class tokens. Ask for the smallest focused rendering test or runtime observation that exposes the rendered class attribute across relevant states. Official migration guide: ${MIGRATION_GUIDE}`;
+  });
 }
 
 function findClassListAttributeNames(rootNode: SgNode<TSX>): SgNode<TSX>[] {
