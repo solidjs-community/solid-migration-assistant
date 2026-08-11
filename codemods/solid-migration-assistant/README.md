@@ -1,12 +1,12 @@
 # Solid Migration Assistant
 
-This package implements Solid Migration Assistant as a single read-only workflow for a narrow Solid 1.9 client-application profile. It scans TSX files and prints one detailed, location-bearing guidance string per supported migration site. The workflow returns no edits and writes no files.
+This package implements Solid Migration Assistant as a single read-only workflow for a narrow Solid 1.9 client-application profile. It scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site. The workflow returns no edits and writes no files.
 
 The migration target is pinned to Solid `2.0.0-beta.32` at upstream commit [`3194631`](https://github.com/solidjs/solid/tree/3194631aeeb2b2e360817dc887ab5cbce7548359).
 
 ## Analyze with npm
 
-> **Beta scope:** version `0.1.1` targets Solid `2.0.0-beta.32`, analyzes TSX only, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
+> **Beta scope:** version `0.1.1` targets Solid `2.0.0-beta.32`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 
@@ -67,7 +67,7 @@ Each rule has its own folder under its domain, with the production module, match
 
 ## Deliberate limits
 
-Current coverage is deliberately limited: the analyzer does not cover JavaScript, `.ts` files, indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. No guidance—or a clean run—is not a readiness result and does not imply complete Solid 2 migration coverage.
+Current coverage is deliberately limited: the analyzer does not cover indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. No guidance—or a clean run—is not a readiness result and does not imply complete Solid 2 migration coverage.
 
 Automated transforms are roadmap-only. This package exposes no transform command, workflow, test, or implementation.
 

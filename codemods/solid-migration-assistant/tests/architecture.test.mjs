@@ -161,7 +161,7 @@ test("registers every supported detector and one deterministic emitter", () => {
     resolve(packageDirectory, "shared/analysis.ts"),
     "utf8",
   );
-  assert.doesNotMatch(analysis, /compareGuidance|guidanceLocation/);
+  assert.doesNotMatch(analysis, /compareGuidance|guidanceLocation|siteGuidance/);
   assert.equal((emitter.match(/console\.warn\(/g) ?? []).length, 1);
 });
 

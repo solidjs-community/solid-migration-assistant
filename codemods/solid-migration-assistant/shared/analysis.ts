@@ -61,20 +61,6 @@ export function findDirectImportedCalls(
   return [...calls.values()];
 }
 
-export function siteGuidance(
-  node: SgNode<TSX>,
-  filename: string,
-  ruleId: string,
-  title: string,
-  reason: string,
-  guidance: string,
-): string {
-  const start = node.range().start;
-  return `${filename}:${start.line + 1}:${start.column + 1} [${ruleId}] ${title}
-Why: ${reason}
-Guidance: ${guidance}`;
-}
-
 export function stringLiteralValue(node: SgNode<TSX>): string | null {
   const text = node.text();
   if (text.length < 2) return null;
