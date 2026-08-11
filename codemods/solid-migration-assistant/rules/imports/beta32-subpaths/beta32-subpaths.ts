@@ -1,6 +1,6 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { siteGuidance, stringLiteralValue } from "../../../shared/analysis.ts";
+import { stringLiteralValue } from "../../../shared/analysis.ts";
 
 const BETA32_SUBPATH_REPLACEMENTS: Readonly<Record<string, string>> = {
   "solid-js/store": "solid-js",
@@ -10,7 +10,8 @@ const BETA32_SUBPATH_REPLACEMENTS: Readonly<Record<string, string>> = {
   "solid-js/jsx-runtime": "@solidjs/web/jsx-runtime",
   "solid-js/jsx-dev-runtime": "@solidjs/web/jsx-dev-runtime",
 };
-const RULE_ID = "S2-IMPORT-BETA32-001";
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
 const STORE_STOP_CONDITION =
   "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
 
@@ -25,15 +26,12 @@ export function analyzeBeta32SubpathImports(
   context: { filename: string },
 ): string[] {
   return findBeta32SubpathImports(rootNode).map(
-    ({ source, legacyModule, replacementModule }) =>
-      siteGuidance(
-        source,
-        context.filename,
-        RULE_ID,
-        "Move this Solid 2 beta.32 subpath import.",
-        `Solid 2 beta.32 publishes ${legacyModule} from ${replacementModule}.`,
-        `Change only this static import's module source from ${legacyModule} to ${replacementModule}, preserve its import form and quote style, and then run the application's typecheck and build. This analyzer does not edit source. Re-exports, dynamic imports, require calls, and TypeScript import() type expressions are deliberately outside this rule.${legacyModule === "solid-js/store" ? ` ${STORE_STOP_CONDITION}` : ""}`,
-      ),
+    ({ source, legacyModule, replacementModule }) => {
+      const start = source.range().start;
+      return `${context.filename}:${start.line + 1}:${start.column + 1} Move this Solid 2 beta.32 subpath import.
+Why: Solid 2 beta.32 publishes ${legacyModule} from ${replacementModule}.
+Guidance: Change only this static import's module source from ${legacyModule} to ${replacementModule} and preserve its import form and quote style. Make and validate that edit yourself; this analyzer never edits or runs the target project. This rule proves only static import statements. Re-exports, dynamic imports, require calls, and TypeScript import() type expressions are outside this finding.${legacyModule === "solid-js/store" ? ` ${STORE_STOP_CONDITION}` : ""} Official migration guide: ${MIGRATION_GUIDE}`;
+    },
   );
 }
 

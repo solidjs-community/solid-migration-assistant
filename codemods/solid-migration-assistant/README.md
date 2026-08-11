@@ -27,7 +27,7 @@ A run with detections exits successfully. Complete opaque guidance strings are e
 ## Supported detections
 
 - **Solid web package imports** — static ES imports whose module source is exactly `solid-js/web`; each finding links the immutable [beta.32 migration-guide requirement](https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now).
-- **`S2-IMPORT-BETA32-001`** — static imports from the legacy store, hyperscript, HTML, universal-renderer, and JSX runtime subpaths documented by Solid 2 beta.32.
+- **Remaining Solid import subpaths** — static ES imports whose module source is exactly `solid-js/store`, `solid-js/h`, `solid-js/html`, `solid-js/universal`, `solid-js/jsx-runtime`, or `solid-js/jsx-dev-runtime`; each finding links the immutable [beta.32 migration-guide requirement](https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now).
 - **`S2-JSX-COMPONENT-001`** — binding-resolved JSX uses of unaliased `Suspense`, `ErrorBoundary`, `SuspenseList`, and `Index` imports from `solid-js`.
 - **`S2-JSX-CLASSLIST-001`** — direct JSX `classList` attributes.
 - **`S2-COMPUTED-001`** — supported direct, non-spread `createComputed(...)` calls reached through the exact named `solid-js` binding.
