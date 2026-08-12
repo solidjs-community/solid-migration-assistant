@@ -44,7 +44,7 @@ export function analyzeEqualFn(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "equalFn").map(
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "equalFn").map(
     ({ call, filename }) => utilityGuidance("equalFn", call, filename),
   );
 }
@@ -53,7 +53,7 @@ export function analyzeGetListener(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "getListener").map(
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "getListener").map(
     ({ call, filename }) => utilityGuidance("getListener", call, filename),
   );
 }
@@ -62,7 +62,7 @@ export function analyzeWriteSignal(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "writeSignal").map(
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "writeSignal").map(
     ({ call, filename }) => utilityGuidance("writeSignal", call, filename),
   );
 }
@@ -71,7 +71,7 @@ export function analyzeEnableScheduling(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "enableScheduling").map(
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "enableScheduling").map(
     ({ call, filename }) => utilityGuidance("enableScheduling", call, filename),
   );
 }

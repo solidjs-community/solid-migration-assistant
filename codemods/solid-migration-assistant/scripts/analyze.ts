@@ -20,6 +20,7 @@ import { analyzeUnwrap } from "../rules/store/unwrap/unwrap.ts";
 import { analyzeBatch } from "../rules/reactivity/batch/batch.ts";
 import { analyzeOnHelper } from "../rules/reactivity/on-helper/on-helper.ts";
 import { analyzeCreateResource } from "../rules/reactivity/create-resource/create-resource.ts";
+import { analyzeOnCleanup } from "../rules/lifecycle/on-cleanup/on-cleanup.ts";
 import {
   analyzeOnError,
   analyzeCatchError,
@@ -74,6 +75,7 @@ const analyzers: Analyzer[] = [
   analyzeBatch,
   analyzeOnHelper,
   analyzeCreateResource,
+  analyzeOnCleanup,
   analyzeOnError,
   analyzeCatchError,
   analyzeResetErrorBoundaries,

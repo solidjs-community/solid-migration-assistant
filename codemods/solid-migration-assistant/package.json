@@ -20,6 +20,7 @@
     "rules/jsx/dom-attr-namespaces/dom-attr-namespaces.ts",
     "rules/jsx/dom-event-namespaces/dom-event-namespaces.ts",
     "rules/jsx/dom-use-directive/dom-use-directive.ts",
+    "rules/lifecycle/on-cleanup/on-cleanup.ts",
     "rules/lifecycle/on-mount/on-mount.ts",
     "rules/props/merge-props/merge-props.ts",
     "rules/props/split-props/split-props.ts",

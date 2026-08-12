@@ -9,7 +9,7 @@ export function analyzeOnMount(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "onMount")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "onMount")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&

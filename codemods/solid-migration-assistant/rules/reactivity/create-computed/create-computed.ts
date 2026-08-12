@@ -9,7 +9,7 @@ export function analyzeCreateComputed(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "createComputed")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "createComputed")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&

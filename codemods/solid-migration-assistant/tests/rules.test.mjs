@@ -86,6 +86,10 @@ const ruleCases = [
     directory: "rules/reactivity/utility-renames",
     semanticWorkspace: true,
   },
+  {
+    directory: "rules/lifecycle/on-cleanup",
+    semanticWorkspace: true,
+  },
 ];
 
 const configuredAdapters = ruleCases.map(adapterForRule).sort();
@@ -95,9 +99,9 @@ const existingAdapters = findFiles(rulesDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredAdapters.length !== 25 || existingAdapters.length !== 25) {
+if (configuredAdapters.length !== 26 || existingAdapters.length !== 26) {
   throw new Error(
-    `Expected 25 rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
+    `Expected 26 rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
   );
 }
 if (configuredAdapters.join("\n") !== existingAdapters.join("\n")) {
@@ -125,9 +129,9 @@ const existingFixtures = findFiles(rulesDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredFixtures.length !== 42 || existingFixtures.length !== 42) {
+if (configuredFixtures.length !== 44 || existingFixtures.length !== 44) {
   throw new Error(
-    `Expected 42 colocated fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
+    `Expected 44 colocated fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
   );
 }
 if (configuredFixtures.join("\n") !== existingFixtures.join("\n")) {

@@ -7,60 +7,38 @@ const MIGRATION_GUIDE =
 const STORE_STOP_CONDITION =
   "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
 const EXPECTED_SITES = [
-  { location: "1:29", legacy: "solid-js/store", replacement: "solid-js" },
-  { location: "2:15", legacy: "solid-js/h", replacement: "@solidjs/h" },
-  { location: "3:18", legacy: "solid-js/html", replacement: "@solidjs/html" },
-  {
-    location: "4:32",
-    legacy: "solid-js/universal",
-    replacement: "@solidjs/universal",
-  },
-  {
-    location: "5:21",
-    legacy: "solid-js/jsx-runtime",
-    replacement: "@solidjs/web/jsx-runtime",
-  },
-  {
-    location: "6:24",
-    legacy: "solid-js/jsx-dev-runtime",
-    replacement: "@solidjs/web/jsx-dev-runtime",
-  },
-  { location: "8:28", legacy: "solid-js/store", replacement: "solid-js" },
-  { location: "9:35", legacy: "solid-js/h", replacement: "@solidjs/h" },
-  {
-    location: "11:39",
-    legacy: "solid-js/html",
-    replacement: "@solidjs/html",
-  },
-  {
-    location: "12:36",
-    legacy: "solid-js/html",
-    replacement: "@solidjs/html",
-  },
-  {
-    location: "13:50",
-    legacy: "solid-js/universal",
-    replacement: "@solidjs/universal",
-  },
-  {
-    location: "14:41",
-    legacy: "solid-js/jsx-runtime",
-    replacement: "@solidjs/web/jsx-runtime",
-  },
-  {
-    location: "15:37",
-    legacy: "solid-js/jsx-dev-runtime",
-    replacement: "@solidjs/web/jsx-dev-runtime",
-  },
+  // Static imports
+  { location: "1:29", legacy: "solid-js/store", replacement: "solid-js", form: "static import" },
+  { location: "2:15", legacy: "solid-js/h", replacement: "@solidjs/h", form: "static import" },
+  { location: "3:18", legacy: "solid-js/html", replacement: "@solidjs/html", form: "static import" },
+  { location: "4:32", legacy: "solid-js/universal", replacement: "@solidjs/universal", form: "static import" },
+  { location: "5:21", legacy: "solid-js/jsx-runtime", replacement: "@solidjs/web/jsx-runtime", form: "static import" },
+  { location: "6:24", legacy: "solid-js/jsx-dev-runtime", replacement: "@solidjs/web/jsx-dev-runtime", form: "static import" },
+  { location: "8:28", legacy: "solid-js/store", replacement: "solid-js", form: "static import" },
+  { location: "9:35", legacy: "solid-js/h", replacement: "@solidjs/h", form: "static import" },
+  { location: "11:39", legacy: "solid-js/html", replacement: "@solidjs/html", form: "static import" },
+  { location: "12:36", legacy: "solid-js/html", replacement: "@solidjs/html", form: "static import" },
+  { location: "13:50", legacy: "solid-js/universal", replacement: "@solidjs/universal", form: "static import" },
+  { location: "14:41", legacy: "solid-js/jsx-runtime", replacement: "@solidjs/web/jsx-runtime", form: "static import" },
+  { location: "15:37", legacy: "solid-js/jsx-dev-runtime", replacement: "@solidjs/web/jsx-dev-runtime", form: "static import" },
+  // Re-exports
+  { location: "18:47", legacy: "solid-js/store", replacement: "solid-js", form: "re-export" },
+  { location: "19:15", legacy: "solid-js/h", replacement: "@solidjs/h", form: "re-export" },
+  // Dynamic import
+  { location: "21:29", legacy: "solid-js/html", replacement: "@solidjs/html", form: "dynamic import()" },
+  // Require
+  { location: "23:34", legacy: "solid-js/universal", replacement: "@solidjs/universal", form: "require() call" },
+  // Type import expression
+  { location: "24:29", legacy: "solid-js/jsx-runtime", replacement: "@solidjs/web/jsx-runtime", form: "dynamic import()" },
 ] as const;
 
 const testBeta32SubpathRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
   const guidance = analyzeBeta32SubpathImports(root.root(), { filename });
   const expected = EXPECTED_SITES.map(
-    ({ location, legacy, replacement }) => `${filename}:${location} Move this Solid 2 legacy subpath import.
+    ({ location, legacy, replacement, form }) => `${filename}:${location} Move this Solid 2 legacy subpath ${form}.
 Why: Solid 2 publishes ${legacy} from ${replacement}.
-Guidance: Change only this static import's module source from ${legacy} to ${replacement} and preserve its import form and quote style. Make and validate that edit yourself; this analyzer never edits or runs the target project. This rule proves only static import statements. Re-exports, dynamic imports, require calls, and TypeScript import() type expressions are outside this finding.${legacy === "solid-js/store" ? ` ${STORE_STOP_CONDITION}` : ""} Official migration guide: ${MIGRATION_GUIDE}`,
+Guidance:${form === "re-export" ? " Change only this re-export's module source and preserve its export form and quote style." : form === "dynamic import()" ? " Change only this dynamic import's module source and preserve its quote style." : form === "require() call" ? " Change only this require call's module source and preserve its quote style." : " Change only this static import's module source and preserve its import form and quote style."} Make and validate that edit yourself; this analyzer never edits or runs the target project.${legacy === "solid-js/store" ? ` ${STORE_STOP_CONDITION}` : ""} Official migration guide: ${MIGRATION_GUIDE}`,
   );
 
   if (guidance.join("\n---finding---\n") !== expected.join("\n---finding---\n")) {
@@ -83,11 +61,6 @@ Guidance: Change only this static import's module source from ${legacy} to ${rep
 
   const source = root.source();
   for (const nearestNegative of [
-    'export { createStore as reexportedStore } from "solid-js/store"',
-    'export * from "solid-js/h"',
-    'import("solid-js/html")',
-    'require("solid-js/universal")',
-    'import("solid-js/jsx-runtime").JSX',
     'from "solid-js"',
     'from "@solidjs/h"',
     'from "@solidjs/html"',
@@ -98,7 +71,7 @@ Guidance: Change only this static import's module source from ${legacy} to ${rep
     'from "solid-js/store-extra"',
     'from "vendor/solid-js/store"',
     'from "solid-js/store/"',
-    'solid-js\\\\x2fstore',
+    'solid-js\\x2fstore',
   ]) {
     if (!source.includes(nearestNegative)) {
       throw new Error(`missing nearest-negative fixture: ${nearestNegative}`);

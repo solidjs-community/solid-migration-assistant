@@ -18,3 +18,34 @@ function shadowed(createResource: (...args: unknown[]) => unknown) {
 }
 
 void shadowed;
+
+// Resource tuple member access patterns
+const [user, { refetch, mutate }] = createResource(id, fetchUser);
+
+user.loading;
+user.error;
+user();
+
+refetch();
+mutate({ name: "Alice" });
+
+declare const otherObj: { loading: boolean; error: Error | null };
+otherObj.loading;
+otherObj.error;
+
+export function Component() {
+  const [posts] = createResource(page, fetchPosts);
+  return (
+    <div>
+      <Show when={!posts.loading} fallback={<Spinner />}>
+        <For each={posts()}>{(post) => <PostCard post={post()} />}</For>
+      </Show>
+      <Show when={posts.error}>
+        {(err) => <p>Error: {err().message}</p>}
+      </Show>
+      <button onClick={() => posts.refetch()}>Reload</button>
+      <button onClick={() => posts.mutate((p) => p)}>Optimistic</button>
+    </div>
+  );
+}
+

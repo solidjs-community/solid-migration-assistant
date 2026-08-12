@@ -11,16 +11,18 @@ type ImportedCall = {
 
 export function findImportedCalls(
   rootNode: SgNode<TSX>,
-  moduleName: string,
+  moduleName: string | string[],
   importedName: string,
 ): ImportedCall[] {
+  const modules = Array.isArray(moduleName) ? moduleName : [moduleName];
   const calls = new Map<string, ImportedCall>();
 
   for (const statement of rootNode.findAll({
     rule: { kind: "import_statement" },
   })) {
     const source = statement.children().find((child) => child.is("string"));
-    if (!source || stringLiteralValue(source) !== moduleName) continue;
+    const resolved = source ? stringLiteralValue(source) : null;
+    if (!resolved || !modules.includes(resolved)) continue;
 
     // ── Named imports (plain or aliased) ──
     for (const specifier of statement.findAll({
@@ -197,4 +199,79 @@ export function stringLiteralValue(node: SgNode<TSX>): string | null {
     value += escaped;
   }
   return value;
+}
+
+
+export type ModuleReferenceForm = "import" | "re-export" | "dynamic-import" | "require";
+
+export type ModuleReference = {
+  source: SgNode<TSX>;
+  moduleName: string;
+  form: ModuleReferenceForm;
+};
+
+/**
+ * Finds all module references (static imports, re-exports, dynamic imports,
+ * and require calls) in a file. Returns the string source node, the resolved
+ * module name, and the reference form for each match.
+ */
+export function findModuleReferences(
+  rootNode: SgNode<TSX>,
+): ModuleReference[] {
+  const matches: ModuleReference[] = [];
+
+  // Static import statements
+  for (const statement of rootNode.findAll({
+    rule: { kind: "import_statement" },
+  })) {
+    const source = statement.children().find((child) => child.is("string"));
+    if (!source) continue;
+    const moduleName = stringLiteralValue(source);
+    if (moduleName === null) continue;
+    matches.push({ source, moduleName, form: "import" });
+  }
+
+  // Re-exports: export { ... } from "..."
+  for (const statement of rootNode.findAll({
+    rule: { kind: "export_statement" },
+  })) {
+    const source = statement.children().find((child) => child.is("string"));
+    if (!source) continue;
+    const moduleName = stringLiteralValue(source);
+    if (moduleName === null) continue;
+    matches.push({ source, moduleName, form: "re-export" });
+  }
+
+  // Dynamic imports: import("...") and require("...")
+  for (const call of rootNode.findAll({
+    rule: { kind: "call_expression" },
+  })) {
+    const fnNode = call.field("function");
+    if (!fnNode) continue;
+
+    const fnText = fnNode.text();
+    const isImport = fnText === "import";
+    const isRequire =
+      fnNode.kind() === "identifier" && fnText === "require";
+    if (!isImport && !isRequire) continue;
+
+    const argumentsNode = call.field("arguments");
+    if (!argumentsNode) continue;
+    const args = argumentsNode
+      .children()
+      .filter((child) => child.isNamed() && child.kind() !== "comment");
+    const firstArg = args[0];
+    if (!firstArg || !firstArg.is("string")) continue;
+
+    const moduleName = stringLiteralValue(firstArg);
+    if (moduleName === null) continue;
+
+    matches.push({
+      source: firstArg,
+      moduleName,
+      form: isImport ? "dynamic-import" : "require",
+    });
+  }
+
+  return matches;
 }

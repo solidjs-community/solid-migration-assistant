@@ -27,7 +27,7 @@ export function analyzeFrom(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "from")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "from")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&
@@ -45,7 +45,7 @@ export function analyzeObservable(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "observable")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "observable")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&

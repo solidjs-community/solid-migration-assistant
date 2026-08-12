@@ -9,7 +9,7 @@ export function analyzeOnHelper(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "on")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "on")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solid Migration Assistant — Coverage Analysis</title>
+<style>
+  :root {
+    --green: #2e7d32; --green-bg: #e8f5e9;
+    --red: #c62828; --red-bg: #ffebee;
+    --amber: #e65100; --amber-bg: #fff3e0;
+    --grey: #546e7a; --grey-bg: #eceff1;
+    --blue: #1565c0; --blue-bg: #e3f2fd;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.6; color: #263238; max-width: 1200px; margin: 0 auto; padding: 2rem; background: #fafafa; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #1a237e; }
+  h2 { font-size: 1.4rem; margin: 2rem 0 1rem; padding-bottom: 0.25rem; border-bottom: 2px solid #e0e0e0; color: #283593; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; color: #37474f; }
+  .summary { display: flex; gap: 1.5rem; margin: 1.5rem 0; flex-wrap: wrap; }
+  .stat { padding: 1rem 1.5rem; border-radius: 8px; min-width: 140px; }
+  .stat .num { font-size: 2rem; font-weight: 700; }
+  .stat .label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat.covered { background: var(--green-bg); color: var(--green); }
+  .stat.partial { background: var(--amber-bg); color: var(--amber); }
+  .stat.missing { background: var(--red-bg); color: var(--red); }
+  .stat.total { background: var(--blue-bg); color: var(--blue); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th { background: #37474f; color: white; padding: 0.6rem 0.75rem; text-align: left; font-weight: 600; }
+  td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+  tr:hover { background: #f5f5f5; }
+  .cov-yes { }
+  .cov-partial { background: #fff8e1; }
+  .cov-no { background: #ffebee; }
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .badge-yes { background: #c8e6c9; color: #2e7d32; }
+  .badge-partial { background: #ffe0b2; color: #e65100; }
+  .badge-no { background: #ffcdd2; color: #c62828; }
+  .badge-struct { background: #e3f2fd; color: #1565c0; }
+  .gap-section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem 1.5rem; margin: 1rem 0; }
+  .gap-section h3 { margin-top: 0; }
+  .gap-item { padding: 0.35rem 0; }
+  .gap-item::before { content: "▸ "; color: #90a4ae; }
+  .legend { display: flex; gap: 1.5rem; margin: 0.5rem 0 1.5rem; font-size: 0.85rem; flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 0.35rem; }
+  .section-intro { color: #546e7a; font-size: 0.9rem; margin-bottom: 0.75rem; }
+  .rule-name { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; color: #546e7a; }
+  hr { border: none; border-top: 1px solid #e0e0e0; margin: 1.5rem 0; }
+  .critical { background: #ffebee; border-left: 4px solid #c62828; padding: 0.75rem 1rem; margin: 0.75rem 0; border-radius: 0 4px 4px 0; }
+  .warning { background: #fff3e0; border-left: 4px solid #e65100; padding: 0.75rem 1rem; margin: 0.75rem 0; border-radius: 0 4px 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>Solid Migration Assistant — Coverage Analysis</h1>
+<p style="color: #546e7a; margin-bottom: 1.5rem;">
+  Read-only coverage audit of the <code>solid-migration-assistant</code> codemod (v0.2.0)
+  against the <strong>Solid 2.0 beta.34 MIGRATION.md</strong> guide.
+  Target pin: <code>2.0.0-beta.34</code>. Generated 2026-08-12 00:19.
+</p>
+
+<div class="summary">
+  <div class="stat covered">
+    <div class="num">44</div>
+    <div class="label">Covered (56.4%)</div>
+  </div>
+  <div class="stat partial">
+    <div class="num">1</div>
+    <div class="label">Partial (1.3%)</div>
+  </div>
+  <div class="stat missing">
+    <div class="num">33</div>
+    <div class="label">Not Covered (42.3%)</div>
+  </div>
+  <div class="stat total">
+    <div class="num">78</div>
+    <div class="label">Total Items</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="badge badge-yes">COVERED</span> Rule exists with fixtures</span>
+  <span><span class="badge badge-partial">PARTIAL</span> Rule exists but has significant gaps</span>
+  <span><span class="badge badge-no">MISSING</span> No rule; roadmap gap</span>
+  <span><span class="badge badge-struct">STRUCTURAL</span> Cannot be detected statically</span>
+</div>
+
+<div class="critical">
+  <strong>⚠ Critical finding:</strong> The <code>create-effect</code> rule silently skips 2-argument
+  <code>createEffect(fn, initialValue)</code> calls. Users with initialValue patterns get no
+  migration guidance. See §2.5 and §5.1.
+</div>
+
+<h2>1. Per-Category Coverage Matrix</h2>
+
+<table>
+<thead><tr><th>Category</th><th>Migration Guide Item</th><th>Rule</th><th>Status</th><th>Notes</th></tr></thead>
+<tbody>
+<tr class="cov-yes"><td><strong>IMPORTS</strong></td><td>solid-js/web → @solidjs/web</td><td><span class="rule-name">web-import</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Static imports only; re-exports, dynamic imports, require() not covered</td></tr>
+<tr class="cov-yes"><td></td><td>solid-js/store → solid-js (store APIs)</td><td><span class="rule-name">beta32-subpaths</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Static imports; includes stop-condition for removed helpers</td></tr>
+<tr class="cov-yes"><td></td><td>solid-js/h → @solidjs/h</td><td><span class="rule-name">beta32-subpaths</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Static imports only</td></tr>
+<tr class="cov-yes"><td></td><td>solid-js/html → @solidjs/html</td><td><span class="rule-name">beta32-subpaths</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Static imports only</td></tr>
+<tr class="cov-yes"><td></td><td>solid-js/universal → @solidjs/universal</td><td><span class="rule-name">beta32-subpaths</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Static imports only</td></tr>
+<tr class="cov-yes"><td></td><td>solid-js/jsx-runtime → @solidjs/web/jsx-runtime</td><td><span class="rule-name">beta32-subpaths</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Static imports only</td></tr>
+<tr class="cov-yes"><td></td><td>solid-js/jsx-dev-runtime → @solidjs/web/jsx-dev-runtime</td><td><span class="rule-name">beta32-subpaths</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Static imports only</td></tr>
+<tr class="cov-no"><td></td><td>jsxImportSource: solid-js → @solidjs/web (tsconfig)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No tsconfig.json analysis. Roadmap item.</td></tr>
+<tr class="cov-no"><td></td><td>JSX type imports (JSX, ComponentProps) → @solidjs/web</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of JSX namespace type imports from solid-js</td></tr>
+<tr class="cov-no"><td></td><td>Component/Element type imports from solid-js</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection; new guidance in migration guide</td></tr>
+<tr class="cov-no"><td></td><td>Import path re-exports (export {…} from …)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Scope exclusion in all import rules</td></tr>
+<tr class="cov-no"><td></td><td>Dynamic import() / require() calls</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Scope exclusion in all import rules</td></tr>
+<tr class="cov-yes"><td><strong>BATCHING</strong></td><td>batch() → automatic microtask batching + flush()</td><td><span class="rule-name">batch</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects batch() calls. Manual review guidance.</td></tr>
+<tr class=""><td></td><td>Post-setter reads returning old value (behavioral)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-struct">STRUCTURAL</span></td><td>Cannot be detected statically; requires runtime analysis</td></tr>
+<tr class="cov-no"><td></td><td>flush() usage guidance (sparing, tests)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of missing/incorrect flush() usage</td></tr>
+<tr class="cov-yes"><td><strong>EFFECTS</strong></td><td>createEffect single-arg → split compute/apply</td><td><span class="rule-name">create-effect</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects 1-arg calls; supports aliases and namespace imports</td></tr>
+<tr class="cov-partial"><td></td><td>createEffect initialValue arg removal (2-arg call)</td><td><span class="rule-name">create-effect</span></td><td><span class="badge badge-partial">PARTIAL</span></td><td>Rule filters to 1-arg only; 2-arg createEffect with initialValue is SILENTLY SKIPPED</td></tr>
+<tr class="cov-yes"><td></td><td>createMemo initialValue → options change</td><td><span class="rule-name">create-memo</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects 2-arg and 3-arg createMemo calls</td></tr>
+<tr class="cov-no"><td></td><td>Cleanup: onCleanup → return cleanup function</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No onCleanup() call detection inside effects</td></tr>
+<tr class="cov-yes"><td></td><td>onMount → onSettled</td><td><span class="rule-name">on-mount</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects onMount() calls. Checks only solid-js, not solid-js/web</td></tr>
+<tr class="cov-no"><td></td><td>onCleanup in onSettled (new capability guidance)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of cleanup patterns</td></tr>
+<tr class="cov-no"><td><strong>DEV DIAG.</strong></td><td>Top-level reactive read warning (component body)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Roadmap item. Structurally hard to detect.</td></tr>
+<tr class="cov-no"><td></td><td>Write inside reactive scope error</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Roadmap item. Requires data-flow analysis.</td></tr>
+<tr class="cov-no"><td></td><td>ownedWrite: true opt-in</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection</td></tr>
+<tr class="cov-no"><td><strong>@ONCE</strong></td><td>/*@once*/ JSX marker removal</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Roadmap item: explicitly listed as uncovered</td></tr>
+<tr class="cov-yes"><td><strong>ASYNC</strong></td><td>Suspense → Loading (JSX rename)</td><td><span class="rule-name">component-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects imported Suspense JSX sites. Checks solid-js only.</td></tr>
+<tr class="cov-yes"><td></td><td>ErrorBoundary → Errored (JSX rename)</td><td><span class="rule-name">component-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects imported ErrorBoundary JSX sites</td></tr>
+<tr class="cov-yes"><td></td><td>createResource → async createMemo/createStore</td><td><span class="rule-name">create-resource</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects createResource calls</td></tr>
+<tr class="cov-no"><td></td><td>resource.loading → Loading/isPending pattern</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of resource tuple .loading access</td></tr>
+<tr class="cov-no"><td></td><td>resource.error → Errored/effect error option</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of .error access on resource tuples</td></tr>
+<tr class="cov-no"><td></td><td>refetch() → refresh()</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of resource.refetch() calls</td></tr>
+<tr class="cov-no"><td></td><td>mutate() → createOptimisticStore + action</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of resource.mutate() calls</td></tr>
+<tr class="cov-no"><td></td><td>Loading vs isPending distinction guidance</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No analysis of isPending vs Loading usage</td></tr>
+<tr class="cov-yes"><td></td><td>startTransition → built-in transitions</td><td><span class="rule-name">transition-apis</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects startTransition() calls</td></tr>
+<tr class="cov-yes"><td></td><td>useTransition → isPending + Loading</td><td><span class="rule-name">transition-apis</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects useTransition() calls</td></tr>
+<tr class="cov-yes"><td></td><td>createDeferred → standard derivations</td><td><span class="rule-name">transition-apis</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects createDeferred() calls</td></tr>
+<tr class="cov-no"><td></td><td>latest() / refresh() / affects() usage</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>New APIs — no migration detection needed</td></tr>
+<tr class="cov-no"><td></td><td>action() + createOptimistic patterns</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of old mutation patterns to migrate</td></tr>
+<tr class="cov-yes"><td><strong>STORES</strong></td><td>Draft-first setters (produce → default)</td><td><span class="rule-name">produce</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects produce() calls from solid-js/store</td></tr>
+<tr class="cov-no"><td></td><td>storePath() opt-in helper (new)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>New API, not a migration site</td></tr>
+<tr class="cov-yes"><td></td><td>unwrap → snapshot</td><td><span class="rule-name">unwrap</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects unwrap() calls from solid-js/store</td></tr>
+<tr class="cov-yes"><td></td><td>mergeProps → merge</td><td><span class="rule-name">merge-props</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects mergeProps() with arg count and spread analysis</td></tr>
+<tr class="cov-yes"><td></td><td>splitProps → omit</td><td><span class="rule-name">split-props</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects splitProps() with key group count analysis</td></tr>
+<tr class="cov-yes"><td></td><td>createMutable → createStore with draft setters</td><td><span class="rule-name">mutable</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects createMutable() calls</td></tr>
+<tr class="cov-yes"><td></td><td>modifyMutable (removed)</td><td><span class="rule-name">mutable</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects modifyMutable() calls</td></tr>
+<tr class="cov-no"><td></td><td>createSignal(fn) / createStore(fn) (new)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>New APIs, not migration sites</td></tr>
+<tr class="cov-no"><td></td><td>merge undefined-is-a-real-value gotcha</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Guidance mentions it but no consumer verification</td></tr>
+<tr class="cov-yes"><td><strong>CTRL FLOW</strong></td><td>Index → For keyed={false}</td><td><span class="rule-name">component-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects imported Index JSX sites. solid-js only.</td></tr>
+<tr class="cov-no"><td></td><td>For callback shape changes (keyed modes)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No analysis of For callback signatures</td></tr>
+<tr class="cov-yes"><td></td><td>SuspenseList → Reveal</td><td><span class="rule-name">component-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects imported SuspenseList JSX sites</td></tr>
+<tr class="cov-yes"><td></td><td>createDynamic → dynamic factory</td><td><span class="rule-name">dynamic-and-stream</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects createDynamic() from solid-js/web</td></tr>
+<tr class="cov-no"><td></td><td>Reveal order prop changes</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No SuspenseList prop → Reveal prop migration detection</td></tr>
+<tr class="cov-no"><td></td><td>Show/Switch/Match callback accessors</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No callback signature analysis</td></tr>
+<tr class="cov-yes"><td><strong>DOM</strong></td><td>attr: namespace removal</td><td><span class="rule-name">dom-attr-namespaces</span></td><td><span class="badge badge-yes">COVERED</span></td><td>JSX-level scan; no import verification needed</td></tr>
+<tr class="cov-yes"><td></td><td>bool: namespace removal → presence/absence</td><td><span class="rule-name">dom-attr-namespaces</span></td><td><span class="badge badge-yes">COVERED</span></td><td>JSX-level scan</td></tr>
+<tr class="cov-yes"><td></td><td>on: namespace removal → camelCase onClick</td><td><span class="rule-name">dom-event-namespaces</span></td><td><span class="badge badge-yes">COVERED</span></td><td>JSX-level scan</td></tr>
+<tr class="cov-yes"><td></td><td>oncapture: namespace removal → ref callbacks</td><td><span class="rule-name">dom-event-namespaces</span></td><td><span class="badge badge-yes">COVERED</span></td><td>JSX-level scan</td></tr>
+<tr class="cov-yes"><td></td><td>use: directives → ref directive factories</td><td><span class="rule-name">dom-use-directive</span></td><td><span class="badge badge-yes">COVERED</span></td><td>JSX-level scan</td></tr>
+<tr class="cov-yes"><td></td><td>classList → class object/array forms</td><td><span class="rule-name">class-list</span></td><td><span class="badge badge-yes">COVERED</span></td><td>JSX-level scan on intrinsic elements</td></tr>
+<tr class="cov-no"><td></td><td>style: namespace removal → style object</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Migration guide mentions this; no rule</td></tr>
+<tr class="cov-no"><td></td><td>clearDelegatedEvents() removal</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection</td></tr>
+<tr class="cov-no"><td></td><td>Nested roots / ShadowRoot / Portal event changes</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>Structural; cannot be detected statically</td></tr>
+<tr class="cov-yes"><td><strong>CONTEXT</strong></td><td>Context.Provider → direct context component</td><td><span class="rule-name">context-provider</span></td><td><span class="badge badge-yes">COVERED</span></td><td>JSX-level scan; detects .Provider member expression</td></tr>
+<tr class="cov-no"><td></td><td>useContext type narrowing (T, not T|undefined)</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of wrapper hooks for type narrowing</td></tr>
+<tr class="cov-no"><td></td><td>createContext<T>() throws on missing Provider</td><td><span style="color:#90a4ae">—</span></td><td><span class="badge badge-no">MISSING</span></td><td>No detection of code relying on undefined return</td></tr>
+<tr class="cov-yes"><td><strong>ERROR</strong></td><td>onError → Errored/effect error option</td><td><span class="rule-name">error-handling</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects onError() calls</td></tr>
+<tr class="cov-yes"><td></td><td>catchError → Errored/effect error option</td><td><span class="rule-name">error-handling</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects catchError() calls</td></tr>
+<tr class="cov-yes"><td></td><td>resetErrorBoundaries → auto-healing (removed)</td><td><span class="rule-name">error-handling</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects resetErrorBoundaries() calls</td></tr>
+<tr class="cov-yes"><td><strong>RENAMES</strong></td><td>equalFn → isEqual</td><td><span class="rule-name">utility-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects equalFn calls</td></tr>
+<tr class="cov-yes"><td></td><td>getListener → getObserver</td><td><span class="rule-name">utility-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects getListener calls</td></tr>
+<tr class="cov-yes"><td></td><td>writeSignal (removed)</td><td><span class="rule-name">utility-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects writeSignal calls</td></tr>
+<tr class="cov-yes"><td></td><td>enableScheduling (removed)</td><td><span class="rule-name">utility-renames</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects enableScheduling calls</td></tr>
+<tr class="cov-yes"><td></td><td>createSelector → createProjection/createStore(fn)</td><td><span class="rule-name">selector-and-index</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects createSelector() calls</td></tr>
+<tr class="cov-yes"><td></td><td>indexArray → mapArray (keyed: false)</td><td><span class="rule-name">selector-and-index</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects indexArray() calls</td></tr>
+<tr class="cov-yes"><td></td><td>from → async iterators</td><td><span class="rule-name">dynamic-and-stream</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects from() calls</td></tr>
+<tr class="cov-yes"><td></td><td>observable → createEffect push</td><td><span class="rule-name">dynamic-and-stream</span></td><td><span class="badge badge-yes">COVERED</span></td><td>Detects observable() calls</td></tr>
+
+</tbody>
+</table>
+
+<h2>2. Structural &amp; Implementation Gaps</h2>
+
+<div class="gap-section">
+<h3>2.1 Import Source Coverage</h3>
+<p class="section-intro">
+  15 of 17 import-checking rules only check <code>solid-js</code>; only 2 check <code>solid-js/web</code>.
+  APIs like <code>onMount</code>, <code>createEffect</code>, and others are also importable from <code>solid-js/web</code>
+  in Solid 1.x projects. When a user imports from <code>solid-js/web</code>, these rules silently pass.
+</p>
+<table>
+<thead><tr><th>Rule</th><th>Checks</th><th>Should Also Check</th></tr></thead>
+<tbody>
+<tr><td class="rule-name">lifecycle/on-mount</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/create-effect</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/create-memo</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/create-computed</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/batch</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/on-helper</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/create-resource</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/transition-apis</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/error-handling</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/selector-and-index</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">reactivity/utility-renames</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">props/merge-props</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">props/split-props</td><td>solid-js</td><td>solid-js/web</td></tr>
+<tr><td class="rule-name">jsx/component-renames</td><td>solid-js</td><td>solid-js/web</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="gap-section">
+<h3>2.2 Import Syntax Coverage</h3>
+<p class="section-intro">
+  The <code>findImportedCalls</code> helper supports named imports, aliased imports, and namespace imports (<code>import * as Solid</code>).
+  The import-path rules (<code>beta32-subpaths</code>, <code>web-import</code>) use manual import-statement scanning and cover named imports only.
+  No rule covers:
+</p>
+<div class="gap-item">Re-exports: <code>export { createEffect } from "solid-js"</code></div>
+<div class="gap-item">Dynamic imports: <code>import("solid-js/web")</code></div>
+<div class="gap-item">CommonJS require: <code>require("solid-js/web")</code></div>
+<div class="gap-item">TypeScript import type expressions: <code>import("solid-js").JSX</code></div>
+<div class="gap-item">Indirect/forwarded calls through wrappers, HOCs, or module re-exports</div>
+</div>
+
+<div class="gap-section">
+<h3>2.3 Project-Level Analysis (Roadmap Gaps)</h3>
+<div class="gap-item"><strong>tsconfig.json analysis:</strong> No detection of <code>jsxImportSource</code>, JSX configuration, or renderer package type ownership.</div>
+<div class="gap-item"><strong>package.json analysis:</strong> No detection of Solid version pins, renderer packages, or dependency compatibility.</div>
+<div class="gap-item"><strong>Monorepo workspaces:</strong> No cross-package analysis; each file is analyzed in isolation.</div>
+<div class="gap-item"><strong>Cross-file alias tracking:</strong> Only <code>component-renames</code> uses cross-file references. Other rules analyze per-file.</div>
+<div class="gap-item"><strong>SSR entry points:</strong> No detection of <code>renderToString</code>, <code>renderToStream</code>, or server-specific APIs.</div>
+</div>
+
+<div class="gap-section">
+<h3>2.4 Semantic Analysis (Cannot Be Detected Statically)</h3>
+<p class="section-intro">These behavioral changes require runtime observation. The roadmap acknowledges them as "readiness gates" that need compatibility validation in a disposable copy.</p>
+<div class="gap-item">Post-setter reads returning old values (batching behavioral change)</div>
+<div class="gap-item">Cleanup timing differences between onCleanup and returned cleanup functions</div>
+<div class="gap-item"><code>undefined</code>-is-a-real-value in merge() vs mergeProps() fallthrough</div>
+<div class="gap-item">Nested root / ShadowRoot / Portal event delegation behavior changes</div>
+<div class="gap-item">Top-level reactive reads producing dev warnings</div>
+<div class="gap-item">Writes inside reactive scopes throwing in dev</div>
+</div>
+
+<div class="gap-section">
+<h3>2.5 createEffect 2-Arg Case: The Critical Silent Gap</h3>
+<p class="section-intro">
+  The <code>create-effect</code> rule filters to <strong>only 1-argument calls</strong>.
+  A 2-argument call like <code>createEffect(fn, 0)</code> — where the second argument is an initialValue —
+  is <strong>silently skipped</strong>. The user gets no warning that their initialValue must be migrated
+  into a default parameter. This is the single most dangerous gap in an otherwise well-structured analyzer
+  because it produces a false sense of completeness: the file passes analysis but has an unaddressed
+  migration site.
+</p>
+</div>
+
+<h2>3. Rule Inventory Summary</h2>
+
+<table>
+<thead><tr><th>Rule</th><th>Detects</th><th>Import Source</th><th>Helper</th><th>Cross-File</th></tr></thead>
+<tbody>
+<tr><td class="rule-name">imports/beta32-subpaths</td><td>Legacy subpath imports</td><td>6 sources</td><td>Manual scan</td><td>No</td></tr>
+<tr><td class="rule-name">imports/web-import</td><td>solid-js/web → @solidjs/web</td><td>solid-js/web</td><td>Manual scan</td><td>No</td></tr>
+<tr><td class="rule-name">jsx/class-list</td><td>classList JSX attribute</td><td>N/A (JSX scan)</td><td>N/A</td><td>No</td></tr>
+<tr><td class="rule-name">jsx/component-renames</td><td>Suspense, ErrorBoundary, SuspenseList, Index</td><td>solid-js</td><td>Manual + refs</td><td><span class="badge badge-yes">Yes</span></td></tr>
+<tr><td class="rule-name">jsx/context-provider</td><td>Context.Provider JSX</td><td>N/A (JSX scan)</td><td>N/A</td><td>No</td></tr>
+<tr><td class="rule-name">jsx/dom-attr-namespaces</td><td>attr:, bool: JSX prefixes</td><td>N/A (JSX scan)</td><td>N/A</td><td>No</td></tr>
+<tr><td class="rule-name">jsx/dom-event-namespaces</td><td>on:, oncapture: JSX prefixes</td><td>N/A (JSX scan)</td><td>N/A</td><td>No</td></tr>
+<tr><td class="rule-name">jsx/dom-use-directive</td><td>use: JSX directives</td><td>N/A (JSX scan)</td><td>N/A</td><td>No</td></tr>
+<tr><td class="rule-name">lifecycle/on-mount</td><td>onMount() calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">props/merge-props</td><td>mergeProps() calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">props/split-props</td><td>splitProps() calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/batch</td><td>batch() calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/create-computed</td><td>createComputed() calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/create-effect</td><td>createEffect() 1-arg calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/create-memo</td><td>createMemo() 2/3-arg calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/create-resource</td><td>createResource() calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/dynamic-and-stream</td><td>createDynamic, from, observable</td><td>solid-js, solid-js/web</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/error-handling</td><td>onError, catchError, resetErrorBoundaries</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/on-helper</td><td>on() helper calls</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/selector-and-index</td><td>createSelector, indexArray</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/transition-apis</td><td>startTransition, useTransition, createDeferred</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">reactivity/utility-renames</td><td>equalFn, getListener, writeSignal, enableScheduling</td><td>solid-js</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">store/mutable</td><td>createMutable, modifyMutable</td><td>solid-js/store</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">store/produce</td><td>produce() calls</td><td>solid-js/store</td><td>findImportedCalls</td><td>No</td></tr>
+<tr><td class="rule-name">store/unwrap</td><td>unwrap() calls</td><td>solid-js/store</td><td>findImportedCalls</td><td>No</td></tr>
+</tbody>
+</table>
+
+<h2>4. Roadmap Alignment</h2>
+
+<p class="section-intro">
+  The codemod's <code>roadmap.md</code> explicitly acknowledges most of the missing coverage as future work.
+  Here's how the current implementation maps to the roadmap checklist:
+</p>
+
+<table>
+<thead><tr><th>Roadmap Item</th><th>Status</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Define the readiness contract</td><td><span class="badge badge-no">NOT STARTED</span></td><td>All output is "findings" — no blocked/ready states</td></tr>
+<tr><td>Cover configuration, packages, imports</td><td><span class="badge badge-partial">PARTIAL</span></td><td>Static imports covered; tsconfig/package.json not covered</td></tr>
+<tr><td>Cover complete beta.34 migration guide</td><td><span class="badge badge-partial">56%</span></td><td>44/78 items covered; see coverage matrix above</td></tr>
+<tr><td>Close gaps in existing rules</td><td><span class="badge badge-partial">IN PROGRESS</span></td><td>Aliases/namespaces supported; re-exports, dynamic imports not covered</td></tr>
+<tr><td>Scan whole project (JS/JSX/TS/TSX + monorepo)</td><td><span class="badge badge-yes">DONE</span></td><td>Workflow includes **/*.{js,jsx,ts,tsx} with node_modules exclusion</td></tr>
+<tr><td>Prove semantic readiness</td><td><span class="badge badge-no">NOT STARTED</span></td><td>No behavioral/semantic analysis</td></tr>
+<tr><td>Read-only compatibility validation</td><td><span class="badge badge-no">NOT STARTED</span></td><td>No install/typecheck/build/test in disposable copy</td></tr>
+<tr><td>Make coverage measurable</td><td><span class="badge badge-partial">PARTIAL</span></td><td>This report is a first step; no machine-readable inventory yet</td></tr>
+<tr><td>Track beta drift</td><td><span class="badge badge-no">NOT STARTED</span></td><td>Pinned to beta.34; no drift detection</td></tr>
+<tr><td>Keep the guarantee honest</td><td><span class="badge badge-no">NOT STARTED</span></td><td>No readiness claim emitted</td></tr>
+</tbody>
+</table>
+
+<h2>5. Recommendations</h2>
+
+<div class="gap-section">
+<h3>5.1 Critical: Fix the createEffect 2-Arg Gap</h3>
+<p>
+  The <code>create-effect</code> rule should detect <strong>all</strong> createEffect calls and provide
+  differentiated guidance:
+</p>
+<div class="gap-item"><strong>1-arg:</strong> split into compute/apply (current behavior)</div>
+<div class="gap-item"><strong>2-arg where second arg is not a function (initialValue):</strong> warn about moving to default parameter</div>
+<div class="gap-item"><strong>2-arg where second arg is a function (already split):</strong> pass silently or acknowledge</div>
+<div class="gap-item"><strong>3-arg (fn, initialValue, options):</strong> detect and guide</div>
+</div>
+
+<div class="gap-section">
+<h3>5.2 High-Impact: Add solid-js/web Import Source Coverage</h3>
+<p>
+  Extend <code>findImportedCalls</code> to accept an array of module sources, or add a wrapper
+  that checks both <code>solid-js</code> and <code>solid-js/web</code>. This would close the import-source
+  gap for 14 rules with a single shared-code change.
+</p>
+</div>
+
+<div class="gap-section">
+<h3>5.3 Priority: Resource Tuple Destructuring</h3>
+<p>
+  Add detection for <code>resource.loading</code>, <code>resource.error</code>, <code>resource.refetch()</code>,
+  and <code>resource.mutate()</code> patterns. These are commonly hit in real Solid 1.x codebases and
+  have no guidance from the current analyzer.
+</p>
+</div>
+
+<div class="gap-section">
+<h3>5.4 Medium-Impact: onCleanup Detection</h3>
+<p>
+  Detect <code>onCleanup()</code> calls within createEffect/onMount callbacks and guide users to
+  return cleanup functions instead. This is a high-frequency pattern in real code.
+</p>
+</div>
+
+<div class="gap-section">
+<h3>5.5 Medium-Impact: Non-Static Import Forms</h3>
+<p>
+  Add detection for re-exports, dynamic imports, and require() calls in the import-path rules.
+  The roadmap explicitly calls this out.
+</p>
+</div>
+
+<div class="gap-section">
+<h3>5.6 Lower-Priority: New-Surface Gaps</h3>
+<p>
+  Most of the remaining 33 uncovered items fall into three buckets:
+</p>
+<div class="gap-item"><strong>New APIs</strong> (Reveal, Repeat, action, createOptimistic, etc.) — not migration sites; no detection needed</div>
+<div class="gap-item"><strong>Structural/behavioral</strong> (post-setter reads, cleanup timing, delegated events) — cannot be detected statically; needs runtime validation</div>
+<div class="gap-item"><strong>Project-level</strong> (tsconfig, package.json, monorepo) — needs new analysis infrastructure</div>
+</div>
+
+<hr>
+<p style="color: #90a4ae; font-size: 0.85rem;">
+  Generated by code analysis of <code>/Users/devagr/codemod/solid-migration-assistant</code>
+  against <code>/Users/devagr/solid/documentation/solid-2.0/MIGRATION.md</code>.
+  All 25 rule implementations were read and cross-referenced with their test fixtures.
+  The 35,493-character migration guide was fully parsed and mapped item-by-item.
+</p>
+
+</body>
+</html>

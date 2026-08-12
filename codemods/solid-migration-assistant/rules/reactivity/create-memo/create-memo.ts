@@ -9,7 +9,7 @@ export function analyzeCreateMemo(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "createMemo")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "createMemo")
     .filter(
       ({ argumentNodes }) =>
         (argumentNodes.length === 2 || argumentNodes.length === 3) &&

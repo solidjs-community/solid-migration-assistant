@@ -9,7 +9,7 @@ export function analyzeBatch(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "batch")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "batch")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&

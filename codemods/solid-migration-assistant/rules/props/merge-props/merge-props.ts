@@ -9,7 +9,7 @@ export function analyzeMergeProps(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "mergeProps").map(
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "mergeProps").map(
     ({ call, argumentNodes, filename }) => {
       const start = call.range().start;
       const spreadDetail = argumentNodes.some(

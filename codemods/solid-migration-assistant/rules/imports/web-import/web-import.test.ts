@@ -5,14 +5,44 @@ import { analyzeWebImport } from "./web-import.ts";
 const MIGRATION_GUIDE =
   "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
 
+const EXPECTED_SITES = [
+  // Static imports
+  { location: "1:24", form: "static import" },
+  { location: "2:8", form: "static import" },
+  { location: "3:41", form: "static import" },
+  { location: "5:41", form: "static import" },
+  { location: "6:38", form: "static import" },
+  { location: "7:42", form: "static import" },
+  { location: "8:44", form: "static import" },
+  { location: "9:37", form: "static import" },
+  // Re-export
+  { location: "13:28", form: "re-export" },
+  // Dynamic import
+  { location: "15:30", form: "dynamic import()" },
+  // Require
+  { location: "17:33", form: "require() call" },
+  // Type import expression
+  { location: "18:25", form: "dynamic import()" },
+] as const;
+
 const testWebImportRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
   const guidance = analyzeWebImport(root.root(), { filename });
-  const locations = ["1:24", "2:8", "3:41", "5:41", "6:38", "7:42", "8:44", "9:37"];
-  const expected = locations.map(
-    (location) => `${filename}:${location} Move this Solid web renderer import.
+  const expected = EXPECTED_SITES.map(
+    ({ location, form }) => {
+      const formLabel = form;
+      const formGuidance =
+        form === "re-export"
+          ? " Change only this re-export's module source to @solidjs/web and preserve its export form and quote style."
+          : form === "dynamic import()"
+            ? " Change only this dynamic import's module source to @solidjs/web and preserve its quote style."
+            : form === "require() call"
+              ? " Change only this require call's module source to @solidjs/web and preserve its quote style."
+              : " Change only this static import's module source to @solidjs/web and preserve its import form and quote style.";
+      return `${filename}:${location} Move this Solid web renderer ${formLabel}.
 Why: Solid 2 publishes the web renderer from @solidjs/web instead of the solid-js/web subpath.
-Guidance: Change only this static import's module source to @solidjs/web and preserve its import form and quote style. Make and validate that edit yourself; this analyzer never edits or runs the target project. This rule proves only static import statements. Re-exports, dynamic imports, require calls, and TypeScript import() type expressions are outside this finding. Official migration guide: ${MIGRATION_GUIDE}`,
+Guidance:${formGuidance} Make and validate that edit yourself; this analyzer never edits or runs the target project. Official migration guide: ${MIGRATION_GUIDE}`;
+    },
   );
 
   if (guidance.join("\n---finding---\n") !== expected.join("\n---finding---\n")) {
@@ -24,10 +54,6 @@ Guidance: Change only this static import's module source to @solidjs/web and pre
 
   const source = root.source();
   for (const nearestNegative of [
-    'export { hydrate } from "solid-js/web"',
-    'import("solid-js/web")',
-    'require("solid-js/web")',
-    'import("solid-js/web").JSX',
     'solid-js\\x2fweb',
     'from "@solidjs/web"',
     'from "solid-js/web-extra"',

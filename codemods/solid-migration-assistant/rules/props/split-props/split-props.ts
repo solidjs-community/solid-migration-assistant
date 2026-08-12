@@ -9,7 +9,7 @@ export function analyzeSplitProps(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "splitProps")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "splitProps")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 2 &&

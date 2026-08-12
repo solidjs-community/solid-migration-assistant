@@ -9,7 +9,7 @@ export function analyzeCreateSelector(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "createSelector")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "createSelector")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&
@@ -27,7 +27,7 @@ export function analyzeIndexArray(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "indexArray")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "indexArray")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&

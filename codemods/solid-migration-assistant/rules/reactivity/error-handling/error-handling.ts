@@ -9,7 +9,7 @@ export function analyzeOnError(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "onError")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "onError")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&
@@ -27,7 +27,7 @@ export function analyzeCatchError(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "catchError")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "catchError")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&
@@ -45,7 +45,7 @@ export function analyzeResetErrorBoundaries(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "resetErrorBoundaries")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "resetErrorBoundaries")
     .filter(({ argumentNodes }) => argumentNodes.length === 0)
     .map(({ call, filename }) => {
       const start = call.range().start;

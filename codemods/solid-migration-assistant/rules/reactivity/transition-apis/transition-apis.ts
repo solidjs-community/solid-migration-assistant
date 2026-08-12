@@ -36,7 +36,7 @@ export function analyzeStartTransition(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "startTransition")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "startTransition")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&
@@ -51,7 +51,7 @@ export function analyzeUseTransition(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "useTransition")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "useTransition")
     .filter(({ argumentNodes }) => argumentNodes.length === 0)
     .map(({ call, filename }) =>
       transitionGuidance("useTransition", call, filename),
@@ -62,7 +62,7 @@ export function analyzeCreateDeferred(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findImportedCalls(rootNode, "solid-js", "createDeferred")
+  return findImportedCalls(rootNode, ["solid-js", "solid-js/web"], "createDeferred")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&

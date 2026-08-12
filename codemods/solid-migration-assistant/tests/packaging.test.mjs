@@ -34,6 +34,7 @@ const expectedFiles = [
   "rules/jsx/dom-attr-namespaces/dom-attr-namespaces.ts",
   "rules/jsx/dom-event-namespaces/dom-event-namespaces.ts",
   "rules/jsx/dom-use-directive/dom-use-directive.ts",
+  "rules/lifecycle/on-cleanup/on-cleanup.ts",
   "rules/lifecycle/on-mount/on-mount.ts",
   "rules/props/merge-props/merge-props.ts",
   "rules/props/split-props/split-props.ts",
@@ -143,7 +144,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 34);
+      assert.equal(expectedFiles.length, 35);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(
@@ -236,7 +237,7 @@ test(
         smokeRuns.push(smoke);
 
         assert.equal(smoke.status, 0, `packed run ${run}: ${output(smoke)}`);
-        assert.match(smoke.stdout, /Move this Solid web renderer import/);
+        assert.match(smoke.stdout, /Move this Solid web renderer/);
         assert.match(
           smoke.stdout,
           /github\.com\/solidjs\/solid\/blob\/4816a4ff.*imports-where-things-live-now/,

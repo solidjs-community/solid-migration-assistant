@@ -1,26 +1,19 @@
 import type { Codemod } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import {
-  analyzeCreateResource,
-} from "./create-resource.ts";
+import { analyzeCreateResource } from "./create-resource.ts";
 
 const MIGRATION_GUIDE = "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#createresource--async-computations--loading";
 
 const testCreateResourceRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const registrations = [
-    analyzeCreateResource,
-  ];
-  const guidance = registrations.flatMap((analyzer) =>
-    analyzer(root.root(), { filename }),
-  );
+  const guidance = analyzeCreateResource(root.root(), { filename });
 
   const isFixture = root.source().includes('from "solid-js"') ||
     root.source().includes('from "solid-js/web"');
 
   if (isFixture) {
     if (guidance.length === 0) {
-      throw new Error(`expected createResource findings but got none`);
+      throw new Error("expected createResource findings but got none");
     }
   }
 
@@ -33,11 +26,11 @@ const testCreateResourceRule: Codemod<TSX> = async (root) => {
   }
 
   if (guidance.some((entry) => !entry.includes(MIGRATION_GUIDE))) {
-    throw new Error(`every createResource finding must link the migration guide`);
+    throw new Error("every createResource finding must link the migration guide");
   }
 
   if (guidance.some((entry) => !entry.includes("Manual review required"))) {
-    throw new Error(`every createResource finding must require manual review`);
+    throw new Error("every createResource finding must require manual review");
   }
 
   return null;
