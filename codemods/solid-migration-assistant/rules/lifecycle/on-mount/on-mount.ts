@@ -3,7 +3,7 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 import { findDirectImportedCalls } from "../../../shared/analysis.ts";
 
 const MIGRATION_GUIDE =
-  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#effects-lifecycle-and-cleanup";
+  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#effects-lifecycle-and-cleanup";
 
 export function analyzeOnMount(
   rootNode: SgNode<TSX>,

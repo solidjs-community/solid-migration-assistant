@@ -17,6 +17,38 @@ import {
 } from "../rules/store/mutable/mutable.ts";
 import { analyzeProduce } from "../rules/store/produce/produce.ts";
 import { analyzeUnwrap } from "../rules/store/unwrap/unwrap.ts";
+import { analyzeBatch } from "../rules/reactivity/batch/batch.ts";
+import { analyzeOnHelper } from "../rules/reactivity/on-helper/on-helper.ts";
+import { analyzeCreateResource } from "../rules/reactivity/create-resource/create-resource.ts";
+import {
+  analyzeOnError,
+  analyzeCatchError,
+  analyzeResetErrorBoundaries,
+} from "../rules/reactivity/error-handling/error-handling.ts";
+import {
+  analyzeStartTransition,
+  analyzeUseTransition,
+  analyzeCreateDeferred,
+} from "../rules/reactivity/transition-apis/transition-apis.ts";
+import {
+  analyzeCreateSelector,
+  analyzeIndexArray,
+} from "../rules/reactivity/selector-and-index/selector-and-index.ts";
+import {
+  analyzeCreateDynamic,
+  analyzeFrom,
+  analyzeObservable,
+} from "../rules/reactivity/dynamic-and-stream/dynamic-and-stream.ts";
+import {
+  analyzeEqualFn,
+  analyzeGetListener,
+  analyzeWriteSignal,
+  analyzeEnableScheduling,
+} from "../rules/reactivity/utility-renames/utility-renames.ts";
+import { analyzeDomAttrNamespaces } from "../rules/jsx/dom-attr-namespaces/dom-attr-namespaces.ts";
+import { analyzeDomEventNamespaces } from "../rules/jsx/dom-event-namespaces/dom-event-namespaces.ts";
+import { analyzeDomUseDirective } from "../rules/jsx/dom-use-directive/dom-use-directive.ts";
+import { analyzeContextProvider } from "../rules/jsx/context-provider/context-provider.ts";
 import { ANALYSIS_STATE_KEY } from "../shared/analysis.ts";
 
 type Analyzer = (
@@ -39,6 +71,28 @@ const analyzers: Analyzer[] = [
   analyzeModifyMutable,
   analyzeProduce,
   analyzeUnwrap,
+  analyzeBatch,
+  analyzeOnHelper,
+  analyzeCreateResource,
+  analyzeOnError,
+  analyzeCatchError,
+  analyzeResetErrorBoundaries,
+  analyzeStartTransition,
+  analyzeUseTransition,
+  analyzeCreateDeferred,
+  analyzeCreateSelector,
+  analyzeIndexArray,
+  analyzeCreateDynamic,
+  analyzeFrom,
+  analyzeObservable,
+  analyzeEqualFn,
+  analyzeGetListener,
+  analyzeWriteSignal,
+  analyzeEnableScheduling,
+  analyzeDomAttrNamespaces,
+  analyzeDomEventNamespaces,
+  analyzeDomUseDirective,
+  analyzeContextProvider,
 ];
 
 const analyze: Codemod<TSX> = async (root) => {

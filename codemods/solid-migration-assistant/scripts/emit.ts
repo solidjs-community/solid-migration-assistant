@@ -16,7 +16,7 @@ const emit: Codemod<TSX> = async () => {
     setState(EMITTED_STATE_KEY, true, false);
 
     if (guidance.length > 0) {
-      console.warn(guidance.join("\n\n"));
+      console.log(guidance.join("\n\n"));
     }
   } finally {
     release();

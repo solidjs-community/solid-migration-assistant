@@ -50,6 +50,42 @@ const ruleCases = [
     directory: "rules/store/unwrap",
     semanticWorkspace: true,
   },
+  { directory: "rules/jsx/context-provider" },
+  { directory: "rules/jsx/dom-attr-namespaces" },
+  { directory: "rules/jsx/dom-event-namespaces" },
+  { directory: "rules/jsx/dom-use-directive" },
+  {
+    directory: "rules/reactivity/batch",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/create-resource",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/dynamic-and-stream",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/error-handling",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/on-helper",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/selector-and-index",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/transition-apis",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/utility-renames",
+    semanticWorkspace: true,
+  },
 ];
 
 const configuredAdapters = ruleCases.map(adapterForRule).sort();
@@ -59,9 +95,9 @@ const existingAdapters = findFiles(rulesDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredAdapters.length !== 13 || existingAdapters.length !== 13) {
+if (configuredAdapters.length !== 25 || existingAdapters.length !== 25) {
   throw new Error(
-    `Expected 13 rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
+    `Expected 25 rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
   );
 }
 if (configuredAdapters.join("\n") !== existingAdapters.join("\n")) {
@@ -89,9 +125,9 @@ const existingFixtures = findFiles(rulesDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredFixtures.length !== 22 || existingFixtures.length !== 22) {
+if (configuredFixtures.length !== 42 || existingFixtures.length !== 42) {
   throw new Error(
-    `Expected 22 colocated fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
+    `Expected 42 colocated fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
   );
 }
 if (configuredFixtures.join("\n") !== existingFixtures.join("\n")) {

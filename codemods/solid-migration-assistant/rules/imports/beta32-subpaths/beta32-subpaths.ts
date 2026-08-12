@@ -11,7 +11,7 @@ const BETA32_SUBPATH_REPLACEMENTS: Readonly<Record<string, string>> = {
   "solid-js/jsx-dev-runtime": "@solidjs/web/jsx-dev-runtime",
 };
 const MIGRATION_GUIDE =
-  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
+  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
 const STORE_STOP_CONDITION =
   "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
 
@@ -28,8 +28,8 @@ export function analyzeBeta32SubpathImports(
   return findBeta32SubpathImports(rootNode).map(
     ({ source, legacyModule, replacementModule }) => {
       const start = source.range().start;
-      return `${context.filename}:${start.line + 1}:${start.column + 1} Move this Solid 2 beta.32 subpath import.
-Why: Solid 2 beta.32 publishes ${legacyModule} from ${replacementModule}.
+      return `${context.filename}:${start.line + 1}:${start.column + 1} Move this Solid 2 legacy subpath import.
+Why: Solid 2 publishes ${legacyModule} from ${replacementModule}.
 Guidance: Change only this static import's module source from ${legacyModule} to ${replacementModule} and preserve its import form and quote style. Make and validate that edit yourself; this analyzer never edits or runs the target project. This rule proves only static import statements. Re-exports, dynamic imports, require calls, and TypeScript import() type expressions are outside this finding.${legacyModule === "solid-js/store" ? ` ${STORE_STOP_CONDITION}` : ""} Official migration guide: ${MIGRATION_GUIDE}`;
     },
   );

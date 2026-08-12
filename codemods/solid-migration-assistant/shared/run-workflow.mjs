@@ -10,8 +10,8 @@ const packageMetadata = JSON.parse(
   readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
 );
 
-const SOLID_TARGET = "solid-js@2.0.0-beta.32";
-const SOLID_SOURCE_COMMIT = "3194631aeeb2b2e360817dc887ab5cbce7548359";
+const SOLID_TARGET = "solid-js@2.0.0-beta.34";
+const SOLID_SOURCE_COMMIT = "4816a4ff426be8b08b9e8796039306f153d203de";
 const MIGRATION_GUIDE = `https://github.com/solidjs/solid/blob/${SOLID_SOURCE_COMMIT}/documentation/solid-2.0/MIGRATION.md`;
 const FEEDBACK_URL =
   "https://github.com/devagrawal09/solid-migration-assistant/issues";
@@ -77,7 +77,10 @@ export function runCodemod(target, { spawnImpl = spawnSync } = {}) {
     [resolveCodemodLauncher(), ...buildCodemodArguments(target)],
     {
       cwd: packageDirectory,
-      stdio: "inherit",
+      // Codemod routes all workflow step console output to its stderr and its
+      // progress envelope to stdout. Swap the child's fds so the guidance (the
+      // product) reaches our stdout while progress stays on our stderr.
+      stdio: [0, 2, 1],
     },
   );
 }

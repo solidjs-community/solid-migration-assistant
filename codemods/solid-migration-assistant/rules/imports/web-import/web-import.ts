@@ -4,7 +4,7 @@ import { stringLiteralValue } from "../../../shared/analysis.ts";
 
 const LEGACY_WEB_MODULE = "solid-js/web";
 const MIGRATION_GUIDE =
-  "https://github.com/solidjs/solid/blob/3194631aeeb2b2e360817dc887ab5cbce7548359/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
+  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
 
 export function analyzeWebImport(
   rootNode: SgNode<TSX>,

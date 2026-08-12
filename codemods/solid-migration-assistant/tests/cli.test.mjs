@@ -82,7 +82,7 @@ test("delegates runtime availability to the pinned Codemod launcher", () => {
   ]);
   assert.deepEqual(invocation.options, {
     cwd: packageDirectory,
-    stdio: "inherit",
+    stdio: [0, 2, 1],
   });
   assert.equal(Object.hasOwn(invocation.options, "env"), false);
 });
@@ -111,8 +111,8 @@ test("publishes exact immutable public-preview disclosure", () => {
   assert.ok(
     DISCLOSURE.includes(`Analyzer: ${packageJson.name}@${packageJson.version}`),
   );
-  assert.match(DISCLOSURE, /solid-js@2\.0\.0-beta\.32/);
-  assert.match(DISCLOSURE, /3194631aeeb2b2e360817dc887ab5cbce7548359/);
+  assert.match(DISCLOSURE, /solid-js@2\.0\.0-beta\.34/);
+  assert.match(DISCLOSURE, /4816a4ff426be8b08b9e8796039306f153d203de/);
   assert.match(
     DISCLOSURE,
     /source-only.*incomplete.*no migration-readiness claim/is,
@@ -128,7 +128,7 @@ test("publishes exact immutable public-preview disclosure", () => {
   );
   assert.match(DISCLOSURE, /no analyzer telemetry or generated report/);
   assert.match(DISCLOSURE, /Codemod may retain normal workflow or task state/);
-  assert.match(DISCLOSURE, /github\.com\/solidjs\/solid\/blob\/3194631a/);
+  assert.match(DISCLOSURE, /github\.com\/solidjs\/solid\/blob\/4816a4ff/);
   assert.match(
     DISCLOSURE,
     /github\.com\/devagrawal09\/solid-migration-assistant\/issues/,

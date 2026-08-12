@@ -1,12 +1,12 @@
 # Solid Migration Assistant
 
-Solid Migration Assistant is an experimental, read-only analyzer for selected Solid 1.9 migration sites targeting Solid `2.0.0-beta.32`.
+Solid Migration Assistant is an experimental, read-only analyzer for selected Solid 1.9 migration sites targeting Solid `2.0.0-beta.34`.
 
-The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed only in the terminal. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
+The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed to standard output; the Codemod runtime's progress lines and the final disclosure are written to standard error. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 
 ## Run the beta analyzer
 
-> **Beta scope:** this `0.2.0` analyzer targets Solid `2.0.0-beta.32`, scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and covers only the detections listed below. A clean run is not proof that a project is ready for Solid 2.
+> **Beta scope:** this `0.2.0` analyzer targets Solid `2.0.0-beta.34`, scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and covers only the detections listed below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run the package from a project root with Node 20 or newer and npm (no pnpm installation is needed):
 
@@ -22,15 +22,12 @@ The current directory is analyzed by default. To analyze another directory:
 npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
 ```
 
-The supported rules detect:
+The supported rules detect the complete Solid 2 beta.34 migration quick rename / removal map:
 
-- legacy static Solid subpath imports, including `solid-js/web`, store, renderer, and JSX runtime paths;
-- direct legacy reactivity and lifecycle calls such as `createComputed(...)`, one-argument `createEffect(...)`, seeded `createMemo(...)`, and `onMount(...)`;
-- direct `mergeProps(...)` and `splitProps(...)` calls;
-- direct legacy store calls using `unwrap`, `produce`, `createMutable`, or `modifyMutable`;
-- imported `Suspense`, `ErrorBoundary`, `SuspenseList`, and `Index` JSX sites; and
-- JSX `classList` attributes.
-
+**Imports** — `solid-js/web`, store, renderer, and JSX-runtime subpath repackaging.
+**JSX** — component renames (`Suspense`/`Loading`, `ErrorBoundary`/`Errored`, `Index`/`For keyed=false`, `SuspenseList`/`Reveal`), `classList` removal, DOM attribute/event namespace removal (`attr:`, `bool:`, `on:`, `oncapture:`), `use:` directive removal, and `Context.Provider` → direct context syntax.
+**Reactivity & lifecycle** — `createComputed`, `createEffect`, `createMemo`, `batch`, `createResource`, `on`, `onError`/`catchError`/`resetErrorBoundaries`, `startTransition`/`useTransition`/`createDeferred`, `createSelector`/`indexArray`, `createDynamic`/`from`/`observable`, and `equalFn`/`getListener`/`writeSignal`/`enableScheduling`.
+**Props & store** — `mergeProps`/`splitProps`, `onMount`, `unwrap`, `produce`, and `createMutable`/`modifyMutable`.
 Coverage is deliberately limited. Even when no guidance is printed, review the documented exclusions and perform the application's normal type, build, and behavior validation; a clean analyzer run is not a readiness result.
 
 ## Verify the repository

@@ -30,12 +30,24 @@ const expectedFiles = [
   "rules/imports/web-import/web-import.ts",
   "rules/jsx/class-list/class-list.ts",
   "rules/jsx/component-renames/component-renames.ts",
+  "rules/jsx/context-provider/context-provider.ts",
+  "rules/jsx/dom-attr-namespaces/dom-attr-namespaces.ts",
+  "rules/jsx/dom-event-namespaces/dom-event-namespaces.ts",
+  "rules/jsx/dom-use-directive/dom-use-directive.ts",
   "rules/lifecycle/on-mount/on-mount.ts",
   "rules/props/merge-props/merge-props.ts",
   "rules/props/split-props/split-props.ts",
+  "rules/reactivity/batch/batch.ts",
   "rules/reactivity/create-computed/create-computed.ts",
   "rules/reactivity/create-effect/create-effect.ts",
   "rules/reactivity/create-memo/create-memo.ts",
+  "rules/reactivity/create-resource/create-resource.ts",
+  "rules/reactivity/dynamic-and-stream/dynamic-and-stream.ts",
+  "rules/reactivity/error-handling/error-handling.ts",
+  "rules/reactivity/on-helper/on-helper.ts",
+  "rules/reactivity/selector-and-index/selector-and-index.ts",
+  "rules/reactivity/transition-apis/transition-apis.ts",
+  "rules/reactivity/utility-renames/utility-renames.ts",
   "rules/store/mutable/mutable.ts",
   "rules/store/produce/produce.ts",
   "rules/store/unwrap/unwrap.ts",
@@ -46,7 +58,7 @@ const expectedFiles = [
   "workflow.yaml",
 ];
 const expectedDescription =
-  "Read-only Solid 1.9 to Solid 2 beta.32 migration analyzer for project-owned JavaScript and TypeScript source";
+  "Read-only Solid 1.9 to Solid 2 beta.34 migration analyzer for project-owned JavaScript and TypeScript source";
 const expectedKeywords = [
   "solid",
   "solidjs",
@@ -131,7 +143,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 22);
+      assert.equal(expectedFiles.length, 34);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(
@@ -224,12 +236,12 @@ test(
         smokeRuns.push(smoke);
 
         assert.equal(smoke.status, 0, `packed run ${run}: ${output(smoke)}`);
-        assert.match(smoke.stderr, /Move this Solid web renderer import/);
+        assert.match(smoke.stdout, /Move this Solid web renderer import/);
         assert.match(
-          smoke.stderr,
-          /github\.com\/solidjs\/solid\/blob\/3194631a.*imports-where-things-live-now/,
+          smoke.stdout,
+          /github\.com\/solidjs\/solid\/blob\/4816a4ff.*imports-where-things-live-now/,
         );
-        assert.doesNotMatch(smoke.stderr, /S2-IMPORT-WEB-001/);
+        assert.doesNotMatch(smoke.stdout, /S2-IMPORT-WEB-001/);
         assertFinalDisclosure(smoke.stderr);
         assert.deepEqual(
           treeSnapshot(consumer),
@@ -240,9 +252,9 @@ test(
       }
 
       assert.deepEqual(
-        Buffer.from(smokeRuns[0].stderr, "utf8"),
-        Buffer.from(smokeRuns[1].stderr, "utf8"),
-        "complete analyzer-owned guidance and final disclosure bytes changed",
+        Buffer.from(smokeRuns[0].stdout, "utf8"),
+        Buffer.from(smokeRuns[1].stdout, "utf8"),
+        "complete analyzer-owned guidance bytes changed between packed runs",
       );
       const comparableRuns = smokeRuns.map((smoke, index) => {
         const workflowId =
@@ -250,22 +262,22 @@ test(
         const workflowDuration =
           /^(\u001b\[32mWorkflow completed\u001b\[0m \u001b\[2min )([0-9]+(?:\.[0-9]+)?(?:ms|s))(\u001b\[0m\r?)$/gm;
         assert.equal(
-          [...smoke.stdout.matchAll(workflowId)].length,
+          [...smoke.stderr.matchAll(workflowId)].length,
           1,
           `packed run ${index + 1} workflow UUID envelope`,
         );
         assert.equal(
-          [...smoke.stdout.matchAll(workflowDuration)].length,
+          [...smoke.stderr.matchAll(workflowDuration)].length,
           1,
           `packed run ${index + 1} workflow timing envelope`,
         );
-        const stableProgress = smoke.stdout
+        const stableProgress = smoke.stderr
           .replace(workflowId, "$1<generated-workflow-uuid>$3")
           .replace(workflowDuration, "$1<generated-workflow-duration>$3");
         return Buffer.concat([
           Buffer.from(stableProgress, "utf8"),
           Buffer.from([0]),
-          Buffer.from(smoke.stderr, "utf8"),
+          Buffer.from(smoke.stdout, "utf8"),
         ]);
       });
       assert.deepEqual(
