@@ -11,7 +11,7 @@ const testProduceRule: Codemod<TSX> = async (root) => {
     filename: "ignored-context-filename.tsx",
   });
   const locations = root.source().includes('from "solid-js/store"')
-    ? ["8:1", "13:3", "20:1", "23:1", "24:23"]
+    ? ["8:1", "13:3", "20:1", "23:1", "24:23", "35:1", "36:1"]
     : [];
   const expected = locations.map(
     (location) => `${filename}:${location} Manual review required: migrate this produce wrapper to draft-first setter behavior.

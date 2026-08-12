@@ -17,6 +17,8 @@ const testSplitPropsRule: Codemod<TSX> = async (root) => {
         ["9:23", 1],
         ["10:16", 2],
         ["12:1", 1],
+        ["19:1", 1],
+        ["20:1", 1],
       ]
     : [];
   const expected = sites.map(

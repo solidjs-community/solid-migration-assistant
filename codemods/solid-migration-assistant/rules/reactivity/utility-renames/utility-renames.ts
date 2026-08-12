@@ -1,8 +1,9 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { findDirectImportedCalls } from "../../../shared/analysis.ts";
+import { findImportedCalls } from "../../../shared/analysis.ts";
 
-const GUIDE = "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md";
+const GUIDE =
+  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md";
 
 function utilityGuidance(
   name: string,
@@ -10,20 +11,29 @@ function utilityGuidance(
   filename: string,
 ): string {
   const start = call.range().start;
-  const headline = name === "equalFn" || name === "getListener"
-    ? `migrate this ${name} reference to its Solid 2 replacement`
-    : `remove this ${name} call`;
+  const headline =
+    name === "equalFn" || name === "getListener"
+      ? `migrate this ${name} reference to its Solid 2 replacement`
+      : `remove this ${name} call`;
   const why: Record<string, string> = {
-    equalFn: "Solid 2 renames equalFn to isEqual with the same (a, b) => boolean signature.",
-    getListener: "Solid 2 renames getListener to getObserver with the same signature.",
-    writeSignal: "Solid 2 removes writeSignal; batching is now default — use the normal setter.",
-    enableScheduling: "Solid 2 removes enableScheduling; the global scheduler no longer exists.",
+    equalFn:
+      "Solid 2 renames equalFn to isEqual with the same (a, b) => boolean signature.",
+    getListener:
+      "Solid 2 renames getListener to getObserver with the same signature.",
+    writeSignal:
+      "Solid 2 removes writeSignal; batching is now default — use the normal setter.",
+    enableScheduling:
+      "Solid 2 removes enableScheduling; the global scheduler no longer exists.",
   };
   const steps: Record<string, string> = {
-    equalFn: "Replace every reference to equalFn with isEqual. No other changes are required — the signature is identical.",
-    getListener: "Replace every reference to getListener with getObserver. No other changes are required — the signature is identical.",
-    writeSignal: "Remove this call. Replace with the signal's normal setter; updates are batched automatically.",
-    enableScheduling: "Remove this call. Solid 2 has no global scheduler toggle.",
+    equalFn:
+      "Replace every reference to equalFn with isEqual. No other changes are required — the signature is identical.",
+    getListener:
+      "Replace every reference to getListener with getObserver. No other changes are required — the signature is identical.",
+    writeSignal:
+      "Remove this call. Replace with the signal's normal setter; updates are batched automatically.",
+    enableScheduling:
+      "Remove this call. Solid 2 has no global scheduler toggle.",
   };
   return `${filename}:${start.line + 1}:${start.column + 1} Manual review required: ${headline}
 Why: ${why[name]}
@@ -34,30 +44,34 @@ export function analyzeEqualFn(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "equalFn")
-    .map(({ call, filename }) => utilityGuidance("equalFn", call, filename));
+  return findImportedCalls(rootNode, "solid-js", "equalFn").map(
+    ({ call, filename }) => utilityGuidance("equalFn", call, filename),
+  );
 }
 
 export function analyzeGetListener(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "getListener")
-    .map(({ call, filename }) => utilityGuidance("getListener", call, filename));
+  return findImportedCalls(rootNode, "solid-js", "getListener").map(
+    ({ call, filename }) => utilityGuidance("getListener", call, filename),
+  );
 }
 
 export function analyzeWriteSignal(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "writeSignal")
-    .map(({ call, filename }) => utilityGuidance("writeSignal", call, filename));
+  return findImportedCalls(rootNode, "solid-js", "writeSignal").map(
+    ({ call, filename }) => utilityGuidance("writeSignal", call, filename),
+  );
 }
 
 export function analyzeEnableScheduling(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "enableScheduling")
-    .map(({ call, filename }) => utilityGuidance("enableScheduling", call, filename));
+  return findImportedCalls(rootNode, "solid-js", "enableScheduling").map(
+    ({ call, filename }) => utilityGuidance("enableScheduling", call, filename),
+  );
 }

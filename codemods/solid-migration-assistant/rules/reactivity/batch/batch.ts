@@ -1,14 +1,15 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { findDirectImportedCalls } from "../../../shared/analysis.ts";
+import { findImportedCalls } from "../../../shared/analysis.ts";
 
-const MIGRATION_GUIDE = "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#batch--default-microtask-batching--flush";
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#batch--default-microtask-batching--flush";
 
 export function analyzeBatch(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "batch")
+  return findImportedCalls(rootNode, "solid-js", "batch")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&

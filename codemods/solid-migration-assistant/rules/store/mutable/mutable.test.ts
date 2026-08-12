@@ -16,6 +16,8 @@ const testMutableRules: Codemod<TSX> = async (root) => {
     ? [
         createExpected(filename, "15:15", 1),
         createExpected(filename, "17:20", 2),
+        createExpected(filename, "35:1", 1),
+        createExpected(filename, "37:1", 1),
       ]
     : [];
   assertExact("createMutable", createGuidance, expectedCreate);
@@ -24,7 +26,8 @@ const testMutableRules: Codemod<TSX> = async (root) => {
     filename: "ignored-context-filename.tsx",
   });
   const expectedModify = isDirectFixture
-    ? [modifyExpected(filename, "18:1"), modifyExpected(filename, "22:1")]
+    ? [modifyExpected(filename, "18:1"), modifyExpected(filename, "22:1"),
+       modifyExpected(filename, "36:1"), modifyExpected(filename, "38:1")]
     : [];
   assertExact("modifyMutable", modifyGuidance, expectedModify);
 

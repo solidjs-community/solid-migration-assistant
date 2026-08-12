@@ -21,6 +21,8 @@ const testCreateComputedRule: Codemod<TSX> = async (root) => {
           ["19:1", 1],
           ["20:1", 2],
           ["21:1", 3],
+          ["27:1", 1],
+          ["28:1", 1],
         ]
       : [];
   const expected = sites.map(
@@ -53,8 +55,6 @@ Guidance: Read the complete callback, its consumers, nearby signal/store declara
         'createComputed(() => count(), 0, { name: "legacy" }, "extra");',
       ],
       ["spread arguments", "createComputed(...computedCallbacks);"],
-      ["aliased import", "computed(() => count());"],
-      ["namespace import", "Solid.createComputed(() => count());"],
       ["indirect call", "indirect(() => count());"],
       [
         "shadowed binding",

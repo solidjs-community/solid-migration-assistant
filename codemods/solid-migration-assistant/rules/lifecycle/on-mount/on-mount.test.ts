@@ -11,7 +11,7 @@ const testOnMountRule: Codemod<TSX> = async (root) => {
     filename: "ignored-context-filename.tsx",
   });
   const locations = root.source().includes('from "solid-js"')
-    ? ["9:1", "14:1", "18:1", "24:1", "29:1", "30:1", "32:1"]
+    ? ["9:1", "14:1", "18:1", "24:1", "29:1", "30:1", "32:1", "34:1", "35:1"]
     : [];
   const expected = locations.map(
     (location) => `${filename}:${location} Manual review required: migrate this onMount lifecycle callback.

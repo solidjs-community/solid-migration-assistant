@@ -11,7 +11,7 @@ const testUnwrapRule: Codemod<TSX> = async (root) => {
     filename: "ignored-context-filename.tsx",
   });
   const locations = root.source().includes('from "solid-js\\u002fstore"')
-    ? ["9:1", "10:1", "12:1"]
+    ? ["9:1", "10:1", "12:1", "19:1", "20:1"]
     : [];
   const expected = locations.map(
     (location) => `${filename}:${location} Manual review required: migrate this unwrap call to a reviewed snapshot.

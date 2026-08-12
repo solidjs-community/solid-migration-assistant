@@ -18,6 +18,8 @@ const testMergePropsRule: Codemod<TSX> = async (root) => {
         ["11:1", 2, false],
         ["13:1", 1, true],
         ["15:1", 2, false],
+        ["17:1", 2, false],
+        ["18:1", 2, false],
       ]
     : [];
   const expected = sites.map(([location, argumentCount, hasSpread]) => {

@@ -1,14 +1,15 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { findDirectImportedCalls } from "../../../shared/analysis.ts";
+import { findImportedCalls } from "../../../shared/analysis.ts";
 
-const MIGRATION_GUIDE = "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#onerror--catcherror--errored--effect-error-option";
+const MIGRATION_GUIDE =
+  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#onerror--catcherror--errored--effect-error-option";
 
 export function analyzeOnError(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "onError")
+  return findImportedCalls(rootNode, "solid-js", "onError")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&
@@ -26,7 +27,7 @@ export function analyzeCatchError(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "catchError")
+  return findImportedCalls(rootNode, "solid-js", "catchError")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&
@@ -44,10 +45,8 @@ export function analyzeResetErrorBoundaries(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "resetErrorBoundaries")
-    .filter(
-      ({ argumentNodes }) => argumentNodes.length === 0,
-    )
+  return findImportedCalls(rootNode, "solid-js", "resetErrorBoundaries")
+    .filter(({ argumentNodes }) => argumentNodes.length === 0)
     .map(({ call, filename }) => {
       const start = call.range().start;
       return `${filename}:${start.line + 1}:${start.column + 1} Manual review required: remove this resetErrorBoundaries call.

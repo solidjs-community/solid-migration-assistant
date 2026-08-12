@@ -16,6 +16,8 @@ const testCreateMemoRule: Codemod<TSX> = async (root) => {
         ["8:1", 2],
         ["9:1", 2],
         ["11:1", 3],
+        ["17:1", 2],
+        ["18:1", 2],
       ]
     : [];
   const expected = sites.map(([location, argumentCount]) => {

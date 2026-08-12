@@ -1,14 +1,15 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { findDirectImportedCalls } from "../../../shared/analysis.ts";
+import { findImportedCalls } from "../../../shared/analysis.ts";
 
-const GUIDE = "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md";
+const GUIDE =
+  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md";
 
 export function analyzeCreateDynamic(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js/web", "createDynamic")
+  return findImportedCalls(rootNode, "solid-js/web", "createDynamic")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length >= 1 &&
@@ -26,7 +27,7 @@ export function analyzeFrom(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "from")
+  return findImportedCalls(rootNode, "solid-js", "from")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&
@@ -44,7 +45,7 @@ export function analyzeObservable(
   rootNode: SgNode<TSX>,
   context: { filename: string },
 ): string[] {
-  return findDirectImportedCalls(rootNode, "solid-js", "observable")
+  return findImportedCalls(rootNode, "solid-js", "observable")
     .filter(
       ({ argumentNodes }) =>
         argumentNodes.length === 1 &&

@@ -9,7 +9,7 @@ const testCreateEffectRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
   const guidance = analyzeCreateEffect(root.root(), { filename });
   const locations = root.source().includes('from "solid-js"')
-    ? ["6:1", "11:1", "16:1", "17:1", "19:1"]
+    ? ["6:1", "11:1", "16:1", "17:1", "19:1", "29:1", "30:1"]
     : [];
   const expected = locations.map(
     (location) => `${filename}:${location} Manual review required: split this one-argument createEffect into compute and apply callbacks.

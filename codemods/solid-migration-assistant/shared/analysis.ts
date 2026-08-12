@@ -9,7 +9,7 @@ export type DirectImportedCall = {
   filename: string;
 };
 
-export function findDirectImportedCalls(
+export function findImportedCalls(
   rootNode: SgNode<TSX>,
   moduleName: string,
   importedName: string,
@@ -22,29 +22,71 @@ export function findDirectImportedCalls(
     const source = statement.children().find((child) => child.is("string"));
     if (!source || stringLiteralValue(source) !== moduleName) continue;
 
+    // ── Named imports (plain or aliased) ──
     for (const specifier of statement.findAll({
       rule: { kind: "import_specifier" },
     })) {
-      if (specifier.text().trim() !== importedName) continue;
       const identifiers = specifier.findAll({ rule: { kind: "identifier" } });
-      const binding = identifiers[0];
-      if (!binding || identifiers.length !== 1) continue;
+      // Allow 1 id (plain) or 2 ids (aliased); first id is the imported name.
+      if (identifiers.length < 1 || identifiers.length > 2) continue;
+      if (identifiers[0]!.text().trim() !== importedName) continue;
+      const binding = identifiers[identifiers.length - 1]!;
 
       for (const fileReferences of binding.references()) {
         const filename = fileReferences.root
           .relativeFilename()
           .replaceAll("\\", "/");
         for (const reference of fileReferences.nodes) {
-          let functionNode = reference;
-          let call = reference.parent();
-          while (call?.kind() === "parenthesized_expression") {
-            functionNode = call;
-            call = call.parent();
+          const resolved = resolveCallFromCallee(reference);
+          if (!resolved) continue;
+          const { call, argumentsNode } = resolved;
+          const argumentNodes = argumentsNode
+            .children()
+            .filter((child) => child.isNamed() && child.kind() !== "comment");
+          calls.set(`${filename}:${call.id()}`, {
+            call,
+            argumentNodes,
+            filename,
+          });
+        }
+      }
+    }
+
+    // ── Namespace imports (import * as X) ──
+    for (const ns of statement.findAll({
+      rule: { kind: "namespace_import" },
+    })) {
+      const binding = ns.findAll({ rule: { kind: "identifier" } })[0];
+      if (!binding) continue;
+
+      for (const fileReferences of binding.references()) {
+        const filename = fileReferences.root
+          .relativeFilename()
+          .replaceAll("\\", "/");
+        for (const ref of fileReferences.nodes) {
+          // Walk up through parens to the member_expression whose object is ref
+          let obj = ref;
+          let member = ref.parent();
+          while (member?.kind() === "parenthesized_expression") {
+            obj = member;
+            member = member.parent();
           }
-          if (!call || call.kind() !== "call_expression") continue;
-          if (call.field("function")?.id() !== functionNode.id()) continue;
-          const argumentsNode = call.field("arguments");
-          if (!argumentsNode) continue;
+          if (!member || member.kind() !== "member_expression") continue;
+          if (member.field("object")?.id() !== obj.id()) continue;
+
+          const prop = member.field("property");
+          if (!prop) continue;
+          if (prop.kind() === "property_identifier") {
+            if (prop.text() !== importedName) continue;
+          } else if (prop.kind() === "string") {
+            if (stringLiteralValue(prop) !== importedName) continue;
+          } else {
+            continue; // computed property — unresolvable
+          }
+
+          const resolved = resolveCallFromCallee(member);
+          if (!resolved) continue;
+          const { call, argumentsNode } = resolved;
           const argumentNodes = argumentsNode
             .children()
             .filter((child) => child.isNamed() && child.kind() !== "comment");
@@ -59,6 +101,28 @@ export function findDirectImportedCalls(
   }
 
   return [...calls.values()];
+}
+
+/**
+ * Given a node that should be the callee of a call, unwrap parenthesized
+ * expressions and verify it is the function field of a call_expression.
+ * Returns the call and its arguments node, or null if the node is not a
+ * direct callee.
+ */
+function resolveCallFromCallee(
+  node: SgNode<TSX>,
+): { call: SgNode<TSX>; argumentsNode: SgNode<TSX> } | null {
+  let functionNode = node;
+  let call = node.parent();
+  while (call?.kind() === "parenthesized_expression") {
+    functionNode = call;
+    call = call.parent();
+  }
+  if (!call || call.kind() !== "call_expression") return null;
+  if (call.field("function")?.id() !== functionNode.id()) return null;
+  const argumentsNode = call.field("arguments");
+  if (!argumentsNode) return null;
+  return { call, argumentsNode };
 }
 
 export function stringLiteralValue(node: SgNode<TSX>): string | null {
