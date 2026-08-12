@@ -31,15 +31,13 @@ import {
   analyzeUseTransition,
   analyzeCreateDeferred,
 } from "../rules/reactivity/transition-apis/transition-apis.ts";
+import { analyzeCreateSelector } from "../rules/reactivity/create-selector/create-selector.ts";
+import { analyzeIndexArray } from "../rules/reactivity/index-array/index-array.ts";
+import { analyzeCreateDynamic } from "../rules/reactivity/create-dynamic/create-dynamic.ts";
 import {
-  analyzeCreateSelector,
-  analyzeIndexArray,
-} from "../rules/reactivity/selector-and-index/selector-and-index.ts";
-import {
-  analyzeCreateDynamic,
   analyzeFrom,
   analyzeObservable,
-} from "../rules/reactivity/dynamic-and-stream/dynamic-and-stream.ts";
+} from "../rules/reactivity/from-observable/from-observable.ts";
 import {
   analyzeEqualFn,
   analyzeGetListener,

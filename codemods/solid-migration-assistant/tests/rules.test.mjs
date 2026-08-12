@@ -63,7 +63,11 @@ const ruleCases = [
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/dynamic-and-stream",
+    directory: "rules/reactivity/create-dynamic",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/from-observable",
     semanticWorkspace: true,
   },
   {
@@ -75,7 +79,11 @@ const ruleCases = [
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/selector-and-index",
+    directory: "rules/reactivity/create-selector",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/reactivity/index-array",
     semanticWorkspace: true,
   },
   {
@@ -99,9 +107,9 @@ const existingAdapters = findFiles(rulesDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredAdapters.length !== 26 || existingAdapters.length !== 26) {
+if (configuredAdapters.length !== 28 || existingAdapters.length !== 28) {
   throw new Error(
-    `Expected 26 rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
+    `Expected 28 rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
   );
 }
 if (configuredAdapters.join("\n") !== existingAdapters.join("\n")) {
@@ -129,9 +137,9 @@ const existingFixtures = findFiles(rulesDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredFixtures.length !== 44 || existingFixtures.length !== 44) {
+if (configuredFixtures.length !== 48 || existingFixtures.length !== 48) {
   throw new Error(
-    `Expected 44 colocated fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
+    `Expected 48 colocated fixture cases, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
   );
 }
 if (configuredFixtures.join("\n") !== existingFixtures.join("\n")) {

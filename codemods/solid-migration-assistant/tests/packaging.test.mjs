@@ -40,13 +40,15 @@ const expectedFiles = [
   "rules/props/split-props/split-props.ts",
   "rules/reactivity/batch/batch.ts",
   "rules/reactivity/create-computed/create-computed.ts",
+  "rules/reactivity/create-dynamic/create-dynamic.ts",
   "rules/reactivity/create-effect/create-effect.ts",
   "rules/reactivity/create-memo/create-memo.ts",
   "rules/reactivity/create-resource/create-resource.ts",
-  "rules/reactivity/dynamic-and-stream/dynamic-and-stream.ts",
+  "rules/reactivity/create-selector/create-selector.ts",
   "rules/reactivity/error-handling/error-handling.ts",
+  "rules/reactivity/from-observable/from-observable.ts",
+  "rules/reactivity/index-array/index-array.ts",
   "rules/reactivity/on-helper/on-helper.ts",
-  "rules/reactivity/selector-and-index/selector-and-index.ts",
   "rules/reactivity/transition-apis/transition-apis.ts",
   "rules/reactivity/utility-renames/utility-renames.ts",
   "rules/store/mutable/mutable.ts",
@@ -144,7 +146,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 35);
+      assert.equal(expectedFiles.length, 37);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(

@@ -29,7 +29,13 @@ export function analyzeJsxComponentRenames(
   context: { filename: string },
 ): string[] {
   return findImportedComponentSites(rootNode)
-    .sort(compareSites)
+    .sort((left, right) => {
+    const leftStart = left.element.range().start;
+    const rightStart = right.element.range().start;
+    const filenameOrder = left.filename.localeCompare(right.filename);
+    if (filenameOrder !== 0) return filenameOrder;
+    return leftStart.compare(rightStart);
+  })
     .map(({ element, filename, legacyName }) =>
       componentGuidance(element, filename, legacyName),
     );
@@ -117,14 +123,3 @@ Why: Solid 2 replaces SuspenseList with Reveal for coordinating sibling Loading 
 Guidance: Read the complete group, its revealOrder and tail values, children, nesting, props, and corresponding import. Replace the unaliased named SuspenseList import and this JSX component with Reveal only after mapping literal revealOrder="forwards" to the default or order="sequential", revealOrder="together" to order="together", and tail="collapsed" to collapsed only under sequential order; review the children as sibling Loading boundaries, and do not use the earlier-beta boolean together prop. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when props are spread or forwarded, revealOrder or tail is dynamic or has another value, child boundary ownership or nesting is unclear, intended reveal timing cannot be established, or focused behavior tests do not cover the coordinated states. Ask for the smallest focused test or runtime observation that exposes ordering, fallback, and collapsed-tail behavior. Official migration guide: ${SUSPENSE_LIST_GUIDE}`;
 }
 
-function compareSites(left: ComponentSite, right: ComponentSite): number {
-  const leftStart = left.element.range().start;
-  const rightStart = right.element.range().start;
-  const filenameOrder =
-    left.filename < right.filename ? -1 : left.filename > right.filename ? 1 : 0;
-  return (
-    filenameOrder ||
-    leftStart.line - rightStart.line ||
-    leftStart.column - rightStart.column
-  );
-}
