@@ -3,7 +3,7 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 
 export const ANALYSIS_STATE_KEY = "solid-migration-assistant-guidance";
 
-export type DirectImportedCall = {
+type ImportedCall = {
   call: SgNode<TSX>;
   argumentNodes: SgNode<TSX>[];
   filename: string;
@@ -13,8 +13,8 @@ export function findImportedCalls(
   rootNode: SgNode<TSX>,
   moduleName: string,
   importedName: string,
-): DirectImportedCall[] {
-  const calls = new Map<string, DirectImportedCall>();
+): ImportedCall[] {
+  const calls = new Map<string, ImportedCall>();
 
   for (const statement of rootNode.findAll({
     rule: { kind: "import_statement" },
