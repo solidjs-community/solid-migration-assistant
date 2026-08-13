@@ -6,7 +6,7 @@ The migration target is pinned to Solid `2.0.0-rc.0` at upstream commit [`ff4d3c
 
 ## Analyze with npm
 
-> **RC scope:** version `0.2.0` targets Solid `2.0.0-rc.0`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
+> **RC scope:** version `0.2.1` targets Solid `2.0.0-rc.0`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 

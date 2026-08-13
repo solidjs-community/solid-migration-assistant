@@ -1,6 +1,6 @@
 {
   "name": "solid-migration-assistant",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Read-only Solid 1.9 to Solid 2 RC migration analyzer for project-owned JavaScript and TypeScript source",
   "license": "MIT",
   "author": "Solid Migration Assistant Contributors",

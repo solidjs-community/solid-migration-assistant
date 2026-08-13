@@ -80,7 +80,7 @@ test("publishes complete public npm and Codemod metadata", () => {
     readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
   );
   assert.equal(packageJson.name, "solid-migration-assistant");
-  assert.equal(packageJson.version, "0.2.0");
+  assert.equal(packageJson.version, "0.2.1");
   assert.equal(packageJson.description, expectedDescription);
   assert.deepEqual(packageJson.keywords, expectedKeywords);
   assert.equal(packageJson.license, "MIT");
@@ -102,7 +102,7 @@ test("publishes complete public npm and Codemod metadata", () => {
     resolve(packageDirectory, "codemod.yaml"),
     "utf8",
   );
-  assert.match(codemod, /^version: "0\.2\.0"$/m);
+  assert.match(codemod, /^version: "0\.2\.1"$/m);
   const codemodLines = codemod.split("\n");
   assert.ok(codemodLines.includes(`description: "${expectedDescription}"`));
   assert.ok(
