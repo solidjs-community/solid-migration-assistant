@@ -111,8 +111,8 @@ test("publishes exact immutable public-preview disclosure", () => {
   assert.ok(
     DISCLOSURE.includes(`Analyzer: ${packageJson.name}@${packageJson.version}`),
   );
-  assert.match(DISCLOSURE, /solid-js@2\.0\.0-beta\.34/);
-  assert.match(DISCLOSURE, /4816a4ff426be8b08b9e8796039306f153d203de/);
+  assert.match(DISCLOSURE, /solid-js@2\.0\.0-rc\.0/);
+  assert.match(DISCLOSURE, /ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/);
   assert.match(
     DISCLOSURE,
     /source-only.*incomplete.*no migration-readiness claim/is,
@@ -128,7 +128,7 @@ test("publishes exact immutable public-preview disclosure", () => {
   );
   assert.match(DISCLOSURE, /no analyzer telemetry or generated report/);
   assert.match(DISCLOSURE, /Codemod may retain normal workflow or task state/);
-  assert.match(DISCLOSURE, /github\.com\/solidjs\/solid\/blob\/4816a4ff/);
+  assert.match(DISCLOSURE, /github\.com\/solidjs\/solid\/blob\/ff4d3c44/);
   assert.match(
     DISCLOSURE,
     /github\.com\/devagrawal09\/solid-migration-assistant\/issues/,

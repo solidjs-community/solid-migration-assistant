@@ -2,11 +2,11 @@
 
 This package implements Solid Migration Assistant as a single read-only workflow for a narrow Solid 1.9 client-application profile. It scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site. The workflow returns no edits and writes no files.
 
-The migration target is pinned to Solid `2.0.0-beta.34` at upstream commit [`3194631`](https://github.com/solidjs/solid/tree/4816a4ff426be8b08b9e8796039306f153d203de).
+The migration target is pinned to Solid `2.0.0-rc.0` at upstream commit [`ff4d3c44`](https://github.com/solidjs/solid/tree/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5).
 
 ## Analyze with npm
 
-> **Beta scope:** version `0.2.0` targets Solid `2.0.0-beta.34`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
+> **RC scope:** version `0.2.0` targets Solid `2.0.0-rc.0`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 
@@ -61,7 +61,7 @@ A run with detections exits successfully. Complete opaque guidance strings are e
 - **`produce`** — removed; draft-first setters are now the default.
 - **`createMutable` / `modifyMutable`** — removed; use `createStore` with draft setters.
 
-Every finding links the immutable pinned [beta.34 migration guide](https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md). Coverage follows the guide's complete quick rename / removal map.
+Every finding links the immutable pinned [RC migration guide](https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md). Coverage follows the guide's complete quick rename / removal map.
 
 ## Deliberate limits
 

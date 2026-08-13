@@ -61,7 +61,7 @@ const expectedFiles = [
   "workflow.yaml",
 ];
 const expectedDescription =
-  "Read-only Solid 1.9 to Solid 2 beta.34 migration analyzer for project-owned JavaScript and TypeScript source";
+  "Read-only Solid 1.9 to Solid 2 RC migration analyzer for project-owned JavaScript and TypeScript source";
 const expectedKeywords = [
   "solid",
   "solidjs",
@@ -242,7 +242,7 @@ test(
         assert.match(smoke.stdout, /Move this Solid web renderer/);
         assert.match(
           smoke.stdout,
-          /github\.com\/solidjs\/solid\/blob\/4816a4ff.*imports-where-things-live-now/,
+          /github\.com\/solidjs\/solid\/blob\/ff4d3c44.*imports-where-things-live-now/,
         );
         assert.doesNotMatch(smoke.stdout, /S2-IMPORT-WEB-001/);
         assertFinalDisclosure(smoke.stderr);

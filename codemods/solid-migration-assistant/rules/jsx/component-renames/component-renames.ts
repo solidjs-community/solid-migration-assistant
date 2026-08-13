@@ -3,11 +3,11 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 import { stringLiteralValue } from "../../../shared/analysis.ts";
 
 const SUSPENSE_BOUNDARY_GUIDE =
-  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#suspense--errorboundary--loading--errored";
+  "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#suspense--errorboundary--loading--errored";
 const INDEX_GUIDE =
-  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#list-rendering-index-is-gone-and-for-handles-each-keying-mode";
+  "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#list-rendering-index-is-gone-and-for-handles-each-keying-mode";
 const SUSPENSE_LIST_GUIDE =
-  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#coordinating-loading-boundaries-suspenselist--reveal";
+  "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#coordinating-loading-boundaries-suspenselist--reveal";
 
 const COMPONENT_MIGRATIONS = {
   Suspense: "Loading",
@@ -30,12 +30,15 @@ export function analyzeJsxComponentRenames(
 ): string[] {
   return findImportedComponentSites(rootNode)
     .sort((left, right) => {
-    const leftStart = left.element.range().start;
-    const rightStart = right.element.range().start;
-    const filenameOrder = left.filename.localeCompare(right.filename);
-    if (filenameOrder !== 0) return filenameOrder;
-    return leftStart.compare(rightStart);
-  })
+      const leftStart = left.element.range().start;
+      const rightStart = right.element.range().start;
+      const filenameOrder = left.filename.localeCompare(right.filename);
+      if (filenameOrder !== 0) return filenameOrder;
+      if (leftStart.line !== rightStart.line) {
+        return leftStart.line - rightStart.line;
+      }
+      return leftStart.column - rightStart.column;
+    })
     .map(({ element, filename, legacyName }) =>
       componentGuidance(element, filename, legacyName),
     );

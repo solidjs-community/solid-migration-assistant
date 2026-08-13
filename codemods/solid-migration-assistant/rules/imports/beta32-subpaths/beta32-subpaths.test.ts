@@ -3,7 +3,7 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 import { analyzeBeta32SubpathImports } from "./beta32-subpaths.ts";
 
 const MIGRATION_GUIDE =
-  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
+  "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
 const STORE_STOP_CONDITION =
   "Stop: do not blindly rewrite this source if the import includes removed or renamed beta.32 helpers such as unwrap, produce, createMutable, or modifyMutable. Migrate those bindings and call sites first, then move supported store imports to solid-js.";
 const EXPECTED_SITES = [
@@ -22,14 +22,14 @@ const EXPECTED_SITES = [
   { location: "14:41", legacy: "solid-js/jsx-runtime", replacement: "@solidjs/web/jsx-runtime", form: "static import" },
   { location: "15:37", legacy: "solid-js/jsx-dev-runtime", replacement: "@solidjs/web/jsx-dev-runtime", form: "static import" },
   // Re-exports
-  { location: "18:47", legacy: "solid-js/store", replacement: "solid-js", form: "re-export" },
+  { location: "18:48", legacy: "solid-js/store", replacement: "solid-js", form: "re-export" },
   { location: "19:15", legacy: "solid-js/h", replacement: "@solidjs/h", form: "re-export" },
   // Dynamic import
-  { location: "21:29", legacy: "solid-js/html", replacement: "@solidjs/html", form: "dynamic import()" },
+  { location: "21:28", legacy: "solid-js/html", replacement: "@solidjs/html", form: "dynamic import()" },
   // Require
-  { location: "23:34", legacy: "solid-js/universal", replacement: "@solidjs/universal", form: "require() call" },
+  { location: "23:35", legacy: "solid-js/universal", replacement: "@solidjs/universal", form: "require() call" },
   // Type import expression
-  { location: "24:29", legacy: "solid-js/jsx-runtime", replacement: "@solidjs/web/jsx-runtime", form: "dynamic import()" },
+  { location: "24:28", legacy: "solid-js/jsx-runtime", replacement: "@solidjs/web/jsx-runtime", form: "dynamic import()" },
 ] as const;
 
 const testBeta32SubpathRule: Codemod<TSX> = async (root) => {
@@ -71,7 +71,7 @@ Guidance:${form === "re-export" ? " Change only this re-export's module source a
     'from "solid-js/store-extra"',
     'from "vendor/solid-js/store"',
     'from "solid-js/store/"',
-    'solid-js\\x2fstore',
+    'solid-js\\\\x2fstore',
   ]) {
     if (!source.includes(nearestNegative)) {
       throw new Error(`missing nearest-negative fixture: ${nearestNegative}`);

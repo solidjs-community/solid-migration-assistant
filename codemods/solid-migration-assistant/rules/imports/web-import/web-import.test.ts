@@ -3,7 +3,7 @@ import type TSX from "codemod:ast-grep/langs/tsx";
 import { analyzeWebImport } from "./web-import.ts";
 
 const MIGRATION_GUIDE =
-  "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
+  "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#imports-where-things-live-now";
 
 const EXPECTED_SITES = [
   // Static imports
@@ -16,13 +16,13 @@ const EXPECTED_SITES = [
   { location: "8:44", form: "static import" },
   { location: "9:37", form: "static import" },
   // Re-export
-  { location: "13:28", form: "re-export" },
+  { location: "13:25", form: "re-export" },
   // Dynamic import
   { location: "15:30", form: "dynamic import()" },
   // Require
-  { location: "17:33", form: "require() call" },
+  { location: "17:32", form: "require() call" },
   // Type import expression
-  { location: "18:25", form: "dynamic import()" },
+  { location: "18:24", form: "dynamic import()" },
 ] as const;
 
 const testWebImportRule: Codemod<TSX> = async (root) => {

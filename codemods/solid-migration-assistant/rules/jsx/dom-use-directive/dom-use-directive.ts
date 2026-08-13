@@ -1,7 +1,7 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 
-const MIGRATION_GUIDE = "https://github.com/solidjs/solid/blob/4816a4ff426be8b08b9e8796039306f153d203de/documentation/solid-2.0/MIGRATION.md#directives-use--ref-directive-factories-two-phase-pattern";
+const MIGRATION_GUIDE = "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#directives-use--ref-directive-factories-two-phase-pattern";
 
 export function analyzeDomUseDirective(
   rootNode: SgNode<TSX>,
