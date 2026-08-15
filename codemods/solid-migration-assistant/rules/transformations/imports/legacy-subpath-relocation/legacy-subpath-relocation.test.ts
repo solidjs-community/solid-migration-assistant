@@ -83,13 +83,17 @@ const FIXTURE_CASES: Record<string, FixtureCase> = {
       { location: "11:28", from: "solid-js/jsx-runtime", to: "@solidjs/web/jsx-runtime" },
       { location: "12:31", from: "solid-js/jsx-dev-runtime", to: "@solidjs/web/jsx-dev-runtime" },
     ],
-    transformed: "// fixture: runtime-forms\nconst dynamicH = import(\"@solidjs/h\");\n\nasync function load() {\n  const dynamicHtml = await import(\"@solidjs/html\");\n  return dynamicHtml;\n}\n\ndeclare const require: (name: string) => unknown;\nconst requiredUniversal = require(\"@solidjs/universal\");\ntype RuntimeTypes = import(\"@solidjs/web/jsx-runtime\").JSX;\ntype DevTypes = typeof import(\"@solidjs/web/jsx-dev-runtime\");\n\nvoid dynamicH;\nvoid load;\nvoid requiredUniversal;\ntype _RuntimeTypes = RuntimeTypes;\ntype _DevTypes = DevTypes;\n",
+    transformed: "// fixture: runtime-forms\nconst dynamicH = import(\"@solidjs/h\");\n\nasync function load() {\n  const dynamicHtml = await import(\"@solidjs/html\");\n  return dynamicHtml;\n}\n\ndeclare const require: (name: string) => unknown;\nconst requiredUniversal = require(\"@solidjs/universal\");\ntype RuntimeTypes = import(\"@solidjs/web/jsx-runtime\").JSX;\ntype DevTypes = typeof import(\"@solidjs/web/jsx-dev-runtime\");\n\nimport { require as aliasRequire } from \"./helper\";\nfunction usesDefault(a = require) {\n  return a;\n}\nconst { a = require } = { a: null };\nconst localAlias = require;\n\nvoid dynamicH;\nvoid load;\nvoid requiredUniversal;\nvoid aliasRequire;\nvoid usesDefault;\nvoid localAlias;\ntype _RuntimeTypes = RuntimeTypes;\ntype _DevTypes = DevTypes;\n",
   },
   "negative-forms": {
     relocations: [],
     transformed: null,
   },
   "shadowed-require": {
+    relocations: [],
+    transformed: null,
+  },
+  "destructured-require": {
     relocations: [],
     transformed: null,
   },

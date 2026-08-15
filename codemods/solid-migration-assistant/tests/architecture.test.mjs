@@ -131,6 +131,7 @@ const EXPECTED_TRANSFORM_TESTS = [
   "imports/legacy-subpath-relocation/legacy-subpath-relocation.test.ts",
 ];
 const EXPECTED_TRANSFORM_FIXTURES = [
+  "imports/legacy-subpath-relocation/fixtures/destructured-require.fixture.tsx",
   "imports/legacy-subpath-relocation/fixtures/escaped-specifiers.fixture.tsx",
   "imports/legacy-subpath-relocation/fixtures/negative-forms.fixture.tsx",
   "imports/legacy-subpath-relocation/fixtures/no-matches.fixture.tsx",

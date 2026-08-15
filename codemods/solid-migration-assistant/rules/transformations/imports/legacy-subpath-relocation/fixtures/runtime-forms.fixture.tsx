@@ -11,8 +11,18 @@ const requiredUniversal = require("solid-js/universal");
 type RuntimeTypes = import("solid-js/jsx-runtime").JSX;
 type DevTypes = typeof import("solid-js/jsx-dev-runtime");
 
+import { require as aliasRequire } from "./helper";
+function usesDefault(a = require) {
+  return a;
+}
+const { a = require } = { a: null };
+const localAlias = require;
+
 void dynamicH;
 void load;
 void requiredUniversal;
+void aliasRequire;
+void usesDefault;
+void localAlias;
 type _RuntimeTypes = RuntimeTypes;
 type _DevTypes = DevTypes;
