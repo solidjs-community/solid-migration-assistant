@@ -71,9 +71,10 @@ function adapterForRule({ directory }) {
 }
 
 function directFixtureFiles(directory) {
-  return readdirSync(directory, { withFileTypes: true })
+  const fixturesDirectory = resolve(directory, "fixtures");
+  return readdirSync(fixturesDirectory, { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(".fixture.tsx"))
-    .map((entry) => resolve(directory, entry.name))
+    .map((entry) => resolve(fixturesDirectory, entry.name))
     .sort((left, right) => left.localeCompare(right));
 }
 

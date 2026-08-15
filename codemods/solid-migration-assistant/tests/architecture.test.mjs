@@ -131,16 +131,16 @@ const EXPECTED_TRANSFORM_TESTS = [
   "imports/legacy-subpath-relocation/legacy-subpath-relocation.test.ts",
 ];
 const EXPECTED_TRANSFORM_FIXTURES = [
-  "imports/legacy-subpath-relocation/escaped-specifiers.fixture.tsx",
-  "imports/legacy-subpath-relocation/negative-forms.fixture.tsx",
-  "imports/legacy-subpath-relocation/no-matches.fixture.tsx",
-  "imports/legacy-subpath-relocation/prototype-names.fixture.tsx",
-  "imports/legacy-subpath-relocation/re-exports.fixture.tsx",
-  "imports/legacy-subpath-relocation/relocations.fixture.tsx",
-  "imports/legacy-subpath-relocation/runtime-forms.fixture.tsx",
-  "imports/legacy-subpath-relocation/shadowed-require.fixture.tsx",
-  "imports/legacy-subpath-relocation/single-quotes.fixture.tsx",
-  "imports/legacy-subpath-relocation/static-imports.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/escaped-specifiers.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/negative-forms.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/no-matches.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/prototype-names.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/re-exports.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/relocations.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/runtime-forms.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/shadowed-require.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/single-quotes.fixture.tsx",
+  "imports/legacy-subpath-relocation/fixtures/static-imports.fixture.tsx",
 ];
 const EXPECTED_TRANSFORM_FOLDERS = EXPECTED_TRANSFORM_PRODUCTION.map((path) =>
   dirname(path),
@@ -365,7 +365,9 @@ test("colocates exact transformation rule production, adapters, and fixtures", (
     ruleFiles(transformationsDirectory, (name) => name.endsWith(".fixture.tsx")),
     EXPECTED_TRANSFORM_FIXTURES,
   );
-  assertRuleLayout(transformationsDirectory, EXPECTED_TRANSFORM_PRODUCTION);
+  assertRuleLayout(transformationsDirectory, EXPECTED_TRANSFORM_PRODUCTION, {
+    fixturesSubdirectory: true,
+  });
 });
 
 test("uses normal analyzer end-to-end fixtures", () => {
@@ -433,7 +435,11 @@ function visitRules(directory, baseDirectory, entries, predicate) {
   }
 }
 
-function assertRuleLayout(directory, productionPaths) {
+function assertRuleLayout(
+  directory,
+  productionPaths,
+  { fixturesSubdirectory = false } = {},
+) {
   for (const entry of ruleEntries(directory)) {
     assert.equal(entry.split("/").includes("__testfixtures__"), false, entry);
     assert.notEqual(basename(entry), "input.tsx", entry);
@@ -455,7 +461,11 @@ function assertRuleLayout(directory, productionPaths) {
       .map((entry) => entry.name)
       .sort();
 
-    assert.deepEqual(directories, [], folder);
+    assert.deepEqual(
+      directories,
+      fixturesSubdirectory ? ["fixtures"] : [],
+      folder,
+    );
     assert.deepEqual(
       files.filter(
         (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
@@ -468,8 +478,15 @@ function assertRuleLayout(directory, productionPaths) {
       [`${ruleName}.test.ts`],
       folder,
     );
+    const fixtureEntries = fixturesSubdirectory
+      ? readdirSync(resolve(directory, folder, "fixtures"), {
+          withFileTypes: true,
+        })
+      : entries;
     assert.ok(
-      files.some((name) => name.endsWith(".fixture.tsx")),
+      fixtureEntries.some(
+        (entry) => entry.isFile() && entry.name.endsWith(".fixture.tsx"),
+      ),
       `${folder} must contain at least one fixture`,
     );
   }
