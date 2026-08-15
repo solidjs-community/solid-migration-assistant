@@ -1,12 +1,12 @@
 # Solid Migration Assistant
 
-This package implements Solid Migration Assistant as a single read-only workflow for a narrow Solid 1.9 client-application profile. It scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site. The workflow returns no edits and writes no files.
+This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths.
 
 The migration target is pinned to Solid `2.0.0-rc.0` at upstream commit [`ff4d3c44`](https://github.com/solidjs/solid/tree/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5).
 
 ## Analyze with npm
 
-> **RC scope:** version `0.2.1` targets Solid `2.0.0-rc.0`, analyzes project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, and implements only the detections documented below. A clean run is not proof that a project is ready for Solid 2.
+> **RC scope:** version `0.3.0` targets Solid `2.0.0-rc.0` and implements only the detections and relocations documented below. A clean run is not proof that a project is ready for Solid 2.
 
 After npm publication, run this from the project root with Node 20 or newer and npm (pnpm is not required):
 
@@ -63,11 +63,31 @@ A run with detections exits successfully. Complete opaque guidance strings are e
 
 Every finding links the immutable pinned [RC migration guide](https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md). Coverage follows the guide's complete quick rename / removal map.
 
+## Transform
+
+The opt-in `transform` workflow relocates exactly five pure legacy Solid import subpaths and changes nothing else:
+
+- `solid-js/h` → `@solidjs/h`
+- `solid-js/html` → `@solidjs/html`
+- `solid-js/universal` → `@solidjs/universal`
+- `solid-js/jsx-runtime` → `@solidjs/web/jsx-runtime`
+- `solid-js/jsx-dev-runtime` → `@solidjs/web/jsx-dev-runtime`
+
+The transform covers static imports, re-exports, dynamic `import()`, and `require()` calls; preserves each reference's import form and quote style; and emits one per-edit report line (`file:line:column`, old → new, plus the migration-guide link). Every move is a pure package relocation with no removed, renamed, or behaviorally changed export, so the rewrite is safe without binding-level review. The workflow is idempotent and writes no report files or other artifacts in the target. It deliberately leaves `solid-js/web`, `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra` and `vendor/solid-js/h` untouched.
+
+In this repository, run `pnpm transform` against the current directory, or invoke the Codemod CLI directly to target another directory:
+
+```sh
+node ./node_modules/codemod/codemod --disable-analytics workflow run -w transform.yaml -t /path/to/a/solid-project --allow-dirty --no-interactive
+```
+
+After publication, select the `transform` workflow from the Codemod platform (it is registered with `default: false`).
+
 ## Deliberate limits
 
 Current coverage is deliberately limited: the analyzer does not cover indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. No guidance—or a clean run—is not a readiness result and does not imply complete Solid 2 migration coverage.
 
-Automated transforms are roadmap-only. This package exposes no transform command, workflow, test, or implementation.
+The read-only `analyze` workflow remains detection-only. Broader automated transforms remain roadmap items beyond the five pure import-path relocations implemented by the `transform` workflow.
 
 ## Verify
 
@@ -77,4 +97,4 @@ From the workspace root:
 pnpm verify
 ```
 
-Verification checks detection-only architecture, comprehensive rule boundaries, exact and repeatable terminal output, fixture immutability, TypeScript types, and workflow schema validity.
+Verification checks the two-workflow architecture, comprehensive analysis and transformation rule boundaries, exact and repeatable terminal output, analyzer fixture immutability, transform idempotency, TypeScript types, and workflow schema validity.

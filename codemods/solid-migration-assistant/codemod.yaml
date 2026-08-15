@@ -1,8 +1,8 @@
 schema_version: "1.0"
 
 name: "solid-migration-assistant"
-version: "0.2.1"
-description: "Read-only Solid 1.9 to Solid 2 RC migration analyzer for project-owned JavaScript and TypeScript source"
+version: "0.3.0"
+description: "Solid 1.9 to Solid 2 RC migration assistant: read-only analyzer plus deterministic legacy import-path relocation for project-owned JavaScript and TypeScript source"
 author: "Solid Migration Assistant Contributors"
 license: "MIT"
 category: "migration"
@@ -22,3 +22,6 @@ workflows:
   - name: analyze
     default: true
     path: workflow.yaml
+  - name: transform
+    default: false
+    path: transform.yaml

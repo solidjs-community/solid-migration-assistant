@@ -26,42 +26,46 @@ const expectedFiles = [
   "README.md",
   "bin/solid-migration-assistant.mjs",
   "package.json",
-  "rules/imports/beta32-subpaths/beta32-subpaths.ts",
-  "rules/imports/web-import/web-import.ts",
-  "rules/jsx/class-list/class-list.ts",
-  "rules/jsx/component-renames/component-renames.ts",
-  "rules/jsx/context-provider/context-provider.ts",
-  "rules/jsx/dom-attr-namespaces/dom-attr-namespaces.ts",
-  "rules/jsx/dom-event-namespaces/dom-event-namespaces.ts",
-  "rules/jsx/dom-use-directive/dom-use-directive.ts",
-  "rules/lifecycle/on-cleanup/on-cleanup.ts",
-  "rules/lifecycle/on-mount/on-mount.ts",
-  "rules/props/merge-props/merge-props.ts",
-  "rules/props/split-props/split-props.ts",
-  "rules/reactivity/batch/batch.ts",
-  "rules/reactivity/create-computed/create-computed.ts",
-  "rules/reactivity/create-dynamic/create-dynamic.ts",
-  "rules/reactivity/create-effect/create-effect.ts",
-  "rules/reactivity/create-memo/create-memo.ts",
-  "rules/reactivity/create-resource/create-resource.ts",
-  "rules/reactivity/create-selector/create-selector.ts",
-  "rules/reactivity/error-handling/error-handling.ts",
-  "rules/reactivity/from-observable/from-observable.ts",
-  "rules/reactivity/index-array/index-array.ts",
-  "rules/reactivity/on-helper/on-helper.ts",
-  "rules/reactivity/transition-apis/transition-apis.ts",
-  "rules/reactivity/utility-renames/utility-renames.ts",
-  "rules/store/mutable/mutable.ts",
-  "rules/store/produce/produce.ts",
-  "rules/store/unwrap/unwrap.ts",
+  "rules/analysis/imports/beta32-subpaths/beta32-subpaths.ts",
+  "rules/analysis/imports/web-import/web-import.ts",
+  "rules/analysis/jsx/class-list/class-list.ts",
+  "rules/analysis/jsx/component-renames/component-renames.ts",
+  "rules/analysis/jsx/context-provider/context-provider.ts",
+  "rules/analysis/jsx/dom-attr-namespaces/dom-attr-namespaces.ts",
+  "rules/analysis/jsx/dom-event-namespaces/dom-event-namespaces.ts",
+  "rules/analysis/jsx/dom-use-directive/dom-use-directive.ts",
+  "rules/analysis/lifecycle/on-cleanup/on-cleanup.ts",
+  "rules/analysis/lifecycle/on-mount/on-mount.ts",
+  "rules/analysis/props/merge-props/merge-props.ts",
+  "rules/analysis/props/split-props/split-props.ts",
+  "rules/analysis/reactivity/batch/batch.ts",
+  "rules/analysis/reactivity/create-computed/create-computed.ts",
+  "rules/analysis/reactivity/create-dynamic/create-dynamic.ts",
+  "rules/analysis/reactivity/create-effect/create-effect.ts",
+  "rules/analysis/reactivity/create-memo/create-memo.ts",
+  "rules/analysis/reactivity/create-resource/create-resource.ts",
+  "rules/analysis/reactivity/create-selector/create-selector.ts",
+  "rules/analysis/reactivity/error-handling/error-handling.ts",
+  "rules/analysis/reactivity/from-observable/from-observable.ts",
+  "rules/analysis/reactivity/index-array/index-array.ts",
+  "rules/analysis/reactivity/on-helper/on-helper.ts",
+  "rules/analysis/reactivity/transition-apis/transition-apis.ts",
+  "rules/analysis/reactivity/utility-renames/utility-renames.ts",
+  "rules/analysis/store/mutable/mutable.ts",
+  "rules/analysis/store/produce/produce.ts",
+  "rules/analysis/store/unwrap/unwrap.ts",
+  "rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
   "scripts/analyze.ts",
-  "scripts/emit.ts",
+  "scripts/emit-report.ts",
+  "scripts/transform.ts",
   "shared/analysis.ts",
   "shared/run-workflow.mjs",
+  "shared/transform.ts",
+  "transform.yaml",
   "workflow.yaml",
 ];
 const expectedDescription =
-  "Read-only Solid 1.9 to Solid 2 RC migration analyzer for project-owned JavaScript and TypeScript source";
+  "Solid 1.9 to Solid 2 RC migration assistant: read-only analyzer plus deterministic legacy import-path relocation for project-owned JavaScript and TypeScript source";
 const expectedKeywords = [
   "solid",
   "solidjs",
@@ -80,7 +84,7 @@ test("publishes complete public npm and Codemod metadata", () => {
     readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
   );
   assert.equal(packageJson.name, "solid-migration-assistant");
-  assert.equal(packageJson.version, "0.2.1");
+  assert.equal(packageJson.version, "0.3.0");
   assert.equal(packageJson.description, expectedDescription);
   assert.deepEqual(packageJson.keywords, expectedKeywords);
   assert.equal(packageJson.license, "MIT");
@@ -102,7 +106,7 @@ test("publishes complete public npm and Codemod metadata", () => {
     resolve(packageDirectory, "codemod.yaml"),
     "utf8",
   );
-  assert.match(codemod, /^version: "0\.2\.1"$/m);
+  assert.match(codemod, /^version: "0\.3\.0"$/m);
   const codemodLines = codemod.split("\n");
   assert.ok(codemodLines.includes(`description: "${expectedDescription}"`));
   assert.ok(
@@ -146,7 +150,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 37);
+      assert.equal(expectedFiles.length, 41);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(

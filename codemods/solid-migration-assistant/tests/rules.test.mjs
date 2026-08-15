@@ -5,97 +5,97 @@ import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const rulesDirectory = resolve(packageDirectory, "rules");
+const rulesDirectory = resolve(packageDirectory, "rules/analysis");
 const ruleCases = [
-  { directory: "rules/imports/web-import" },
-  { directory: "rules/imports/beta32-subpaths" },
+  { directory: "rules/analysis/imports/web-import" },
+  { directory: "rules/analysis/imports/beta32-subpaths" },
   {
-    directory: "rules/jsx/component-renames",
+    directory: "rules/analysis/jsx/component-renames",
     semanticWorkspace: true,
   },
-  { directory: "rules/jsx/class-list" },
+  { directory: "rules/analysis/jsx/class-list" },
   {
-    directory: "rules/lifecycle/on-mount",
-    semanticWorkspace: true,
-  },
-  {
-    directory: "rules/reactivity/create-effect",
+    directory: "rules/analysis/lifecycle/on-mount",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/create-computed",
+    directory: "rules/analysis/reactivity/create-effect",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/create-memo",
+    directory: "rules/analysis/reactivity/create-computed",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/props/merge-props",
+    directory: "rules/analysis/reactivity/create-memo",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/props/split-props",
+    directory: "rules/analysis/props/merge-props",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/store/mutable",
+    directory: "rules/analysis/props/split-props",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/store/produce",
+    directory: "rules/analysis/store/mutable",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/store/unwrap",
-    semanticWorkspace: true,
-  },
-  { directory: "rules/jsx/context-provider" },
-  { directory: "rules/jsx/dom-attr-namespaces" },
-  { directory: "rules/jsx/dom-event-namespaces" },
-  { directory: "rules/jsx/dom-use-directive" },
-  {
-    directory: "rules/reactivity/batch",
+    directory: "rules/analysis/store/produce",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/create-resource",
+    directory: "rules/analysis/store/unwrap",
+    semanticWorkspace: true,
+  },
+  { directory: "rules/analysis/jsx/context-provider" },
+  { directory: "rules/analysis/jsx/dom-attr-namespaces" },
+  { directory: "rules/analysis/jsx/dom-event-namespaces" },
+  { directory: "rules/analysis/jsx/dom-use-directive" },
+  {
+    directory: "rules/analysis/reactivity/batch",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/create-dynamic",
+    directory: "rules/analysis/reactivity/create-resource",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/from-observable",
+    directory: "rules/analysis/reactivity/create-dynamic",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/error-handling",
+    directory: "rules/analysis/reactivity/from-observable",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/on-helper",
+    directory: "rules/analysis/reactivity/error-handling",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/create-selector",
+    directory: "rules/analysis/reactivity/on-helper",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/index-array",
+    directory: "rules/analysis/reactivity/create-selector",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/transition-apis",
+    directory: "rules/analysis/reactivity/index-array",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/reactivity/utility-renames",
+    directory: "rules/analysis/reactivity/transition-apis",
     semanticWorkspace: true,
   },
   {
-    directory: "rules/lifecycle/on-cleanup",
+    directory: "rules/analysis/reactivity/utility-renames",
+    semanticWorkspace: true,
+  },
+  {
+    directory: "rules/analysis/lifecycle/on-cleanup",
     semanticWorkspace: true,
   },
 ];

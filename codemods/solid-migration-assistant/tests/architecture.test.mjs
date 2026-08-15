@@ -5,11 +5,12 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const rulesDirectory = resolve(packageDirectory, "rules");
+const analysisDirectory = resolve(packageDirectory, "rules/analysis");
+const transformationsDirectory = resolve(packageDirectory, "rules/transformations");
 const testsDirectory = resolve(packageDirectory, "tests");
 
-const EXPECTED_RULE_PRODUCTION = [
-  "imports/beta32-subpaths/beta32-subpaths.ts",
+const EXPECTED_ANALYSIS_PRODUCTION = [
+"imports/beta32-subpaths/beta32-subpaths.ts",
   "imports/web-import/web-import.ts",
   "jsx/class-list/class-list.ts",
   "jsx/component-renames/component-renames.ts",
@@ -38,8 +39,8 @@ const EXPECTED_RULE_PRODUCTION = [
   "store/produce/produce.ts",
   "store/unwrap/unwrap.ts",
 ];
-const EXPECTED_RULE_TESTS = [
-  "imports/beta32-subpaths/beta32-subpaths.test.ts",
+const EXPECTED_ANALYSIS_TESTS = [
+"imports/beta32-subpaths/beta32-subpaths.test.ts",
   "imports/web-import/web-import.test.ts",
   "jsx/class-list/class-list.test.ts",
   "jsx/component-renames/component-renames.test.ts",
@@ -68,8 +69,8 @@ const EXPECTED_RULE_TESTS = [
   "store/produce/produce.test.ts",
   "store/unwrap/unwrap.test.ts",
 ];
-const EXPECTED_RULE_FIXTURES = [
-  "imports/beta32-subpaths/static-imports.fixture.tsx",
+const EXPECTED_ANALYSIS_FIXTURES = [
+"imports/beta32-subpaths/static-imports.fixture.tsx",
   "imports/web-import/static-imports.fixture.tsx",
   "jsx/class-list/normal.fixture.tsx",
   "jsx/component-renames/normal.fixture.tsx",
@@ -119,16 +120,35 @@ const EXPECTED_RULE_FIXTURES = [
   "store/unwrap/non-solid.fixture.tsx",
 ];
 
-const EXPECTED_RULE_FOLDERS = EXPECTED_RULE_PRODUCTION.map((path) =>
+const EXPECTED_ANALYSIS_FOLDERS = EXPECTED_ANALYSIS_PRODUCTION.map((path) =>
   dirname(path),
 ).sort();
 
-test("keeps the production workflow detection-only", () => {
-  assert.deepEqual(productionScripts(), ["analyze.ts", "emit.ts"]);
+const EXPECTED_TRANSFORM_PRODUCTION = [
+  "imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
+];
+const EXPECTED_TRANSFORM_TESTS = [
+  "imports/legacy-subpath-relocation/legacy-subpath-relocation.test.ts",
+];
+const EXPECTED_TRANSFORM_FIXTURES = [
+  "imports/legacy-subpath-relocation/relocations.fixture.tsx",
+];
+const EXPECTED_TRANSFORM_FOLDERS = EXPECTED_TRANSFORM_PRODUCTION.map((path) =>
+  dirname(path),
+).sort();
+
+test("ships read-only analyze and deterministic transform workflows", () => {
+  assert.deepEqual(
+    productionScripts(),
+    ["analyze.ts", "emit-report.ts", "transform.ts"],
+  );
   assert.deepEqual(workflowFiles(), ["workflow.yaml"]);
+  assert.equal(
+    existsSync(resolve(packageDirectory, "transform.yaml")),
+    true,
+  );
 
   for (const path of [
-    "scripts/transform.ts",
     "scripts/write-report.ts",
     "shared/report.ts",
     "shared/report-path.ts",
@@ -137,16 +157,16 @@ test("keeps the production workflow detection-only", () => {
     assert.equal(existsSync(resolve(packageDirectory, path)), false, path);
   }
 
-  const workflow = readFileSync(
+  const analyzeWorkflow = readFileSync(
     resolve(packageDirectory, "workflow.yaml"),
     "utf8",
   );
   assert.deepEqual(
-    [...workflow.matchAll(/js_file:\s*(\S+)/g)].map((match) => match[1]),
-    ["scripts/analyze.ts", "scripts/emit.ts"],
+    [...analyzeWorkflow.matchAll(/js_file:\s*(\S+)/g)].map((match) => match[1]),
+    ["scripts/analyze.ts", "scripts/emit-report.ts"],
   );
   assert.deepEqual(
-    [...workflow.matchAll(/- "(\*\*\/\*\.(?:js|jsx|ts|tsx))"/g)].map(
+    [...analyzeWorkflow.matchAll(/- "(\*\*\/\*\.(?:js|jsx|ts|tsx))"/g)].map(
       (match) => match[1],
     ),
     [
@@ -160,28 +180,64 @@ test("keeps the production workflow detection-only", () => {
       "**/*.tsx",
     ],
   );
-  assert.equal((workflow.match(/semantic_analysis: workspace/g) ?? []).length, 1);
-  assert.doesNotMatch(workflow, /semantic_analysis: file/);
-  for (const exclusion of [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-  ]) {
+  assert.equal(
+    (analyzeWorkflow.match(/semantic_analysis: workspace/g) ?? []).length,
+    1,
+  );
+  assert.doesNotMatch(analyzeWorkflow, /semantic_analysis: file/);
+  for (const exclusion of ["node_modules", "dist", "build", "coverage"]) {
     assert.equal(
-      (workflow.match(new RegExp(`- "\\*\\*/${exclusion}/\\*\\*"`, "g")) ?? [])
+      (analyzeWorkflow.match(new RegExp(`- "\\*\\*/${exclusion}/\\*\\*"`, "g")) ?? [])
         .length,
       2,
       exclusion,
     );
   }
-  assert.equal((workflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length, 2);
-  assert.doesNotMatch(workflow, /transform|write.report|\.codemod-reports/i);
+  assert.equal((analyzeWorkflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length, 2);
+  assert.doesNotMatch(analyzeWorkflow, /transform|write.report|\.codemod-reports/i);
+
+  const transformWorkflow = readFileSync(
+    resolve(packageDirectory, "transform.yaml"),
+    "utf8",
+  );
+  assert.deepEqual(
+    [...transformWorkflow.matchAll(/js_file:\s*(\S+)/g)].map((match) => match[1]),
+    ["scripts/transform.ts", "scripts/emit-report.ts"],
+  );
+  assert.deepEqual(
+    [...transformWorkflow.matchAll(/- "(\*\*\/\*\.(?:js|jsx|ts|tsx))"/g)].map(
+      (match) => match[1],
+    ),
+    [
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.ts",
+      "**/*.tsx",
+    ],
+  );
+  for (const exclusion of ["node_modules", "dist", "build", "coverage"]) {
+    assert.equal(
+      (transformWorkflow.match(new RegExp(`- "\\*\\*/${exclusion}/\\*\\*"`, "g")) ?? [])
+        .length,
+      2,
+      exclusion,
+    );
+  }
+  assert.equal((transformWorkflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length, 2);
+  assert.equal((transformWorkflow.match(/max_threads: 1/g) ?? []).length, 1);
+  assert.doesNotMatch(
+    transformWorkflow,
+    /semantic_analysis|scripts\/analyze\.ts|\.codemod-reports/i,
+  );
 });
 
 test("registers every supported detector and one deterministic emitter", () => {
-  for (const path of EXPECTED_RULE_PRODUCTION) {
-    assert.equal(existsSync(resolve(rulesDirectory, path)), true, path);
+  for (const path of EXPECTED_ANALYSIS_PRODUCTION) {
+    assert.equal(existsSync(resolve(analysisDirectory, path)), true, path);
   }
 
   const analyzer = readFileSync(
@@ -194,6 +250,7 @@ test("registers every supported detector and one deterministic emitter", () => {
     "analyzeJsxClassListAttributes",
     "analyzeJsxComponentRenames",
     "analyzeOnMount",
+    "analyzeOnCleanup",
     "analyzeMergeProps",
     "analyzeSplitProps",
     "analyzeCreateComputed",
@@ -230,7 +287,7 @@ test("registers every supported detector and one deterministic emitter", () => {
   }
 
   const emitter = readFileSync(
-    resolve(packageDirectory, "scripts/emit.ts"),
+    resolve(packageDirectory, "scripts/emit-report.ts"),
     "utf8",
   );
   assert.match(emitter, /\.sort\(\)/);
@@ -243,7 +300,7 @@ test("registers every supported detector and one deterministic emitter", () => {
   assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 1);
 });
 
-test("exposes analysis without report or transform commands", () => {
+test("exposes analyze and transform workflows", () => {
   const packageJson = JSON.parse(
     readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
   );
@@ -253,41 +310,131 @@ test("exposes analysis without report or transform commands", () => {
   );
 
   assert.equal(typeof packageJson.scripts.analyze, "string");
+  assert.equal(typeof packageJson.scripts.transform, "string");
   assert.deepEqual(
-    Object.keys(packageJson.scripts).filter((name) =>
-      /transform|report/i.test(name),
-    ),
-    [],
+    Object.keys(packageJson.scripts)
+      .filter((name) => /^test:transform/.test(name))
+      .sort(),
+    ["test:transform", "test:transform-rules"],
   );
   assert.match(codemod, /- name: analyze/);
-  assert.doesNotMatch(codemod, /name: transform|workflow\.transform|report/i);
+  assert.match(codemod, /- name: transform/);
+  assert.doesNotMatch(codemod, /name: write|report\.yaml/i);
 });
 
-test("colocates exact rule production, adapters, and fixtures", () => {
-  assert.deepEqual(directRuleFolders(), EXPECTED_RULE_FOLDERS);
+test("colocates exact analysis rule production, adapters, and fixtures", () => {
+  assert.deepEqual(directRuleFolders(analysisDirectory), EXPECTED_ANALYSIS_FOLDERS);
   assert.deepEqual(
-    ruleFiles((name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
-    EXPECTED_RULE_PRODUCTION,
+    ruleFiles(analysisDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+    EXPECTED_ANALYSIS_PRODUCTION,
   );
   assert.deepEqual(
-    ruleFiles((name) => name.endsWith(".test.ts")),
-    EXPECTED_RULE_TESTS,
+    ruleFiles(analysisDirectory, (name) => name.endsWith(".test.ts")),
+    EXPECTED_ANALYSIS_TESTS,
   );
   assert.deepEqual(
-    ruleFiles((name) => name.endsWith(".fixture.tsx")),
-    EXPECTED_RULE_FIXTURES,
+    ruleFiles(analysisDirectory, (name) => name.endsWith(".fixture.tsx")),
+    EXPECTED_ANALYSIS_FIXTURES,
   );
+  assertRuleLayout(analysisDirectory, EXPECTED_ANALYSIS_PRODUCTION);
+});
 
-  for (const path of ruleEntries()) {
-    assert.equal(path.split("/").includes("__testfixtures__"), false, path);
-    assert.notEqual(basename(path), "input.tsx", path);
-    assert.notEqual(basename(path), "expected.tsx", path);
+test("colocates exact transformation rule production, adapters, and fixtures", () => {
+  assert.deepEqual(
+    directRuleFolders(transformationsDirectory),
+    EXPECTED_TRANSFORM_FOLDERS,
+  );
+  assert.deepEqual(
+    ruleFiles(transformationsDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+    EXPECTED_TRANSFORM_PRODUCTION,
+  );
+  assert.deepEqual(
+    ruleFiles(transformationsDirectory, (name) => name.endsWith(".test.ts")),
+    EXPECTED_TRANSFORM_TESTS,
+  );
+  assert.deepEqual(
+    ruleFiles(transformationsDirectory, (name) => name.endsWith(".fixture.tsx")),
+    EXPECTED_TRANSFORM_FIXTURES,
+  );
+  assertRuleLayout(transformationsDirectory, EXPECTED_TRANSFORM_PRODUCTION);
+});
+
+test("uses normal analyzer end-to-end fixtures", () => {
+  assert.deepEqual(readdirSync(testsDirectory).sort(), [
+    "architecture.test.mjs",
+    "cli.test.mjs",
+    "empty",
+    "fixture",
+    "packaging.test.mjs",
+    "rules.test.mjs",
+    "transform-expected",
+    "transform-fixture",
+    "transform-rules.test.mjs",
+    "transform.test.mjs",
+    "workflow.test.mjs",
+  ]);
+  assert.equal(existsSync(resolve(testsDirectory, "transform.test.ts")), false);
+
+  const fixturePackage = JSON.parse(
+    readFileSync(resolve(testsDirectory, "fixture/package.json"), "utf8"),
+  );
+  const emptyPackage = JSON.parse(
+    readFileSync(resolve(testsDirectory, "empty/package.json"), "utf8"),
+  );
+  assert.match(fixturePackage.description, /Analyzer-only.*terminal guidance/);
+  assert.match(emptyPackage.description, /Analyzer-only.*no supported/);
+  assert.equal(fixturePackage.scripts, undefined);
+  assert.equal(fixturePackage.dependencies["solid-js"], "1.9.14");
+  assert.equal(fixturePackage.devDependencies.typescript, "6.0.3");
+  assert.equal(fixturePackage.devDependencies.vite, undefined);
+  assert.equal(emptyPackage.scripts, undefined);
+  assert.equal(emptyPackage.dependencies, undefined);
+  assert.doesNotMatch(readFixtureText(), /codemod-reports|transform|report/i);
+});
+
+function directRuleFolders(directory) {
+  const folders = [];
+  for (const domain of readdirSync(directory, { withFileTypes: true })) {
+    if (!domain.isDirectory()) continue;
+    const domainDirectory = resolve(directory, domain.name);
+    for (const rule of readdirSync(domainDirectory, { withFileTypes: true })) {
+      if (rule.isDirectory()) folders.push(`${domain.name}/${rule.name}`);
+    }
+  }
+  return folders.sort();
+}
+
+function ruleFiles(directory, predicate) {
+  return ruleEntries(directory, (entry) => entry.isFile() && predicate(entry.name));
+}
+
+function ruleEntries(directory, predicate = () => true) {
+  const entries = [];
+  visitRules(directory, directory, entries, predicate);
+  return entries.sort();
+}
+
+function visitRules(directory, baseDirectory, entries, predicate) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = resolve(directory, entry.name);
+    if (predicate(entry)) {
+      entries.push(relative(baseDirectory, path).replaceAll("\\", "/"));
+    }
+    if (entry.isDirectory()) visitRules(path, baseDirectory, entries, predicate);
+  }
+}
+
+function assertRuleLayout(directory, productionPaths) {
+  for (const entry of ruleEntries(directory)) {
+    assert.equal(entry.split("/").includes("__testfixtures__"), false, entry);
+    assert.notEqual(basename(entry), "input.tsx", entry);
+    assert.notEqual(basename(entry), "expected.tsx", entry);
   }
 
-  for (const production of EXPECTED_RULE_PRODUCTION) {
+  for (const production of productionPaths) {
     const folder = dirname(production);
     const ruleName = basename(production, ".ts");
-    const entries = readdirSync(resolve(rulesDirectory, folder), {
+    const entries = readdirSync(resolve(directory, folder), {
       withFileTypes: true,
     });
     const files = entries
@@ -316,67 +463,6 @@ test("colocates exact rule production, adapters, and fixtures", () => {
       files.some((name) => name.endsWith(".fixture.tsx")),
       `${folder} must contain at least one fixture`,
     );
-  }
-});
-
-test("uses normal analyzer end-to-end fixtures", () => {
-  assert.deepEqual(readdirSync(testsDirectory).sort(), [
-    "architecture.test.mjs",
-    "cli.test.mjs",
-    "empty",
-    "fixture",
-    "packaging.test.mjs",
-    "rules.test.mjs",
-    "workflow.test.mjs",
-  ]);
-  assert.equal(existsSync(resolve(testsDirectory, "transform.test.ts")), false);
-
-  const fixturePackage = JSON.parse(
-    readFileSync(resolve(testsDirectory, "fixture/package.json"), "utf8"),
-  );
-  const emptyPackage = JSON.parse(
-    readFileSync(resolve(testsDirectory, "empty/package.json"), "utf8"),
-  );
-  assert.match(fixturePackage.description, /Analyzer-only.*terminal guidance/);
-  assert.match(emptyPackage.description, /Analyzer-only.*no supported/);
-  assert.equal(fixturePackage.scripts, undefined);
-  assert.equal(fixturePackage.dependencies["solid-js"], "1.9.14");
-  assert.equal(fixturePackage.devDependencies.typescript, "6.0.3");
-  assert.equal(fixturePackage.devDependencies.vite, undefined);
-  assert.equal(emptyPackage.scripts, undefined);
-  assert.equal(emptyPackage.dependencies, undefined);
-  assert.doesNotMatch(readFixtureText(), /codemod-reports|transform|report/i);
-});
-
-function directRuleFolders() {
-  const folders = [];
-  for (const domain of readdirSync(rulesDirectory, { withFileTypes: true })) {
-    if (!domain.isDirectory()) continue;
-    const domainDirectory = resolve(rulesDirectory, domain.name);
-    for (const rule of readdirSync(domainDirectory, { withFileTypes: true })) {
-      if (rule.isDirectory()) folders.push(`${domain.name}/${rule.name}`);
-    }
-  }
-  return folders.sort();
-}
-
-function ruleFiles(predicate) {
-  return ruleEntries((entry) => entry.isFile() && predicate(entry.name));
-}
-
-function ruleEntries(predicate = () => true) {
-  const entries = [];
-  visitRules(rulesDirectory, entries, predicate);
-  return entries.sort();
-}
-
-function visitRules(directory, entries, predicate) {
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = resolve(directory, entry.name);
-    if (predicate(entry)) {
-      entries.push(relative(rulesDirectory, path).replaceAll("\\", "/"));
-    }
-    if (entry.isDirectory()) visitRules(path, entries, predicate);
   }
 }
 

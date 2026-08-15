@@ -1,0 +1,6 @@
+{
+  "name": "transform-fixture",
+  "private": true,
+  "description": "Deterministic legacy subpath relocation transform fixture",
+  "type": "module"
+}

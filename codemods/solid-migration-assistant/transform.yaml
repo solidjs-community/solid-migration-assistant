@@ -3,16 +3,15 @@
 version: "1"
 
 nodes:
-  - id: analyze-solid-migration-sites
-    name: Analyze supported Solid 2 migration sites
+  - id: relocate-legacy-solid-subpaths
+    name: Relocate deterministic legacy Solid subpath imports
     type: automatic
     steps:
-      - name: Detect exact migration sites without changing source
+      - name: Rewrite the five pure legacy subpath module sources
         js-ast-grep:
-          js_file: scripts/analyze.ts
+          js_file: scripts/transform.ts
           base_path: "."
           language: "tsx"
-          semantic_analysis: workspace
           include:
             - "**/*.js"
             - "**/*.jsx"
@@ -24,7 +23,7 @@ nodes:
             - "**/build/**"
             - "**/coverage/**"
             - "**/*.d.ts"
-      - name: Emit all guidance once in deterministic whole-string order
+      - name: Emit the relocation report once in deterministic whole-string order
         js-ast-grep:
           js_file: scripts/emit-report.ts
           base_path: "."
