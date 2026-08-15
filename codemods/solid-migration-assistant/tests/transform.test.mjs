@@ -98,11 +98,11 @@ function assertRelocationReport(stderr) {
     [...lines].sort(),
     "relocation report is not in deterministic whole-string order",
   );
-  assert.ok(lines.length >= 16, `expected at least 16 relocations, got ${lines.length}`);
+  assert.ok(lines.length >= 21, `expected at least 21 relocations, got ${lines.length}`);
   for (const line of lines) {
     assert.match(
       line,
-      /^src\/relocations\.tsx:\d+:\d+ Relocate solid-js\/(?:h|html|universal|jsx-runtime|jsx-dev-runtime) to @solidjs\/(?:h|html|universal|web\/jsx-runtime|web\/jsx-dev-runtime)\. Official migration guide: https:\/\/github\.com\/solidjs\/solid\/blob\/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5\/documentation\/solid-2\.0\/MIGRATION\.md#imports-where-things-live-now$/,
+      /^src\/[^:]+:\d+:\d+ Relocate solid-js\/(?:h|html|universal|jsx-runtime|jsx-dev-runtime) to @solidjs\/(?:h|html|universal|web\/jsx-runtime|web\/jsx-dev-runtime)\. Official migration guide: https:\/\/github\.com\/solidjs\/solid\/blob\/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5\/documentation\/solid-2\.0\/MIGRATION\.md#imports-where-things-live-now$/,
     );
     assert.doesNotMatch(line, /solid-js\/store|solid-js\/web\b/);
   }

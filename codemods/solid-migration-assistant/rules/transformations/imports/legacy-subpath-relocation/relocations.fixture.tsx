@@ -1,3 +1,4 @@
+// fixture: relocations
 import h from "solid-js/h";
 import html from "solid-js/html";
 import { createRenderer } from "solid-js/universal";

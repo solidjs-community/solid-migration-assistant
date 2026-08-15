@@ -131,7 +131,16 @@ const EXPECTED_TRANSFORM_TESTS = [
   "imports/legacy-subpath-relocation/legacy-subpath-relocation.test.ts",
 ];
 const EXPECTED_TRANSFORM_FIXTURES = [
+  "imports/legacy-subpath-relocation/escaped-specifiers.fixture.tsx",
+  "imports/legacy-subpath-relocation/negative-forms.fixture.tsx",
+  "imports/legacy-subpath-relocation/no-matches.fixture.tsx",
+  "imports/legacy-subpath-relocation/prototype-names.fixture.tsx",
+  "imports/legacy-subpath-relocation/re-exports.fixture.tsx",
   "imports/legacy-subpath-relocation/relocations.fixture.tsx",
+  "imports/legacy-subpath-relocation/runtime-forms.fixture.tsx",
+  "imports/legacy-subpath-relocation/shadowed-require.fixture.tsx",
+  "imports/legacy-subpath-relocation/single-quotes.fixture.tsx",
+  "imports/legacy-subpath-relocation/static-imports.fixture.tsx",
 ];
 const EXPECTED_TRANSFORM_FOLDERS = EXPECTED_TRANSFORM_PRODUCTION.map((path) =>
   dirname(path),

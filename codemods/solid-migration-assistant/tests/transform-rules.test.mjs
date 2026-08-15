@@ -47,9 +47,9 @@ const existingFixtures = findFiles(transformationsDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredFixtures.length !== 1 || existingFixtures.length !== 1) {
+if (configuredFixtures.length !== 10 || existingFixtures.length !== 10) {
   throw new Error(
-    `Expected 1 colocated transform rule fixture, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
+    `Expected 10 colocated transform rule fixtures, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
   );
 }
 if (configuredFixtures.join("\n") !== existingFixtures.join("\n")) {

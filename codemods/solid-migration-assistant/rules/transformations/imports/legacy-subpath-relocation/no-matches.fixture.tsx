@@ -1,0 +1,2 @@
+// fixture: no-matches
+export {};
