@@ -1,6 +1,8 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { stringLiteralValue } from "../../../../shared/analysis.ts";
+import { sourceSnippet, stringLiteralValue } from "../../../../shared/analysis.ts";
+import type { AnalysisRuleResult } from "../../../../shared/report.ts";
+import type { ComponentRenameFinding, ComponentRenamesReport } from "./report.ts";
 
 const SUSPENSE_BOUNDARY_GUIDE =
   "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#suspense--errorboundary--loading--errored";
@@ -27,8 +29,8 @@ type ComponentSite = {
 export function analyzeJsxComponentRenames(
   rootNode: SgNode<TSX>,
   context: { filename: string },
-): string[] {
-  return findImportedComponentSites(rootNode)
+): AnalysisRuleResult<ComponentRenamesReport> {
+  const findings = findImportedComponentSites(rootNode)
     .sort((left, right) => {
       const leftStart = left.element.range().start;
       const rightStart = right.element.range().start;
@@ -39,9 +41,19 @@ export function analyzeJsxComponentRenames(
       }
       return leftStart.column - rightStart.column;
     })
-    .map(({ element, filename, legacyName }) =>
-      componentGuidance(element, filename, legacyName),
-    );
+    .map(({ element, filename, legacyName }): ComponentRenameFinding => {
+      const start = element.range().start;
+      return {
+        filename,
+        line: start.line + 1,
+        column: start.column + 1,
+        legacyName,
+        replacement: COMPONENT_MIGRATIONS[legacyName],
+        guidance: componentGuidance(element, filename, legacyName),
+        snippet: sourceSnippet(element),
+      };
+    });
+  return { guidance: findings.map((finding) => finding.guidance), report: { findings } };
 }
 
 function findImportedComponentSites(rootNode: SgNode<TSX>): ComponentSite[] {

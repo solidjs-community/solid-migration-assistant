@@ -27,7 +27,7 @@ const EXPECTED_SITES = [
 
 const testWebImportRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const guidance = analyzeWebImport(root.root(), { filename });
+  const { guidance, report } = analyzeWebImport(root.root(), { filename });
   const expected = EXPECTED_SITES.map(
     ({ location, form }) => {
       const formLabel = form;
@@ -62,6 +62,17 @@ Guidance:${formGuidance} Make and validate that edit yourself; this analyzer nev
   ]) {
     if (!source.includes(nearestNegative)) {
       throw new Error(`missing nearest-negative fixture: ${nearestNegative}`);
+    }
+  }
+
+
+  for (const finding of report.findings) {
+    if (!finding.snippet.text.includes("solid-js") || !finding.snippet.text.includes("web")) throw new Error("web import snippet must contain the matched source");
+    if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
+      throw new Error(`snippet must start one complete line before ${finding.line}`);
+    }
+    if (finding.snippet.endLine < finding.line || finding.snippet.text.split("\n").length !== finding.snippet.endLine - finding.snippet.startLine + 1) {
+      throw new Error(`snippet must include the full match and complete line bounds at ${finding.line}`);
     }
   }
 

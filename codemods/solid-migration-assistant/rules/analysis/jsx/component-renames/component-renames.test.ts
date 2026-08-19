@@ -11,7 +11,7 @@ const SUSPENSE_LIST_GUIDE =
 
 const testJsxComponentRenames: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const guidance = analyzeJsxComponentRenames(root.root(), {
+  const { guidance, report } = analyzeJsxComponentRenames(root.root(), {
     filename: "ignored-context-filename.tsx",
   });
   const expected = [
@@ -45,6 +45,17 @@ Guidance: Read the complete list site, its each value, child callback, props, an
   }
   if (guidance.some((entry) => !entry.includes("Manual review required"))) {
     throw new Error("every JSX component finding must require manual review");
+  }
+
+
+  for (const finding of report.findings) {
+    if (!finding.snippet.text.includes(finding.legacyName)) throw new Error("component snippet must contain the matched element");
+    if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
+      throw new Error(`snippet must start one complete line before ${finding.line}`);
+    }
+    if (finding.snippet.endLine < finding.line || finding.snippet.text.split("\n").length !== finding.snippet.endLine - finding.snippet.startLine + 1) {
+      throw new Error(`snippet must include the full match and complete line bounds at ${finding.line}`);
+    }
   }
 
   return null;

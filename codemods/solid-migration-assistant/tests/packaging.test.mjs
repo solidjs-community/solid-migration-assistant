@@ -28,9 +28,11 @@ const expectedFiles = [
   "bin/solid-migration-assistant.mjs",
   "package.json",
   "rules/analysis/imports/beta32-subpaths/beta32-subpaths.ts",
+  "rules/analysis/imports/web-import/report.ts",
   "rules/analysis/imports/web-import/web-import.ts",
   "rules/analysis/jsx/class-list/class-list.ts",
   "rules/analysis/jsx/component-renames/component-renames.ts",
+  "rules/analysis/jsx/component-renames/report.ts",
   "rules/analysis/jsx/context-provider/context-provider.ts",
   "rules/analysis/jsx/dom-attr-namespaces/dom-attr-namespaces.ts",
   "rules/analysis/jsx/dom-event-namespaces/dom-event-namespaces.ts",
@@ -43,6 +45,7 @@ const expectedFiles = [
   "rules/analysis/reactivity/create-computed/create-computed.ts",
   "rules/analysis/reactivity/create-dynamic/create-dynamic.ts",
   "rules/analysis/reactivity/create-effect/create-effect.ts",
+  "rules/analysis/reactivity/create-effect/report.ts",
   "rules/analysis/reactivity/create-memo/create-memo.ts",
   "rules/analysis/reactivity/create-resource/create-resource.ts",
   "rules/analysis/reactivity/create-selector/create-selector.ts",
@@ -56,6 +59,7 @@ const expectedFiles = [
   "rules/analysis/store/produce/produce.ts",
   "rules/analysis/store/unwrap/unwrap.ts",
   "rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
+  "rules/transformations/imports/legacy-subpath-relocation/report.ts",
   "scripts/analyze.ts",
   "scripts/emit-report.ts",
   "scripts/transform.ts",
@@ -153,7 +157,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 44);
+      assert.equal(expectedFiles.length, 48);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(

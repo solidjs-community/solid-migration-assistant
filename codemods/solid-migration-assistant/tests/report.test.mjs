@@ -8,6 +8,7 @@ import { renderReportHtml } from "../shared/report-artifact.mjs";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const reportModule = await loadTypeScript("shared/report.ts");
+const findingModel = await loadTypeScript("dashboard/finding-model.ts");
 
 test("escapes report JSON so the inert script cannot terminate", () => {
   const envelope = {
@@ -22,6 +23,48 @@ test("escapes report JSON so the inert script cannot terminate", () => {
   const html = renderReportHtml(template, JSON.stringify(envelope));
   assert.equal((html.match(/<script/g) ?? []).length, 1);
   assert.doesNotMatch(html, /<script>alert/);
+});
+
+test("rejects non-serializable report payloads", () => {
+  assert.throws(
+    () => reportModule.serializeReportEnvelope({ schemaVersion: 1, reports: { bad: { callback: () => null } } }),
+    /non-JSON value/,
+  );
+  const circular = {};
+  circular.self = circular;
+  assert.throws(
+    () => reportModule.serializeReportEnvelope({ schemaVersion: 1, reports: { bad: circular } }),
+    /circular reference/,
+  );
+});
+
+test("filters the full finding set before clamped 100-item pagination", () => {
+  const findings = Array.from({ length: 205 }, (_, index) => ({
+    filename: index % 2 === 0 ? `src/alpha-${index}.tsx` : `src/beta-${index}.tsx`,
+    index,
+  }));
+  const matches = findingModel.filterFindings(findings, "ALPHA");
+  assert.equal(matches.length, 103);
+  assert.deepEqual(findingModel.paginateFindings(matches, 2), {
+    items: matches.slice(100), page: 2, pageCount: 2,
+  });
+  assert.equal(findingModel.paginateFindings(matches, 99).page, 2);
+});
+
+test("alphabetizes manifest domains and rule titles from static metadata", () => {
+  const descriptor = (id, domain, title) => ({
+    id, route: id, title, domain, kind: "analysis",
+    renderSummary: () => null, renderDetail: () => null,
+  });
+  const manifest = reportModule.createRuleManifest([
+    descriptor("zeta", "Reactivity", "Zeta"),
+    descriptor("web", "Imports", "Web"),
+    descriptor("legacy", "Imports", "Legacy"),
+    descriptor("component", "JSX", "Component"),
+  ]);
+  assert.deepEqual(manifest.map(({ domain, title }) => [domain, title]), [
+    ["Imports", "Legacy"], ["Imports", "Web"], ["JSX", "Component"], ["Reactivity", "Zeta"],
+  ]);
 });
 
 test("reads only a versioned inert JSON envelope", () => {
@@ -41,13 +84,37 @@ test("reads only a versioned inert JSON envelope", () => {
 });
 
 test("rejects duplicate ids, duplicate routes, and unstable routes", () => {
-  const descriptor = (id, route) => ({ id, route, title: id, kind: "analysis", renderSummary: () => null, renderDetail: () => null });
+  const descriptor = (id, route) => ({ id, route, title: id, domain: "Test", kind: "analysis", renderSummary: () => null, renderDetail: () => null });
   assert.equal(reportModule.createRuleManifest([descriptor("one", "domain/one")]).length, 1);
   assert.throws(() => reportModule.createRuleManifest([descriptor("one", "a"), descriptor("one", "b")]), /Duplicate or empty rule id/);
   assert.throws(() => reportModule.createRuleManifest([descriptor("one", "a"), descriptor("two", "a")]), /Duplicate or invalid rule route/);
   assert.throws(() => reportModule.createRuleManifest([descriptor("one", "Bad Route")]), /Duplicate or invalid rule route/);
 });
 
+test("aggregates opaque payloads only through rule-owned behavior", () => {
+  const aggregator = reportModule.defineRuleReportAggregator({
+    id: "sample",
+    emptyReport: () => ({ values: [] }),
+    merge: (project, next) => ({ values: [...project.values, ...next.values] }),
+  });
+  let reports = reportModule.aggregateRuleReports({}, [[aggregator, { values: [1] }]]);
+  reports = reportModule.aggregateRuleReports(reports, [[aggregator, { values: [2] }]]);
+  assert.deepEqual(reports, { sample: { values: [1, 2] } });
+});
+
+test("pins pilot ids and routes", async () => {
+  const cases = [
+    ["rules/analysis/imports/web-import/report.ts", "WEB_IMPORT_RULE_ID", "analysis/imports/web-import", "WEB_IMPORT_RULE_ROUTE", "imports/web-import"],
+    ["rules/analysis/jsx/component-renames/report.ts", "COMPONENT_RENAMES_RULE_ID", "analysis/jsx/component-renames", "COMPONENT_RENAMES_RULE_ROUTE", "jsx/component-renames"],
+    ["rules/analysis/reactivity/create-effect/report.ts", "CREATE_EFFECT_RULE_ID", "analysis/reactivity/create-effect", "CREATE_EFFECT_RULE_ROUTE", "reactivity/create-effect"],
+    ["rules/transformations/imports/legacy-subpath-relocation/report.ts", "LEGACY_SUBPATH_RELOCATION_RULE_ID", "transformation/imports/legacy-subpath-relocation", "LEGACY_SUBPATH_RELOCATION_RULE_ROUTE", "imports/legacy-subpath-relocation"],
+  ];
+  for (const [path, idName, id, routeName, route] of cases) {
+    const source = readFileSync(resolve(packageDirectory, path), "utf8");
+    assert.match(source, new RegExp(`export const ${idName} = "${id}"`));
+    assert.match(source, new RegExp(`export const ${routeName} = "${route}"`));
+  }
+});
 
 async function loadTypeScript(path) {
   const source = readFileSync(resolve(packageDirectory, path), "utf8");

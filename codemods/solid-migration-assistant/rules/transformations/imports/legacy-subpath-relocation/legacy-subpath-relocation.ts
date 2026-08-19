@@ -1,6 +1,7 @@
 import type { Edit, SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
-import { findModuleReferences } from "../../../../shared/analysis.ts";
+import { findModuleReferences, sourceSnippet } from "../../../../shared/analysis.ts";
+import type { LegacySubpathRelocationFinding, LegacySubpathRelocationReport } from "./report.ts";
 
 export const SOLID_SOURCE_COMMIT =
   "ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5";
@@ -22,9 +23,9 @@ export const LEGACY_SUBPATH_RELOCATIONS: Readonly<Record<string, string>> = {
   "solid-js/jsx-dev-runtime": "@solidjs/web/jsx-dev-runtime",
 };
 
-export type SubpathRelocation = {
-  edit: Edit;
-  report: string;
+export type LegacySubpathRelocationResult = {
+  readonly edits: Edit[];
+  readonly report: LegacySubpathRelocationReport;
 };
 
 /**
@@ -171,9 +172,9 @@ function hasShadowingRequireBinding(rootNode: SgNode<TSX>): boolean {
 export function relocateLegacySubpaths(
   rootNode: SgNode<TSX>,
   filename: string,
-): SubpathRelocation[] {
+): LegacySubpathRelocationResult {
   const shadowedRequire = hasShadowingRequireBinding(rootNode);
-  return findModuleReferences(rootNode)
+  const relocations = findModuleReferences(rootNode)
     .map(({ source, moduleName, form }) => {
       const replacement = relocationTarget(moduleName);
       if (replacement === undefined) return null;
@@ -181,12 +182,24 @@ export function relocateLegacySubpaths(
       if (form === "require" && shadowedRequire) return null;
       const start = source.range().start;
       const quote = source.text()[0];
-      return {
-        edit: source.replace(`${quote}${replacement}${quote}`),
-        report: `${filename}:${start.line + 1}:${start.column + 1} Relocate ${moduleName} to ${replacement}. Official migration guide: ${TRANSFORM_MIGRATION_GUIDE}`,
+      const guidance = `${filename}:${start.line + 1}:${start.column + 1} Relocate ${moduleName} to ${replacement}. Official migration guide: ${TRANSFORM_MIGRATION_GUIDE}`;
+      const finding: LegacySubpathRelocationFinding = {
+        filename,
+        line: start.line + 1,
+        column: start.column + 1,
+        form,
+        sourceModule: moduleName,
+        replacementModule: replacement,
+        guidance,
+        snippet: sourceSnippet(source),
       };
+      return { edit: source.replace(`${quote}${replacement}${quote}`), finding };
     })
     .filter(
-      (entry): entry is SubpathRelocation => entry !== null,
+      (entry): entry is { edit: Edit; finding: LegacySubpathRelocationFinding } => entry !== null,
     );
+  return {
+    edits: relocations.map(({ edit }) => edit),
+    report: { findings: relocations.map(({ finding }) => finding) },
+  };
 }

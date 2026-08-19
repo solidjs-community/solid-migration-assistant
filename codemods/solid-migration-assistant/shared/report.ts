@@ -10,6 +10,12 @@ export const REPORT_SCHEMA_VERSION = 1 as const;
 export const EMBEDDED_REPORT_ID = "solid-migration-report-data";
 export const DASHBOARD_REPORT_STATE_KEY = "solid-migration-assistant-dashboard-reports";
 
+export type SourceSnippet = {
+  readonly startLine: number;
+  readonly endLine: number;
+  readonly text: string;
+};
+
 export type AnalysisRuleResult<TReport extends JsonValue> = {
   readonly guidance: readonly string[];
   readonly report: TReport;
@@ -21,6 +27,39 @@ export type ReportEnvelope = {
   readonly reports: Readonly<Record<string, JsonValue>>;
 };
 
+export type RuleReportAggregator = {
+  readonly id: string;
+  readonly emptyReport: () => JsonValue;
+  readonly merge: (projectReport: JsonValue, nextReport: JsonValue) => JsonValue;
+};
+
+export function defineRuleReportAggregator<TReport extends JsonValue>(definition: {
+  readonly id: string;
+  readonly emptyReport: () => TReport;
+  readonly merge: (projectReport: TReport, nextReport: TReport) => TReport;
+}): RuleReportAggregator {
+  return {
+    id: definition.id,
+    emptyReport: definition.emptyReport,
+    merge: (projectReport, nextReport) =>
+      definition.merge(projectReport as TReport, nextReport as TReport),
+  };
+}
+
+export function aggregateRuleReports(
+  existing: Readonly<Record<string, JsonValue>>,
+  contributions: readonly (readonly [RuleReportAggregator, JsonValue])[],
+): Readonly<Record<string, JsonValue>> {
+  const reports = { ...existing };
+  for (const [aggregator, nextReport] of contributions) {
+    reports[aggregator.id] = aggregator.merge(
+      reports[aggregator.id] ?? aggregator.emptyReport(),
+      nextReport,
+    );
+  }
+  return reports;
+}
+
 export type RuleKind = "analysis" | "transformation";
 
 export type RuleRendererProps<TReport extends JsonValue> = {
@@ -31,6 +70,7 @@ export type RuleSliceDefinition<TReport extends JsonValue> = {
   readonly id: string;
   readonly route: string;
   readonly title: string;
+  readonly domain: string;
   readonly kind: RuleKind;
   readonly Summary: (props: RuleRendererProps<TReport>) => JSX.Element;
   readonly Detail: (props: RuleRendererProps<TReport>) => JSX.Element;
@@ -38,12 +78,13 @@ export type RuleSliceDefinition<TReport extends JsonValue> = {
 
 /**
  * The host-facing descriptor erases the rule payload type. Only this rule-owned
- * closure parses payload fields and invokes its typed renderers.
+ * closure casts the matching-version payload and invokes its typed renderers.
  */
 export type RuleSliceDescriptor = {
   readonly id: string;
   readonly route: string;
   readonly title: string;
+  readonly domain: string;
   readonly kind: RuleKind;
   readonly renderSummary: (payload: JsonValue) => JSX.Element;
   readonly renderDetail: (payload: JsonValue) => JSX.Element;
@@ -56,6 +97,7 @@ export function defineRuleSlice<TReport extends JsonValue>(
     id: definition.id,
     route: definition.route,
     title: definition.title,
+    domain: definition.domain,
     kind: definition.kind,
     renderSummary: (payload: JsonValue) =>
       definition.Summary({ report: payload as TReport }),
@@ -77,11 +119,31 @@ export function createRuleManifest(
     if (!isStableRoute(descriptor.route) || routes.has(descriptor.route)) {
       throw new Error(`Duplicate or invalid rule route: ${descriptor.route || "(empty)"}`);
     }
+    if (!descriptor.domain.trim() || !descriptor.title.trim()) {
+      throw new Error(`Rule ${descriptor.id} must declare a domain and title.`);
+    }
     ids.add(descriptor.id);
     routes.add(descriptor.route);
   }
 
-  return Object.freeze([...descriptors]);
+  return Object.freeze([...descriptors].sort(compareRuleMetadata));
+}
+
+function compareRuleMetadata(
+  left: RuleSliceDescriptor,
+  right: RuleSliceDescriptor,
+): number {
+  return compareText(left.domain, right.domain)
+    || compareText(left.title, right.title)
+    || compareText(left.id, right.id);
+}
+
+function compareText(left: string, right: string): number {
+  const normalizedLeft = left.toLocaleLowerCase();
+  const normalizedRight = right.toLocaleLowerCase();
+  if (normalizedLeft < normalizedRight) return -1;
+  if (normalizedLeft > normalizedRight) return 1;
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function isStableRoute(route: string): boolean {

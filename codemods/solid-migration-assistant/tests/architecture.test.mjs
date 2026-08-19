@@ -306,7 +306,8 @@ test("registers every supported detector and one deterministic emitter", () => {
     "utf8",
   );
   assert.doesNotMatch(analysis, /compareGuidance|guidanceLocation|siteGuidance/);
-  assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 1);
+  assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 2);
+  assert.match(emitter, /__SOLID_MIGRATION_REPORT_DATA__/);
 });
 
 test("exposes analyze and transform workflows", () => {
@@ -334,7 +335,7 @@ test("exposes analyze and transform workflows", () => {
 test("colocates exact analysis rule production, adapters, and fixtures", () => {
   assert.deepEqual(directRuleFolders(analysisDirectory), EXPECTED_ANALYSIS_FOLDERS);
   assert.deepEqual(
-    ruleFiles(analysisDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+    ruleFiles(analysisDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts") && name !== "report.ts"),
     EXPECTED_ANALYSIS_PRODUCTION,
   );
   assert.deepEqual(
@@ -354,7 +355,7 @@ test("colocates exact transformation rule production, adapters, and fixtures", (
     EXPECTED_TRANSFORM_FOLDERS,
   );
   assert.deepEqual(
-    ruleFiles(transformationsDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+    ruleFiles(transformationsDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts") && name !== "report.ts"),
     EXPECTED_TRANSFORM_PRODUCTION,
   );
   assert.deepEqual(
@@ -368,6 +369,27 @@ test("colocates exact transformation rule production, adapters, and fixtures", (
   assertRuleLayout(transformationsDirectory, EXPECTED_TRANSFORM_PRODUCTION, {
     fixturesSubdirectory: true,
   });
+});
+
+test("colocates contracts and Solid renderers only for selected pilot slices", () => {
+  const pilots = [
+    [analysisDirectory, "imports/web-import"],
+    [analysisDirectory, "jsx/component-renames"],
+    [analysisDirectory, "reactivity/create-effect"],
+    [transformationsDirectory, "imports/legacy-subpath-relocation"],
+  ];
+  for (const [directory, folder] of pilots) {
+    assert.equal(existsSync(resolve(directory, folder, "report.ts")), true, folder);
+    assert.equal(existsSync(resolve(directory, folder, "ui.tsx")), true, folder);
+  }
+  assert.equal(ruleFiles(analysisDirectory, (name) => name === "ui.tsx").length, 3);
+  assert.equal(ruleFiles(transformationsDirectory, (name) => name === "ui.tsx").length, 1);
+});
+
+test("keeps project report aggregation opaque in the workflow runner", () => {
+  const analyzer = readFileSync(resolve(packageDirectory, "scripts/analyze.ts"), "utf8");
+  assert.match(analyzer, /aggregateRuleReports\(reports/);
+  assert.doesNotMatch(analyzer, /\.findings|\.snippet/);
 });
 
 test("uses normal analyzer end-to-end fixtures", () => {
@@ -469,7 +491,7 @@ function assertRuleLayout(
     );
     assert.deepEqual(
       files.filter(
-        (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
+        (name) => name.endsWith(".ts") && !name.endsWith(".test.ts") && name !== "report.ts",
       ),
       [`${ruleName}.ts`],
       folder,

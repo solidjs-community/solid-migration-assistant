@@ -7,7 +7,7 @@ const MIGRATION_GUIDE =
 
 const testCreateEffectRule: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const guidance = analyzeCreateEffect(root.root(), { filename });
+  const { guidance, report } = analyzeCreateEffect(root.root(), { filename });
 
   const isFixture = root.source().includes('from "solid-js"') ||
     root.source().includes('from "solid\\x2djs"');
@@ -76,6 +76,17 @@ const testCreateEffectRule: Codemod<TSX> = async (root) => {
       `expected ${allExpected.length} findings but got ${foundLocations.length}. ` +
       `Expected: ${allExpected.join(", ")}. Found: ${foundLocations.join(", ")}`,
     );
+  }
+
+
+  for (const finding of report.findings) {
+    if (!finding.snippet.text.includes("createEffect")) throw new Error("createEffect snippet must contain the matched call");
+    if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
+      throw new Error(`snippet must start one complete line before ${finding.line}`);
+    }
+    if (finding.snippet.endLine < finding.line || finding.snippet.text.split("\n").length !== finding.snippet.endLine - finding.snippet.startLine + 1) {
+      throw new Error(`snippet must include the full match and complete line bounds at ${finding.line}`);
+    }
   }
 
   return null;

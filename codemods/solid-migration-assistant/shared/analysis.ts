@@ -1,5 +1,6 @@
 import type { SgNode } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
+import type { SourceSnippet } from "./report.ts";
 
 export const ANALYSIS_STATE_KEY = "solid-migration-assistant-guidance";
 
@@ -274,4 +275,25 @@ export function findModuleReferences(
   }
 
   return matches;
+}
+
+
+/** Includes the complete matched line range and one complete line of context on each side. */
+export function sourceSnippet(node: SgNode<TSX>): SourceSnippet {
+  const fileRoot = [node, ...node.ancestors()].reduce((largest, candidate) =>
+    candidate.text().length > largest.text().length ? candidate : largest,
+  );
+  const lines = fileRoot.text().split(/\r?\n/);
+  const range = node.range();
+  const lastMatchedLine =
+    range.end.column === 0 && range.end.line > range.start.line
+      ? range.end.line - 1
+      : range.end.line;
+  const firstLine = Math.max(0, range.start.line - 1);
+  const lastLine = Math.min(lines.length - 1, lastMatchedLine + 1);
+  return {
+    startLine: firstLine + 1,
+    endLine: lastLine + 1,
+    text: lines.slice(firstLine, lastLine + 1).join("\n"),
+  };
 }

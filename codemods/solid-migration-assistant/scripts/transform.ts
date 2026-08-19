@@ -7,21 +7,21 @@ import { TRANSFORM_REPORT_STATE_KEY } from "../shared/transform.ts";
 const transform: Codemod<TSX> = async (root) => {
   const rootNode = root.root();
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const relocations = relocateLegacySubpaths(rootNode, filename);
+  const { edits, report } = relocateLegacySubpaths(rootNode, filename);
 
-  if (relocations.length === 0) return null;
+  if (edits.length === 0) return null;
 
   const release = acquireLock(TRANSFORM_REPORT_STATE_KEY);
   try {
     const accumulated = getState<string[]>(TRANSFORM_REPORT_STATE_KEY) ?? [];
     setState(TRANSFORM_REPORT_STATE_KEY, [
-      ...new Set([...accumulated, ...relocations.map(({ report }) => report)]),
+      ...new Set([...accumulated, ...report.findings.map((finding) => finding.guidance)]),
     ]);
   } finally {
     release();
   }
 
-  return rootNode.commitEdits(relocations.map(({ edit }) => edit));
+  return rootNode.commitEdits(edits);
 };
 
 export default transform;
