@@ -2,18 +2,29 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "types": ["@codemod.com/jssg-types"],
+    "types": [
+      "@codemod.com/jssg-types"
+    ],
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
     "strict": true,
     "skipLibCheck": true,
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "strictNullChecks": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true
   },
-  "exclude": ["tests", "**/*.test.ts", "**/*.fixture.tsx"]
+  "exclude": [
+    "tests",
+    "**/*.test.ts",
+    "**/*.fixture.tsx",
+    "dashboard",
+    "dashboard-dist",
+    "vite.dashboard.config.ts"
+  ]
 }
