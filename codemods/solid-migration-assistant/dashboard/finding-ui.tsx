@@ -101,18 +101,20 @@ export function RuleFindings(props: { readonly findings: readonly FindingView[] 
 
 function FindingDisclosure(props: FindingView) {
   return (
-    <details class="finding-disclosure">
-      <summary>
-        <code>{props.location}</code>
-        <span>{props.label}</span>
-      </summary>
-      <CopyLocationButton location={props.location} />
-      <details class="snippet-disclosure">
-        <summary>Source context</summary>
+    <article class="finding-entry">
+      <header class="finding-heading">
+        <div>
+          <code>{props.location}</code>
+          <span>{props.label}</span>
+        </div>
+        <CopyLocationButton location={props.location} />
+      </header>
+      <details class="finding-disclosure">
+        <summary>Source and guidance</summary>
         <pre class="source-snippet">{props.snippet}</pre>
+        <pre>{props.guidance}</pre>
       </details>
-      <pre>{props.guidance}</pre>
-    </details>
+    </article>
   );
 }
 

@@ -38,6 +38,13 @@ test("rejects non-serializable report payloads", () => {
   );
 });
 
+test("formats copied locations as normalized relative paths", () => {
+  assert.equal(
+    findingModel.formatFindingLocation(".\\src\\components\\Card.tsx", 12, 7),
+    "src/components/Card.tsx:12:7",
+  );
+});
+
 test("filters the full finding set before clamped 100-item pagination", () => {
   const findings = Array.from({ length: 205 }, (_, index) => ({
     filename: index % 2 === 0 ? `src/alpha-${index}.tsx` : `src/beta-${index}.tsx`,

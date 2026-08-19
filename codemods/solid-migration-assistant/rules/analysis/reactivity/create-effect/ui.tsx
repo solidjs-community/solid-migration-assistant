@@ -1,4 +1,5 @@
 import { RuleFindings } from "../../../../dashboard/finding-ui.tsx";
+import { formatFindingLocation } from "../../../../dashboard/finding-model.ts";
 import { defineRuleSlice } from "../../../../shared/report.ts";
 import {
   CREATE_EFFECT_RULE_ID,
@@ -16,7 +17,7 @@ export const createEffectSlice = defineRuleSlice<CreateEffectReport>({
   Detail: (props) => (
     <RuleFindings findings={props.report.findings.map((finding) => ({
       filename: finding.filename,
-      location: `${finding.filename}:${finding.line}:${finding.column}`,
+      location: formatFindingLocation(finding.filename, finding.line, finding.column),
       label: `${finding.argumentCount} positional ${finding.argumentCount === 1 ? "argument" : "arguments"}`,
       snippet: finding.snippet.text,
       guidance: finding.guidance,

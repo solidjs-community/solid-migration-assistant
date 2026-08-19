@@ -47,16 +47,17 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 0.8rem; border-ra
 .filename-filter input:focus { border-color: #75d7ff; outline: 2px solid #75d7ff44; outline-offset: 1px; }
 .result-count { margin: 0.6rem 0 1.2rem; font-size: 0.9rem; }
 .zero-state { border: 1px dashed #3a4b53; border-radius: 0.7rem; padding: 1rem; }
-.finding-disclosure > summary, .snippet-disclosure > summary { cursor: pointer; }
-.finding-disclosure > summary { display: grid; gap: 0.35rem; }
-.finding-disclosure > summary span { color: #b1c0c6; }
+.finding-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.finding-heading > div { display: grid; gap: 0.35rem; }
+.finding-heading span { color: #b1c0c6; }
+.finding-heading .copy-location { flex: none; margin: 0; }
+.finding-disclosure { margin-top: 1rem; }
+.finding-disclosure > summary { color: #75d7ff; cursor: pointer; }
 .copy-location, .pagination button {
   margin-top: 1rem; border: 1px solid #416052; border-radius: 0.45rem;
   background: #13251c; color: #a4edbf; padding: 0.5rem 0.7rem; font: inherit; cursor: pointer;
 }
 .copy-location:hover, .pagination button:hover:not(:disabled) { background: #1b3528; }
-.snippet-disclosure { margin-top: 1rem; }
-.snippet-disclosure > summary { color: #75d7ff; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
 .pagination button { margin: 0; }
 .pagination button:disabled { cursor: not-allowed; opacity: 0.45; }

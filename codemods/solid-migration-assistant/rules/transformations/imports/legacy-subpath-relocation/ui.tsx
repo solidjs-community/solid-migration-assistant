@@ -1,4 +1,5 @@
 import { RuleFindings } from "../../../../dashboard/finding-ui.tsx";
+import { formatFindingLocation } from "../../../../dashboard/finding-model.ts";
 import { defineRuleSlice } from "../../../../shared/report.ts";
 import {
   LEGACY_SUBPATH_RELOCATION_RULE_ID,
@@ -19,7 +20,7 @@ export const legacySubpathRelocationSlice =
         <p>This analyzer run only proposes these edits; it never applies them.</p>
         <RuleFindings findings={props.report.findings.map((finding) => ({
           filename: finding.filename,
-          location: `${finding.filename}:${finding.line}:${finding.column}`,
+          location: formatFindingLocation(finding.filename, finding.line, finding.column),
           label: <><code>{finding.sourceModule}</code> → <code>{finding.replacementModule}</code> ({finding.form})</>,
           snippet: finding.snippet.text,
           guidance: finding.guidance,

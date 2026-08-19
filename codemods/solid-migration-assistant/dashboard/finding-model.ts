@@ -1,5 +1,14 @@
 export const FINDINGS_PER_PAGE = 100;
 
+export function formatFindingLocation(
+  filename: string,
+  line: number,
+  column: number,
+): string {
+  const normalizedFilename = filename.replaceAll("\\", "/").replace(/^\.\/+/, "");
+  return `${normalizedFilename}:${line}:${column}`;
+}
+
 export type FilterableFinding = {
   readonly filename: string;
 };
