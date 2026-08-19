@@ -45,6 +45,7 @@
     "scripts/emit-report.ts",
     "scripts/transform.ts",
     "shared/analysis.ts",
+    "shared/report.ts",
     "shared/run-workflow.mjs",
     "shared/transform.ts",
     "transform.yaml",

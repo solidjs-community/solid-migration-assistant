@@ -160,7 +160,6 @@ test("ships read-only analyze and deterministic transform workflows", () => {
 
   for (const path of [
     "scripts/write-report.ts",
-    "shared/report.ts",
     "shared/report-path.ts",
     "workflow.transform.yaml",
   ]) {
