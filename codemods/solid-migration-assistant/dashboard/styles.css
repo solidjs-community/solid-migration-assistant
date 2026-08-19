@@ -23,6 +23,8 @@ p { color: #b1c0c6; line-height: 1.6; }
 .eyebrow { color: #82e0a5; font-size: 0.76rem; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
 .run-badge { border: 1px solid #416052; color: #a4edbf; border-radius: 999px; padding: 0.35rem 0.7rem; white-space: nowrap; }
 .page-heading { margin-bottom: 2rem; }
+.domain-groups { display: grid; gap: 2.25rem; }
+.domain-group > h3 { margin-bottom: 0.9rem; font-size: 1.25rem; }
 .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; }
 .report-card { border: 1px solid #26343b; border-radius: 0.8rem; background: #121a1f; padding: 1.25rem; }
 .rule-summary, .rule-detail { color: #d4dfe3; }
@@ -31,3 +33,30 @@ p { color: #b1c0c6; line-height: 1.6; }
 .compact { margin-bottom: 0; padding: 0.7rem; }
 code { color: #c8e7f3; }
 @media (max-width: 34rem) { .site-header { align-items: flex-start; flex-direction: column; gap: 0.8rem; } }
+
+.finding-list { display: grid; gap: 1rem; padding-left: 1.25rem; }
+.finding-list li { padding: 1rem; border: 1px solid #26343b; border-radius: 0.7rem; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 0.8rem; border-radius: 0.55rem; background: #0a0f12; color: #cbd9df; }
+.source-snippet { border-left: 3px solid #75d7ff; color: #e8f0f2; }
+
+.filename-filter { display: grid; gap: 0.45rem; max-width: 32rem; color: #d4dfe3; font-weight: 650; }
+.filename-filter input {
+  width: 100%; border: 1px solid #3a4b53; border-radius: 0.55rem;
+  background: #0a0f12; color: #e8f0f2; padding: 0.75rem 0.85rem; font: inherit;
+}
+.filename-filter input:focus { border-color: #75d7ff; outline: 2px solid #75d7ff44; outline-offset: 1px; }
+.result-count { margin: 0.6rem 0 1.2rem; font-size: 0.9rem; }
+.zero-state { border: 1px dashed #3a4b53; border-radius: 0.7rem; padding: 1rem; }
+.finding-disclosure > summary, .snippet-disclosure > summary { cursor: pointer; }
+.finding-disclosure > summary { display: grid; gap: 0.35rem; }
+.finding-disclosure > summary span { color: #b1c0c6; }
+.copy-location, .pagination button {
+  margin-top: 1rem; border: 1px solid #416052; border-radius: 0.45rem;
+  background: #13251c; color: #a4edbf; padding: 0.5rem 0.7rem; font: inherit; cursor: pointer;
+}
+.copy-location:hover, .pagination button:hover:not(:disabled) { background: #1b3528; }
+.snippet-disclosure { margin-top: 1rem; }
+.snippet-disclosure > summary { color: #75d7ff; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+.pagination button { margin: 0; }
+.pagination button:disabled { cursor: not-allowed; opacity: 0.45; }

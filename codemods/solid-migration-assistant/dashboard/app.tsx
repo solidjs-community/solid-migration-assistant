@@ -1,6 +1,6 @@
 import { Errored, For, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { createRouter, hashHistory, useParams } from "@solidjs/router";
+import { createRouter, hashHistory, useHref, useParams } from "@solidjs/router";
 import type {
   JsonValue,
   ReportEnvelope,
@@ -11,6 +11,8 @@ export function createDashboardRouter(
   envelope: ReportEnvelope,
   manifest: readonly RuleSliceDescriptor[],
 ) {
+  const groups = groupRulesByDomain(manifest);
+
   function IndexPage() {
     return (
       <section aria-labelledby="report-heading">
@@ -23,13 +25,22 @@ export function createDashboardRouter(
           when={manifest.length > 0}
           fallback={<p class="empty-state">No pilot rule reports are registered.</p>}
         >
-          <div class="report-grid">
-            <For each={manifest}>
-              {(descriptor) => (
-                <RuleCard
-                  descriptor={descriptor}
-                  payload={envelope.reports[descriptor.id]}
-                />
+          <div class="domain-groups">
+            <For each={groups}>
+              {(group) => (
+                <section class="domain-group" aria-labelledby={`domain-${group.slug}`}>
+                  <h3 id={`domain-${group.slug}`}>{group.domain}</h3>
+                  <div class="report-grid">
+                    <For each={group.rules}>
+                      {(descriptor) => (
+                        <RuleCard
+                          descriptor={descriptor}
+                          payload={envelope.reports[descriptor.id]}
+                        />
+                      )}
+                    </For>
+                  </div>
+                </section>
               )}
             </For>
           </div>
@@ -84,7 +95,7 @@ export function createDashboardRouter(
       <section>
         <h2>Page not found</h2>
         <p>The requested report page does not exist.</p>
-        <a href="/">Return to all rule reports</a>
+        <InternalLink href="/">Return to all rule reports</InternalLink>
       </section>
     );
   }
@@ -99,6 +110,25 @@ export function createDashboardRouter(
   });
 }
 
+function groupRulesByDomain(manifest: readonly RuleSliceDescriptor[]) {
+  const groups = new Map<string, RuleSliceDescriptor[]>();
+  for (const descriptor of manifest) {
+    const rules = groups.get(descriptor.domain) ?? [];
+    rules.push(descriptor);
+    groups.set(descriptor.domain, rules);
+  }
+  return [...groups].map(([domain, rules]) => ({
+    domain,
+    rules,
+    slug: domain.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+  }));
+}
+
+function InternalLink(props: { readonly href: string; readonly children: JSX.Element }) {
+  const href = useHref(() => props.href);
+  return <a href={href()}>{props.children}</a>;
+}
+
 function RuleCard(props: {
   readonly descriptor: RuleSliceDescriptor;
   readonly payload: JsonValue | undefined;
@@ -110,9 +140,9 @@ function RuleCard(props: {
     <article class="report-card">
       <p class="eyebrow">{props.descriptor.kind}</p>
       <h3>
-        <a href={`/rules/${props.descriptor.route}`}>
+        <InternalLink href={`/rules/${props.descriptor.route}`}>
           {props.descriptor.title}
-        </a>
+        </InternalLink>
       </h3>
       <Show
         when={availablePayload()}
@@ -139,7 +169,7 @@ function UnknownRule(props: { readonly route: string }) {
       <p>
         <code>{props.route || "(empty)"}</code> is not a registered pilot rule.
       </p>
-      <a href="/">Return to all rule reports</a>
+      <InternalLink href="/">Return to all rule reports</InternalLink>
     </section>
   );
 }
@@ -150,7 +180,7 @@ export function Shell(props: { readonly children: JSX.Element }) {
       <header class="site-header">
         <div>
           <p class="eyebrow">Solid 2 migration assistant</p>
-          <h1><a href="/">Migration report</a></h1>
+          <h1><InternalLink href="/">Migration report</InternalLink></h1>
         </div>
         <span class="run-badge">Single run</span>
       </header>
