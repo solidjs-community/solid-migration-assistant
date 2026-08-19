@@ -98,8 +98,8 @@ export function serializeReportEnvelope(envelope: ReportEnvelope): string {
 export type EmbeddedReportRoot = {
   readonly getElementById: (id: string) => {
     readonly tagName: string;
-    readonly type: string;
     readonly textContent: string | null;
+    readonly getAttribute: (name: string) => string | null;
   } | null;
 };
 
@@ -108,7 +108,7 @@ export function readEmbeddedReport(root: EmbeddedReportRoot): ReportEnvelope {
   if (!element || element.tagName.toLowerCase() !== "script") {
     throw new Error(`Missing embedded report script #${EMBEDDED_REPORT_ID}.`);
   }
-  if (element.type !== "application/json") {
+  if (element.getAttribute("type") !== "application/json") {
     throw new Error("Embedded report script must use type application/json.");
   }
 
