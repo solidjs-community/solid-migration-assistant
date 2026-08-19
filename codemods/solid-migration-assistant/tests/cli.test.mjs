@@ -138,6 +138,7 @@ test("publishes exact immutable public-preview disclosure", () => {
     /only the exact destination above; other Solid versions are unsupported/,
   );
   assert.match(DISCLOSURE, /generated report is emitted only when explicitly requested/);
+  assert.match(DISCLOSURE, /Every generated HTML contains bounded project source snippets/);
   assert.match(DISCLOSURE, /Codemod may retain normal workflow or task state/);
   assert.match(DISCLOSURE, /github\.com\/solidjs\/solid\/blob\/ff4d3c44/);
   assert.match(
