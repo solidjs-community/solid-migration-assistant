@@ -10,9 +10,13 @@ import { dirname, join } from "node:path";
 
 const EMPTY_REPORT = '{"schemaVersion":1,"reports":{}}';
 
-export function renderReportHtml(template, reportData) {
-  const value = JSON.parse(reportData);
-  assertEnvelope(value);
+export function renderReportHtml(template, reportData, { analyzedTargetRoot } = {}) {
+  const workflowValue = JSON.parse(reportData);
+  assertWorkflowEnvelope(workflowValue);
+  if (!isAbsoluteTargetRoot(analyzedTargetRoot)) {
+    throw new Error("report generation requires an absolute analyzed target root");
+  }
+  const value = { ...workflowValue, run: { analyzedTargetRoot } };
   const embedded = JSON.stringify(value)
     .replaceAll("&", "\\u0026")
     .replaceAll("<", "\\u003c")
@@ -43,10 +47,13 @@ export function writeReportAtomically(path, html, { force = false } = {}) {
   }
 }
 
-function assertEnvelope(value) {
+function assertWorkflowEnvelope(value) {
   if (!isPlainObject(value) || value.schemaVersion !== 1 || !isPlainObject(value.reports)) {
     throw new Error("workflow returned an invalid report envelope");
   }
+}
+function isAbsoluteTargetRoot(value) {
+  return typeof value === "string" && (value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value));
 }
 function isPlainObject(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;

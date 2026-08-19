@@ -11,7 +11,7 @@ try {
   const report = readEmbeddedReport(document);
   const Router = createDashboardRouter(report, ruleManifest);
   render(
-    () => <Router>{(props) => <Shell>{props.children}</Shell>}</Router>,
+    () => <Router>{(props) => <Shell analyzedTargetRoot={report.run.analyzedTargetRoot}>{props.children}</Shell>}</Router>,
     mount,
   );
 } catch (error) {

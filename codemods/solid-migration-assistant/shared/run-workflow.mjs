@@ -24,7 +24,7 @@ Reviewed migration destination: ${SOLID_TARGET} (source commit ${SOLID_SOURCE_CO
 Immutable migration guide: ${MIGRATION_GUIDE}
 Scope: This source-only analyzer covers project-owned .js, .jsx, .ts, and .tsx source. Coverage is incomplete and advisory, makes no migration-readiness claim, and supports only the exact destination above; other Solid versions are unsupported.
 Execution: Read-only. The analyzer does not run target typechecks, builds, tests, scripts, or applications and creates no target report unless the user explicitly requests one with --report FILE.
-Privacy and output: Analyzer telemetry is disabled; a generated report is emitted only when explicitly requested with --report FILE. Every generated HTML contains bounded project source snippets; treat and share it as project source. Codemod may retain normal workflow or task state outside the target in platform user-data directories; consult Codemod's privacy and state behavior.
+Privacy and output: Analyzer telemetry is disabled; a generated report is emitted only when explicitly requested with --report FILE. Every generated HTML contains bounded project source snippets and the absolute analyzed target path; treat and share it as project source and local machine metadata. Codemod may retain normal workflow or task state outside the target in platform user-data directories; consult Codemod's privacy and state behavior.
 Feedback: ${FEEDBACK_URL}
 [solid-migration-assistant] End final disclosure`;
 
@@ -197,7 +197,7 @@ function run(argumentsList, invocationDirectory, runImpl, openImpl) {
 
     const template = readFileSync(resolve(packageDirectory, "assets/dashboard/index.html"), "utf8");
     const reportData = readFileSync(reportDataFile, "utf8");
-    const html = renderReportHtml(template, reportData);
+    const html = renderReportHtml(template, reportData, { analyzedTargetRoot: target });
     try {
       writeReportAtomically(reportPath, html, { force: options.force });
     } catch (error) {

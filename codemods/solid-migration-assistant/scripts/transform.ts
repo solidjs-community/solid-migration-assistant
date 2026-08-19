@@ -2,6 +2,7 @@ import type { Codemod } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 import { acquireLock, getState, setState } from "codemod:workflow";
 import { relocateLegacySubpaths } from "../rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts";
+import { formatLegacySubpathRelocationGuidance } from "../rules/transformations/imports/legacy-subpath-relocation/report.ts";
 import { TRANSFORM_REPORT_STATE_KEY } from "../shared/transform.ts";
 
 const transform: Codemod<TSX> = async (root) => {
@@ -15,7 +16,7 @@ const transform: Codemod<TSX> = async (root) => {
   try {
     const accumulated = getState<string[]>(TRANSFORM_REPORT_STATE_KEY) ?? [];
     setState(TRANSFORM_REPORT_STATE_KEY, [
-      ...new Set([...accumulated, ...report.findings.map((finding) => finding.guidance)]),
+      ...new Set([...accumulated, ...report.findings.map(formatLegacySubpathRelocationGuidance)]),
     ]);
   } finally {
     release();

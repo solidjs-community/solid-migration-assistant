@@ -1,4 +1,4 @@
-import { RuleFindings } from "../../../../dashboard/finding-ui.tsx";
+import { GuidanceSections, RuleFindings } from "../../../../dashboard/finding-ui.tsx";
 import { formatFindingLocation } from "../../../../dashboard/finding-model.ts";
 import { defineRuleSlice } from "../../../../shared/report.ts";
 import {
@@ -20,7 +20,20 @@ export const componentRenamesSlice = defineRuleSlice<ComponentRenamesReport>({
       location: formatFindingLocation(finding.filename, finding.line, finding.column),
       label: <><code>{finding.legacyName}</code> → <code>{finding.replacement}</code></>,
       snippet: finding.snippet.text,
-      guidance: finding.guidance,
+      editorTarget: {
+        analyzedTargetRoot: props.run.analyzedTargetRoot,
+        filename: finding.filename,
+        line: finding.line,
+        column: finding.column,
+      },
+      details: <GuidanceSections
+        summary={finding.summary}
+        reason={finding.reason}
+        nextSteps={finding.nextSteps}
+        cautions={finding.cautions}
+        validation={finding.validation}
+        officialGuideUrl={finding.officialGuideUrl}
+      />,
     }))} />
   ),
 });

@@ -381,6 +381,16 @@ test("colocates contracts and Solid renderers only for selected pilot slices", (
   for (const [directory, folder] of pilots) {
     assert.equal(existsSync(resolve(directory, folder, "report.ts")), true, folder);
     assert.equal(existsSync(resolve(directory, folder, "ui.tsx")), true, folder);
+    const reportSource = readFileSync(resolve(directory, folder, "report.ts"), "utf8");
+    const uiSource = readFileSync(resolve(directory, folder, "ui.tsx"), "utf8");
+    assert.match(reportSource, /summary: string/);
+    assert.match(reportSource, /reason: string/);
+    assert.match(reportSource, /nextSteps: readonly string\[\]/);
+    assert.match(reportSource, /officialGuideUrl: string/);
+    assert.doesNotMatch(reportSource, /guidance: string/);
+    assert.match(uiSource, /GuidanceSections/);
+    assert.match(uiSource, /summary=\{finding\.summary\}/);
+    assert.doesNotMatch(uiSource, /finding\.guidance|\.split\(/);
   }
   assert.equal(ruleFiles(analysisDirectory, (name) => name === "ui.tsx").length, 3);
   assert.equal(ruleFiles(transformationsDirectory, (name) => name === "ui.tsx").length, 1);

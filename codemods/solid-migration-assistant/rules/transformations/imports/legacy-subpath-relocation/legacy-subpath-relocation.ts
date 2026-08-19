@@ -182,7 +182,6 @@ export function relocateLegacySubpaths(
       if (form === "require" && shadowedRequire) return null;
       const start = source.range().start;
       const quote = source.text()[0];
-      const guidance = `${filename}:${start.line + 1}:${start.column + 1} Relocate ${moduleName} to ${replacement}. Official migration guide: ${TRANSFORM_MIGRATION_GUIDE}`;
       const finding: LegacySubpathRelocationFinding = {
         filename,
         line: start.line + 1,
@@ -190,7 +189,12 @@ export function relocateLegacySubpaths(
         form,
         sourceModule: moduleName,
         replacementModule: replacement,
-        guidance,
+        summary: `Relocate ${moduleName} to ${replacement}.`,
+        reason: "Solid 2 publishes this runtime from a dedicated package instead of the legacy solid-js subpath.",
+        nextSteps: ["Replace only the module source and preserve the import form, bindings, and quote style."],
+        cautions: ["Do not combine this deterministic path relocation with removed or renamed binding migrations."],
+        validation: ["Run the target project's focused typecheck and tests after applying the proposed edit."],
+        officialGuideUrl: TRANSFORM_MIGRATION_GUIDE,
         snippet: sourceSnippet(source),
       };
       return { edit: source.replace(`${quote}${replacement}${quote}`), finding };

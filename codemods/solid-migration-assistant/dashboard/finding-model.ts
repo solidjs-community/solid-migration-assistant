@@ -1,12 +1,39 @@
 export const FINDINGS_PER_PAGE = 100;
 
-export function formatFindingLocation(
-  filename: string,
-  line: number,
-  column: number,
-): string {
-  const normalizedFilename = filename.replaceAll("\\", "/").replace(/^\.\/+/, "");
-  return `${normalizedFilename}:${line}:${column}`;
+export function normalizeRelativeFilename(filename: string): string {
+  return filename.replaceAll("\\", "/").replace(/^\.\/+/, "");
+}
+
+export function formatFindingLocation(filename: string, line: number, column: number): string {
+  return `${normalizeRelativeFilename(filename)}:${line}:${column}`;
+}
+
+export type EditorTarget = {
+  readonly analyzedTargetRoot: string;
+  readonly filename: string;
+  readonly line: number;
+  readonly column: number;
+};
+
+export type EditorAction = {
+  readonly id: string;
+  readonly label: string;
+  readonly href: string;
+};
+
+export function createEditorActions(target: EditorTarget): readonly EditorAction[] {
+  return [{ id: "vscode", label: "Visual Studio Code", href: createVsCodeFileUri(target) }];
+}
+
+export function createVsCodeFileUri(target: EditorTarget): string {
+  const root = target.analyzedTargetRoot.replaceAll("\\", "/").replace(/\/$/, "");
+  const relative = normalizeRelativeFilename(target.filename).replace(/^\//, "");
+  const absolutePath = `${root}/${relative}`;
+  const encodedPath = absolutePath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment).replaceAll("%3A", ":"))
+    .join("/");
+  return `vscode://file/${encodedPath}:${target.line}:${target.column}`;
 }
 
 export type FilterableFinding = {

@@ -2,8 +2,11 @@ import type { JSX } from "@solidjs/web";
 import { useLocation } from "@solidjs/router";
 import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import {
+  createEditorActions,
   filterFindings,
+  formatFindingLocation,
   paginateFindings,
+  type EditorTarget,
 } from "./finding-model.ts";
 
 export type FindingView = {
@@ -11,8 +14,45 @@ export type FindingView = {
   readonly location: string;
   readonly label: JSX.Element;
   readonly snippet: string;
-  readonly guidance: string;
+  readonly details: JSX.Element;
+  readonly editorTarget: EditorTarget;
 };
+
+export function GuidanceSections(props: {
+  readonly summary: string;
+  readonly reason: string;
+  readonly nextSteps: readonly string[];
+  readonly cautions: readonly string[];
+  readonly validation: readonly string[];
+  readonly officialGuideUrl: string;
+}) {
+  return (
+    <div class="guidance-sections">
+      <p class="finding-summary">{props.summary}</p>
+      <section>
+        <h4>Why this was flagged</h4>
+        <p>{props.reason}</p>
+      </section>
+      <section>
+        <h4>Next steps</h4>
+        <ol><For each={props.nextSteps}>{(step) => <li>{step}</li>}</For></ol>
+      </section>
+      <Show when={props.cautions.length > 0}>
+        <section class="caution-section">
+          <h4><span class="section-badge">Caution</span> Stop conditions</h4>
+          <ul><For each={props.cautions}>{(caution) => <li>{caution}</li>}</For></ul>
+        </section>
+      </Show>
+      <Show when={props.validation.length > 0}>
+        <section>
+          <h4>Validate</h4>
+          <ul><For each={props.validation}>{(item) => <li>{item}</li>}</For></ul>
+        </section>
+      </Show>
+      <p><a href={props.officialGuideUrl}>Open the official Solid 2 migration guide</a></p>
+    </div>
+  );
+}
 
 export function RuleFindings(props: { readonly findings: readonly FindingView[] }) {
   const location = useLocation();
@@ -107,36 +147,48 @@ function FindingDisclosure(props: FindingView) {
           <code>{props.location}</code>
           <span>{props.label}</span>
         </div>
-        <CopyLocationButton location={props.location} />
+<EditorActionMenu target={props.editorTarget} />
       </header>
       <details class="finding-disclosure">
         <summary>Source and guidance</summary>
-        <pre class="source-snippet">{props.snippet}</pre>
-        <pre>{props.guidance}</pre>
+        <h4>Source context</h4>
+        <pre class="source-snippet"><code>{props.snippet}</code></pre>
+        {props.details}
       </details>
     </article>
   );
 }
 
-function CopyLocationButton(props: { readonly location: string }) {
-  const [copied, setCopied] = createSignal(false);
-  let resetTimer: ReturnType<typeof setTimeout> | undefined;
-  onCleanup(() => {
-    if (resetTimer !== undefined) clearTimeout(resetTimer);
-  });
-
-  async function copyLocation() {
-    await copyText(props.location);
-    setCopied(true);
-    if (resetTimer !== undefined) clearTimeout(resetTimer);
-    resetTimer = setTimeout(() => setCopied(false), 1_500);
-  }
-
+function EditorActionMenu(props: { readonly target: EditorTarget }) {
   return (
-    <button class="copy-location" type="button" onClick={copyLocation}>
-      {copied() ? "Copied" : "Copy location"}
-    </button>
+    <details class="editor-actions">
+      <summary>Open in editor</summary>
+      <ul>
+        <For each={createEditorActions(props.target)}>
+          {(action) => <li><a href={action.href}>Open in {action.label}</a></li>}
+        </For>
+        <li><CopyLocationButton location={formatFindingLocation(props.target.filename, props.target.line, props.target.column)} /></li>
+      </ul>
+    </details>
   );
+}
+
+function CopyLocationButton(props: { readonly location: string }) {
+  const [status, setStatus] = createSignal<"idle" | "copied" | "failed">("idle");
+  let resetTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => { if (resetTimer !== undefined) clearTimeout(resetTimer); });
+  async function copyLocation() {
+    try {
+      await copyText(props.location);
+      setStatus("copied");
+    } catch {
+      setStatus("failed");
+    }
+    if (resetTimer !== undefined) clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => setStatus("idle"), 1_500);
+  }
+  const label = () => status() === "copied" ? "Copied" : status() === "failed" ? "Copy failed" : "Copy location";
+  return <button class="copy-location" type="button" onClick={copyLocation} aria-live="polite">{label()}</button>;
 }
 
 async function copyText(value: string): Promise<void> {

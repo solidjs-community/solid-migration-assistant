@@ -9,10 +9,12 @@ import { renderReportHtml } from "../shared/report-artifact.mjs";
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const reportModule = await loadTypeScript("shared/report.ts");
 const findingModel = await loadTypeScript("dashboard/finding-model.ts");
+const themeModule = await loadTypeScript("dashboard/theme.ts");
 
 test("escapes report JSON so the inert script cannot terminate", () => {
   const envelope = {
     schemaVersion: 1,
+    run: { analyzedTargetRoot: "/workspace/project" },
     reports: { unsafe: { text: "</script><script>alert(1)</script>&  " } },
   };
   const serialized = reportModule.serializeReportEnvelope(envelope);
@@ -20,28 +22,46 @@ test("escapes report JSON so the inert script cannot terminate", () => {
   assert.deepEqual(JSON.parse(serialized), envelope);
 
   const template = '<script id="solid-migration-report-data" type="application/json">{"schemaVersion":1,"reports":{}}</script>';
-  const html = renderReportHtml(template, JSON.stringify(envelope));
+  const html = renderReportHtml(template, JSON.stringify(envelope), { analyzedTargetRoot: "/workspace/project" });
   assert.equal((html.match(/<script/g) ?? []).length, 1);
+  assert.match(html, /"analyzedTargetRoot":"\/workspace\/project"/);
   assert.doesNotMatch(html, /<script>alert/);
 });
 
 test("rejects non-serializable report payloads", () => {
   assert.throws(
-    () => reportModule.serializeReportEnvelope({ schemaVersion: 1, reports: { bad: { callback: () => null } } }),
+    () => reportModule.serializeReportEnvelope({ schemaVersion: 1, run: { analyzedTargetRoot: "/workspace/project" }, reports: { bad: { callback: () => null } } }),
     /non-JSON value/,
   );
   const circular = {};
   circular.self = circular;
   assert.throws(
-    () => reportModule.serializeReportEnvelope({ schemaVersion: 1, reports: { bad: circular } }),
+    () => reportModule.serializeReportEnvelope({ schemaVersion: 1, run: { analyzedTargetRoot: "/workspace/project" }, reports: { bad: circular } }),
     /circular reference/,
   );
 });
 
-test("formats copied locations as normalized relative paths", () => {
+test("selects system theme, toggles without persistence, and applies an explicit override", () => {
+  assert.equal(themeModule.preferredTheme(false), "light");
+  assert.equal(themeModule.preferredTheme(true), "dark");
+  assert.equal(themeModule.oppositeTheme("dark"), "light");
+  const root = { dataset: {} };
+  themeModule.applyTheme("dark", root);
+  assert.equal(root.dataset.theme, "dark");
+});
+
+test("formats locations and documented VS Code file URIs", () => {
+  assert.equal(findingModel.formatFindingLocation(".\\src\\components\\Card.tsx", 12, 7), "src/components/Card.tsx:12:7");
   assert.equal(
-    findingModel.formatFindingLocation(".\\src\\components\\Card.tsx", 12, 7),
-    "src/components/Card.tsx:12:7",
+    findingModel.createVsCodeFileUri({
+      analyzedTargetRoot: "/Users/dev/Project folder",
+      filename: "src/Card #1.tsx", line: 12, column: 7,
+    }),
+    "vscode://file//Users/dev/Project%20folder/src/Card%20%231.tsx:12:7",
+  );
+  assert.deepEqual(
+    findingModel.createEditorActions({ analyzedTargetRoot: "C:\\work", filename: "src\\Card.tsx", line: 3, column: 4 }).map(({ id, label }) => ({ id, label })),
+    [{ id: "vscode", label: "Visual Studio Code" }],
   );
 });
 
@@ -75,7 +95,7 @@ test("alphabetizes manifest domains and rule titles from static metadata", () =>
 });
 
 test("reads only a versioned inert JSON envelope", () => {
-  const envelope = { schemaVersion: 1, reports: { sample: { findings: [] } } };
+  const envelope = { schemaVersion: 1, run: { analyzedTargetRoot: "/workspace/project" }, reports: { sample: { findings: [] } } };
   const root = {
     getElementById: () => ({
       tagName: "SCRIPT",
@@ -84,6 +104,10 @@ test("reads only a versioned inert JSON envelope", () => {
     }),
   };
   assert.deepEqual(reportModule.readEmbeddedReport(root), envelope);
+  assert.throws(
+    () => reportModule.readEmbeddedReport({ ...root, getElementById: () => ({ ...root.getElementById(), textContent: JSON.stringify({ ...envelope, run: { analyzedTargetRoot: "relative/path" } }) }) }),
+    /absolute analyzed target root/,
+  );
   assert.throws(
     () => reportModule.readEmbeddedReport({ ...root, getElementById: () => ({ ...root.getElementById(), getAttribute: () => "text/javascript" }) }),
     /type application\/json/,

@@ -22,8 +22,13 @@ export type AnalysisRuleResult<TReport extends JsonValue> = {
 };
 
 /** A single immutable run. History policy intentionally lives outside this seam. */
+export type ReportRunMetadata = {
+  readonly analyzedTargetRoot: string;
+};
+
 export type ReportEnvelope = {
   readonly schemaVersion: typeof REPORT_SCHEMA_VERSION;
+  readonly run: ReportRunMetadata;
   readonly reports: Readonly<Record<string, JsonValue>>;
 };
 
@@ -64,6 +69,7 @@ export type RuleKind = "analysis" | "transformation";
 
 export type RuleRendererProps<TReport extends JsonValue> = {
   readonly report: TReport;
+  readonly run: ReportRunMetadata;
 };
 
 export type RuleSliceDefinition<TReport extends JsonValue> = {
@@ -86,8 +92,8 @@ export type RuleSliceDescriptor = {
   readonly title: string;
   readonly domain: string;
   readonly kind: RuleKind;
-  readonly renderSummary: (payload: JsonValue) => JSX.Element;
-  readonly renderDetail: (payload: JsonValue) => JSX.Element;
+  readonly renderSummary: (payload: JsonValue, run: ReportRunMetadata) => JSX.Element;
+  readonly renderDetail: (payload: JsonValue, run: ReportRunMetadata) => JSX.Element;
 };
 
 export function defineRuleSlice<TReport extends JsonValue>(
@@ -99,10 +105,10 @@ export function defineRuleSlice<TReport extends JsonValue>(
     title: definition.title,
     domain: definition.domain,
     kind: definition.kind,
-    renderSummary: (payload: JsonValue) =>
-      definition.Summary({ report: payload as TReport }),
-    renderDetail: (payload: JsonValue) =>
-      definition.Detail({ report: payload as TReport }),
+    renderSummary: (payload: JsonValue, run: ReportRunMetadata) =>
+      definition.Summary({ report: payload as TReport, run }),
+    renderDetail: (payload: JsonValue, run: ReportRunMetadata) =>
+      definition.Detail({ report: payload as TReport, run }),
   });
 }
 
@@ -193,6 +199,9 @@ export function assertReportEnvelope(value: unknown): asserts value is ReportEnv
   if (!isPlainObject(value) || value.schemaVersion !== REPORT_SCHEMA_VERSION) {
     throw new Error(`Unsupported report schema; expected version ${REPORT_SCHEMA_VERSION}.`);
   }
+  if (!isPlainObject(value.run) || typeof value.run.analyzedTargetRoot !== "string" || !isAbsoluteTargetRoot(value.run.analyzedTargetRoot)) {
+    throw new Error("Report envelope must contain an absolute analyzed target root.");
+  }
   if (!isPlainObject(value.reports)) {
     throw new Error("Report envelope must contain a reports object.");
   }
@@ -213,6 +222,10 @@ function assertJsonValue(value: unknown, seen = new Set<object>()): asserts valu
     for (const item of Object.values(value)) assertJsonValue(item, seen);
   }
   seen.delete(value);
+}
+
+function isAbsoluteTargetRoot(value: string): boolean {
+  return value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

@@ -1,4 +1,4 @@
-import { Errored, For, Show } from "solid-js";
+import { Errored, For, Show, createSignal, onCleanup } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { createRouter, hashHistory, useHref, useParams } from "@solidjs/router";
 import type {
@@ -6,6 +6,7 @@ import type {
   ReportEnvelope,
   RuleSliceDescriptor,
 } from "../shared/report.ts";
+import { applyTheme, oppositeTheme, preferredTheme, type Theme } from "./theme.ts";
 
 export function createDashboardRouter(
   envelope: ReportEnvelope,
@@ -36,6 +37,7 @@ export function createDashboardRouter(
                         <RuleCard
                           descriptor={descriptor}
                           payload={envelope.reports[descriptor.id]}
+                          run={envelope.run}
                         />
                       )}
                     </For>
@@ -80,7 +82,7 @@ export function createDashboardRouter(
                     </p>
                   )}
                 >
-                  <div class="rule-detail">{entry().renderDetail(available().report)}</div>
+                  <div class="rule-detail">{entry().renderDetail(available().report, envelope.run)}</div>
                 </Errored>
               )}
             </Show>
@@ -132,6 +134,7 @@ function InternalLink(props: { readonly href: string; readonly children: JSX.Ele
 function RuleCard(props: {
   readonly descriptor: RuleSliceDescriptor;
   readonly payload: JsonValue | undefined;
+  readonly run: ReportEnvelope["run"];
 }) {
   const availablePayload = () =>
     props.payload === undefined ? undefined : { report: props.payload };
@@ -153,7 +156,7 @@ function RuleCard(props: {
             fallback={<p class="error-state compact">Invalid rule payload.</p>}
           >
             <div class="rule-summary">
-              {props.descriptor.renderSummary(available().report)}
+              {props.descriptor.renderSummary(available().report, props.run)}
             </div>
           </Errored>
         )}
@@ -174,18 +177,56 @@ function UnknownRule(props: { readonly route: string }) {
   );
 }
 
-export function Shell(props: { readonly children: JSX.Element }) {
+export function Shell(props: {
+  readonly children: JSX.Element;
+  readonly analyzedTargetRoot: string;
+}) {
   return (
     <>
       <header class="site-header">
-        <div>
+        <div class="report-identity">
           <p class="eyebrow">Solid 2 migration assistant</p>
           <h1><InternalLink href="/">Migration report</InternalLink></h1>
+          <p class="target-root"><span>Analyzed target</span><code>{props.analyzedTargetRoot}</code></p>
         </div>
-        <span class="run-badge">Single run</span>
+        <div class="header-actions">
+          <span class="run-badge">Single run</span>
+          <ThemeSwitch />
+        </div>
       </header>
       <main class="site-main">{props.children}</main>
     </>
+  );
+}
+
+function ThemeSwitch() {
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const [theme, setTheme] = createSignal<Theme>(preferredTheme(media.matches));
+  let manuallySelected = false;
+  const followSystemTheme = (event: MediaQueryListEvent) => {
+    if (!manuallySelected) setTheme(preferredTheme(event.matches));
+  };
+  media.addEventListener("change", followSystemTheme);
+  onCleanup(() => media.removeEventListener("change", followSystemTheme));
+
+  function toggleTheme() {
+    manuallySelected = true;
+    const next = oppositeTheme(theme());
+    applyTheme(next);
+    setTheme(next);
+  }
+
+  return (
+    <button
+      class="theme-switch"
+      type="button"
+      aria-pressed={theme() === "dark" ? "true" : "false"}
+      aria-label={`Use ${oppositeTheme(theme())} theme`}
+      onClick={toggleTheme}
+    >
+      <span aria-hidden="true">{theme() === "dark" ? "☾" : "☀"}</span>
+      {theme() === "dark" ? "Dark" : "Light"}
+    </button>
   );
 }
 

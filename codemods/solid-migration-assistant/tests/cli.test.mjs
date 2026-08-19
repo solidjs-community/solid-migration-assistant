@@ -202,6 +202,7 @@ test("writes report only when explicitly requested and launches only with --open
     const html = readFileSync(report, "utf8");
     assert.match(html, /solid-migration-report-data/);
     assert.match(html, /"schemaVersion":1/);
+    assert.match(html, new RegExp(`"analyzedTargetRoot":"${surface.replaceAll("\\", "\\\\")}"`));
   } finally {
     rmSync(surface, { recursive: true, force: true });
   }

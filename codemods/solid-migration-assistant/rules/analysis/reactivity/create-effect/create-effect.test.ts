@@ -1,6 +1,7 @@
 import type { Codemod } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 import { analyzeCreateEffect } from "./create-effect.ts";
+import { formatCreateEffectGuidance } from "./report.ts";
 
 const MIGRATION_GUIDE =
   "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#effects-lifecycle-and-cleanup";
@@ -79,7 +80,11 @@ const testCreateEffectRule: Codemod<TSX> = async (root) => {
   }
 
 
-  for (const finding of report.findings) {
+  for (const [index, finding] of report.findings.entries()) {
+    if ("guidance" in finding || !finding.summary || !finding.reason || finding.nextSteps.length === 0 || !finding.officialGuideUrl) {
+      throw new Error("createEffect report must expose structured guidance fields only");
+    }
+    if (formatCreateEffectGuidance(finding) !== guidance[index]) throw new Error("createEffect terminal guidance drifted from its report contract");
     if (!finding.snippet.text.includes("createEffect")) throw new Error("createEffect snippet must contain the matched call");
     if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
       throw new Error(`snippet must start one complete line before ${finding.line}`);

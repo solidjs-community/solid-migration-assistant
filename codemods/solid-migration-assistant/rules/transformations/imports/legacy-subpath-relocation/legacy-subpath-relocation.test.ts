@@ -4,6 +4,7 @@ import {
   relocateLegacySubpaths,
   TRANSFORM_MIGRATION_GUIDE,
 } from "./legacy-subpath-relocation.ts";
+import { formatLegacySubpathRelocationGuidance } from "./report.ts";
 
 type FixtureCase = {
   relocations: ReadonlyArray<{
@@ -142,7 +143,10 @@ const testLegacySubpathRelocation: Codemod<TSX> = async (root) => {
     )
     .sort();
 
-  const actual = report.findings.map((finding) => finding.guidance).sort();
+  if (report.findings.some((finding) => "guidance" in finding || !finding.summary || !finding.reason || finding.nextSteps.length === 0 || !finding.officialGuideUrl)) {
+    throw new Error("relocation report must expose structured guidance fields only");
+  }
+  const actual = report.findings.map(formatLegacySubpathRelocationGuidance).sort();
   if (actual.join("\n") !== expected.join("\n")) {
     throw new Error(
       `unexpected relocation report for ${marker}:\n${actual.join("\n")}\nExpected:\n${expected.join("\n")}`,
