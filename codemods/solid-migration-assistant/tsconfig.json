@@ -3,7 +3,8 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "types": [
-      "@codemod.com/jssg-types"
+      "@codemod.com/jssg-types",
+      "node"
     ],
     "allowImportingTsExtensions": true,
     "noEmit": true,
@@ -24,7 +25,7 @@
     "**/*.test.ts",
     "**/*.fixture.tsx",
     "dashboard",
-    "dashboard-dist",
-    "vite.dashboard.config.ts"
+    "vite.dashboard.config.ts",
+    "**/ui.tsx"
   ]
 }

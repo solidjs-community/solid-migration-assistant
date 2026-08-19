@@ -8,6 +8,12 @@ export type JsonValue =
 
 export const REPORT_SCHEMA_VERSION = 1 as const;
 export const EMBEDDED_REPORT_ID = "solid-migration-report-data";
+export const DASHBOARD_REPORT_STATE_KEY = "solid-migration-assistant-dashboard-reports";
+
+export type AnalysisRuleResult<TReport extends JsonValue> = {
+  readonly guidance: readonly string[];
+  readonly report: TReport;
+};
 
 /** A single immutable run. History policy intentionally lives outside this seam. */
 export type ReportEnvelope = {
@@ -26,7 +32,6 @@ export type RuleSliceDefinition<TReport extends JsonValue> = {
   readonly route: string;
   readonly title: string;
   readonly kind: RuleKind;
-  readonly parseReport: (payload: JsonValue) => TReport;
   readonly Summary: (props: RuleRendererProps<TReport>) => JSX.Element;
   readonly Detail: (props: RuleRendererProps<TReport>) => JSX.Element;
 };
@@ -53,9 +58,9 @@ export function defineRuleSlice<TReport extends JsonValue>(
     title: definition.title,
     kind: definition.kind,
     renderSummary: (payload: JsonValue) =>
-      definition.Summary({ report: definition.parseReport(payload) }),
+      definition.Summary({ report: payload as TReport }),
     renderDetail: (payload: JsonValue) =>
-      definition.Detail({ report: definition.parseReport(payload) }),
+      definition.Detail({ report: payload as TReport }),
   });
 }
 
@@ -88,11 +93,11 @@ export function serializeReportEnvelope(envelope: ReportEnvelope): string {
   const serialized = JSON.stringify(envelope);
   if (serialized === undefined) throw new Error("Report envelope is not serializable.");
   return serialized
-    .replaceAll("&", "\u0026")
-    .replaceAll("<", "\u003c")
-    .replaceAll(">", "\u003e")
-    .replaceAll(" ", "\u2028")
-    .replaceAll(" ", "\u2029");
+    .replaceAll("&", "\\u0026")
+    .replaceAll("<", "\\u003c")
+    .replaceAll(">", "\\u003e")
+    .replaceAll(" ", "\\u2028")
+    .replaceAll(" ", "\\u2029");
 }
 
 export type EmbeddedReportRoot = {

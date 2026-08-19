@@ -377,6 +377,7 @@ test("uses normal analyzer end-to-end fixtures", () => {
     "empty",
     "fixture",
     "packaging.test.mjs",
+    "report.test.mjs",
     "rules.test.mjs",
     "transform-expected",
     "transform-fixture",

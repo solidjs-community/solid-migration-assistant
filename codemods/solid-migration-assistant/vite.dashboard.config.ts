@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [solid(), viteSingleFile()],
   build: {
     target: "es2022",
-    outDir: resolve(import.meta.dirname, "dashboard-dist"),
+    outDir: resolve(import.meta.dirname, "assets/dashboard"),
     emptyOutDir: true,
     cssCodeSplit: false,
     modulePreload: false,

@@ -24,6 +24,7 @@ const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const expectedFiles = [
   "LICENSE",
   "README.md",
+  "assets/dashboard/index.html",
   "bin/solid-migration-assistant.mjs",
   "package.json",
   "rules/analysis/imports/beta32-subpaths/beta32-subpaths.ts",
@@ -59,6 +60,7 @@ const expectedFiles = [
   "scripts/emit-report.ts",
   "scripts/transform.ts",
   "shared/analysis.ts",
+  "shared/report-artifact.mjs",
   "shared/report.ts",
   "shared/run-workflow.mjs",
   "shared/transform.ts",
@@ -151,7 +153,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 42);
+      assert.equal(expectedFiles.length, 44);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(
