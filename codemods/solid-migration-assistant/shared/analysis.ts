@@ -294,6 +294,8 @@ export function sourceSnippet(node: SgNode<TSX>): SourceSnippet {
   return {
     startLine: firstLine + 1,
     endLine: lastLine + 1,
+    matchStartLine: range.start.line + 1,
+    matchEndLine: lastMatchedLine + 1,
     text: lines.slice(firstLine, lastLine + 1).join("\n"),
   };
 }

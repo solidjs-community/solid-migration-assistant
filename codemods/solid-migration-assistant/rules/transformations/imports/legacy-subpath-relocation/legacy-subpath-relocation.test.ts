@@ -146,6 +146,9 @@ const testLegacySubpathRelocation: Codemod<TSX> = async (root) => {
   if (report.findings.some((finding) => "guidance" in finding || !finding.summary || !finding.reason || finding.nextSteps.length === 0 || !finding.officialGuideUrl)) {
     throw new Error("relocation report must expose structured guidance fields only");
   }
+  if (report.findings.some((finding) => finding.snippet.matchStartLine !== finding.line || finding.snippet.matchEndLine < finding.snippet.matchStartLine || finding.snippet.matchEndLine > finding.snippet.endLine)) {
+    throw new Error("relocation snippets must carry AST match line ranges");
+  }
   const actual = report.findings.map(formatLegacySubpathRelocationGuidance).sort();
   if (actual.join("\n") !== expected.join("\n")) {
     throw new Error(

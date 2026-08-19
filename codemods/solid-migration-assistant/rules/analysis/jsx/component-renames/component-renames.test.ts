@@ -54,6 +54,9 @@ Guidance: Read the complete list site, its each value, child callback, props, an
       throw new Error("component report must expose structured guidance and stop conditions");
     }
     if (formatComponentRenameGuidance(finding) !== guidance[index]) throw new Error("component terminal guidance drifted from its report contract");
+    if (finding.snippet.matchStartLine !== finding.line || finding.snippet.matchEndLine < finding.snippet.matchStartLine || finding.snippet.matchEndLine > finding.snippet.endLine) {
+      throw new Error("snippet must carry the AST match line range");
+    }
     if (!finding.snippet.text.includes(finding.legacyName)) throw new Error("component snippet must contain the matched element");
     if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
       throw new Error(`snippet must start one complete line before ${finding.line}`);

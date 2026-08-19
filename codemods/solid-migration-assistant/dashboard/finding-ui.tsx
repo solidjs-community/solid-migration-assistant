@@ -1,4 +1,5 @@
 import type { JSX } from "@solidjs/web";
+import type { SourceSnippet } from "../shared/report.ts";
 import { useLocation } from "@solidjs/router";
 import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import {
@@ -14,7 +15,7 @@ export type FindingView = {
   readonly filename: string;
   readonly location: string;
   readonly label: JSX.Element;
-  readonly snippet: string;
+  readonly snippet: SourceSnippet;
   readonly details: JSX.Element;
   readonly editorTarget: EditorTarget;
 };
@@ -140,6 +141,27 @@ export function RuleFindings(props: { readonly findings: readonly FindingView[] 
   );
 }
 
+function SourceCode(props: { readonly snippet: SourceSnippet }) {
+  const lines = () => props.snippet.text.split("\n");
+  return (
+    <pre
+      class="source-snippet"
+      tabindex="0"
+      aria-label={`Source context lines ${props.snippet.startLine} to ${props.snippet.endLine}; matched lines ${props.snippet.matchStartLine} to ${props.snippet.matchEndLine}`}
+    ><code><For each={lines()}>{(line, index) => {
+      const lineNumber = () => props.snippet.startLine + index();
+      const matched = () => lineNumber() >= props.snippet.matchStartLine && lineNumber() <= props.snippet.matchEndLine;
+      return (
+        <span class={matched() ? "source-line matched" : "source-line"}>
+          <span class="line-number" aria-hidden="true">{lineNumber()}</span>
+          <span class="visually-hidden">{matched() ? "Matched " : ""}Line {lineNumber()}: </span>
+          <span class="line-content">{line || " "}</span>
+        </span>
+      );
+    }}</For></code></pre>
+  );
+}
+
 function FindingDisclosure(props: FindingView) {
   return (
     <article class="finding-entry">
@@ -153,7 +175,7 @@ function FindingDisclosure(props: FindingView) {
       <details class="finding-disclosure">
         <summary>Source and guidance</summary>
         <h4>Source context</h4>
-        <pre class="source-snippet"><code>{props.snippet}</code></pre>
+        <SourceCode snippet={props.snippet} />
         {props.details}
       </details>
     </article>

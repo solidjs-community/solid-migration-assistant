@@ -13,6 +13,8 @@ export const DASHBOARD_REPORT_STATE_KEY = "solid-migration-assistant-dashboard-r
 export type SourceSnippet = {
   readonly startLine: number;
   readonly endLine: number;
+  readonly matchStartLine: number;
+  readonly matchEndLine: number;
   readonly text: string;
 };
 

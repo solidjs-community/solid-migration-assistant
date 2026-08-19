@@ -72,6 +72,9 @@ Guidance:${formGuidance} Make and validate that edit yourself; this analyzer nev
       throw new Error("web import report must expose structured guidance fields only");
     }
     if (formatWebImportGuidance(finding) !== guidance[index]) throw new Error("web import terminal guidance drifted from its report contract");
+    if (finding.snippet.matchStartLine !== finding.line || finding.snippet.matchEndLine < finding.snippet.matchStartLine || finding.snippet.matchEndLine > finding.snippet.endLine) {
+      throw new Error("snippet must carry the AST match line range");
+    }
     if (!finding.snippet.text.includes("solid-js") || !finding.snippet.text.includes("web")) throw new Error("web import snippet must contain the matched source");
     if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
       throw new Error(`snippet must start one complete line before ${finding.line}`);

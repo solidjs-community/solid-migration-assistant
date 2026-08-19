@@ -19,7 +19,7 @@ export const componentRenamesSlice = defineRuleSlice<ComponentRenamesReport>({
       filename: finding.filename,
       location: formatFindingLocation(finding.filename, finding.line, finding.column),
       label: <><code>{finding.legacyName}</code> → <code>{finding.replacement}</code></>,
-      snippet: finding.snippet.text,
+      snippet: finding.snippet,
       editorTarget: {
         analyzedTargetRoot: props.run.analyzedTargetRoot,
         filename: finding.filename,

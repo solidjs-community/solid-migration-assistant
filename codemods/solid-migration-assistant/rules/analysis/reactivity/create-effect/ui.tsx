@@ -19,7 +19,7 @@ export const createEffectSlice = defineRuleSlice<CreateEffectReport>({
       filename: finding.filename,
       location: formatFindingLocation(finding.filename, finding.line, finding.column),
       label: `${finding.argumentCount} positional ${finding.argumentCount === 1 ? "argument" : "arguments"}`,
-      snippet: finding.snippet.text,
+      snippet: finding.snippet,
       editorTarget: {
         analyzedTargetRoot: props.run.analyzedTargetRoot,
         filename: finding.filename,

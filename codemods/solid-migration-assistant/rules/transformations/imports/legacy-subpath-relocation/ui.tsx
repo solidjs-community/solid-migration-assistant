@@ -22,7 +22,7 @@ export const legacySubpathRelocationSlice =
           filename: finding.filename,
           location: formatFindingLocation(finding.filename, finding.line, finding.column),
           label: <><code>{finding.sourceModule}</code> → <code>{finding.replacementModule}</code> ({finding.form})</>,
-          snippet: finding.snippet.text,
+          snippet: finding.snippet,
           editorTarget: {
         analyzedTargetRoot: props.run.analyzedTargetRoot,
         filename: finding.filename,

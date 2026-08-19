@@ -407,6 +407,10 @@ test("keeps direct editor and copy utility actions keyboard-native", () => {
   assert.match(app, /idleLabel="Copy root"/);
   assert.match(copyButton, /<button/);
   assert.match(styles, /overflow-wrap: anywhere/);
+  assert.match(findings, /matchStartLine/);
+  assert.match(findings, /class="line-number"/);
+  assert.match(styles, /overflow-x: auto/);
+  assert.match(styles, /white-space: pre/);
 });
 
 test("keeps project report aggregation opaque in the workflow runner", () => {
