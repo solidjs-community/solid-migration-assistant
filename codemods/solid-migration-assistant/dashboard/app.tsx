@@ -7,6 +7,7 @@ import type {
   RuleSliceDescriptor,
 } from "../shared/report.ts";
 import { applyTheme, oppositeTheme, preferredTheme, type Theme } from "./theme.ts";
+import { CopyButton } from "./copy-button.tsx";
 
 export function createDashboardRouter(
   envelope: ReportEnvelope,
@@ -187,7 +188,11 @@ export function Shell(props: {
         <div class="report-identity">
           <p class="eyebrow">Solid 2 migration assistant</p>
           <h1><InternalLink href="/">Migration report</InternalLink></h1>
-          <p class="target-root"><span>Analyzed target</span><code>{props.analyzedTargetRoot}</code></p>
+          <div class="target-root">
+            <span>Analyzed target</span>
+            <code>{props.analyzedTargetRoot}</code>
+            <CopyButton class="copy-root" value={props.analyzedTargetRoot} idleLabel="Copy root" />
+          </div>
         </div>
         <div class="header-actions">
           <span class="run-badge">Single run</span>

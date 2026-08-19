@@ -396,6 +396,19 @@ test("colocates contracts and Solid renderers only for selected pilot slices", (
   assert.equal(ruleFiles(transformationsDirectory, (name) => name === "ui.tsx").length, 1);
 });
 
+test("keeps direct editor and copy utility actions keyboard-native", () => {
+  const app = readFileSync(resolve(packageDirectory, "dashboard/app.tsx"), "utf8");
+  const findings = readFileSync(resolve(packageDirectory, "dashboard/finding-ui.tsx"), "utf8");
+  const copyButton = readFileSync(resolve(packageDirectory, "dashboard/copy-button.tsx"), "utf8");
+  const styles = readFileSync(resolve(packageDirectory, "dashboard/styles.css"), "utf8");
+  assert.match(findings, /class="open-editor"/);
+  assert.match(findings, /class="overflow-actions"/);
+  assert.match(findings, /idleLabel="Copy location"/);
+  assert.match(app, /idleLabel="Copy root"/);
+  assert.match(copyButton, /<button/);
+  assert.match(styles, /overflow-wrap: anywhere/);
+});
+
 test("keeps project report aggregation opaque in the workflow runner", () => {
   const analyzer = readFileSync(resolve(packageDirectory, "scripts/analyze.ts"), "utf8");
   assert.match(analyzer, /aggregateRuleReports\(reports/);

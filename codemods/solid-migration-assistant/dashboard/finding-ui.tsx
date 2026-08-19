@@ -1,6 +1,6 @@
 import type { JSX } from "@solidjs/web";
 import { useLocation } from "@solidjs/router";
-import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import {
   createEditorActions,
   filterFindings,
@@ -8,6 +8,7 @@ import {
   paginateFindings,
   type EditorTarget,
 } from "./finding-model.ts";
+import { CopyButton } from "./copy-button.tsx";
 
 export type FindingView = {
   readonly filename: string;
@@ -160,51 +161,26 @@ function FindingDisclosure(props: FindingView) {
 }
 
 function EditorActionMenu(props: { readonly target: EditorTarget }) {
+  const actions = createEditorActions(props.target);
+  const primaryAction = actions[0]!;
   return (
-    <details class="editor-actions">
-      <summary>Open in editor</summary>
-      <ul>
-        <For each={createEditorActions(props.target)}>
-          {(action) => <li><a href={action.href}>Open in {action.label}</a></li>}
-        </For>
-        <li><CopyLocationButton location={formatFindingLocation(props.target.filename, props.target.line, props.target.column)} /></li>
-      </ul>
-    </details>
+    <div class="finding-actions">
+      <a class="open-editor" href={primaryAction.href}>Open in VS Code</a>
+      <details class="overflow-actions">
+        <summary aria-label="More finding actions"><span aria-hidden="true">•••</span></summary>
+        <ul>
+          <For each={actions.slice(1)}>
+            {(action) => <li><a href={action.href}>Open in {action.label}</a></li>}
+          </For>
+          <li>
+            <CopyButton
+              class="copy-location"
+              value={formatFindingLocation(props.target.filename, props.target.line, props.target.column)}
+              idleLabel="Copy location"
+            />
+          </li>
+        </ul>
+      </details>
+    </div>
   );
-}
-
-function CopyLocationButton(props: { readonly location: string }) {
-  const [status, setStatus] = createSignal<"idle" | "copied" | "failed">("idle");
-  let resetTimer: ReturnType<typeof setTimeout> | undefined;
-  onCleanup(() => { if (resetTimer !== undefined) clearTimeout(resetTimer); });
-  async function copyLocation() {
-    try {
-      await copyText(props.location);
-      setStatus("copied");
-    } catch {
-      setStatus("failed");
-    }
-    if (resetTimer !== undefined) clearTimeout(resetTimer);
-    resetTimer = setTimeout(() => setStatus("idle"), 1_500);
-  }
-  const label = () => status() === "copied" ? "Copied" : status() === "failed" ? "Copy failed" : "Copy location";
-  return <button class="copy-location" type="button" onClick={copyLocation} aria-live="polite">{label()}</button>;
-}
-
-async function copyText(value: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(value);
-    return;
-  } catch {
-    const textarea = document.createElement("textarea");
-    textarea.value = value;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.append(textarea);
-    textarea.select();
-    const copied = document.execCommand("copy");
-    textarea.remove();
-    if (!copied) throw new Error("Could not copy the location.");
-  }
 }
