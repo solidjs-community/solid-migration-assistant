@@ -1,6 +1,6 @@
 # Solid Migration Assistant
 
-This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths.
+This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; without an explicit report option it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths.
 
 The migration target is pinned to Solid `2.0.0-rc.0` at upstream commit [`ff4d3c44`](https://github.com/solidjs/solid/tree/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5).
 
@@ -21,6 +21,20 @@ The current directory is the default target. An explicit target may be absolute 
 ```sh
 npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
 ```
+
+### Portable pilot report
+
+Add `--report FILE` to keep all current terminal guidance and also write one portable, hash-routed HTML report for that immutable run:
+
+```sh
+npx --yes solid-migration-assistant@latest --target . --report migration-report.html
+```
+
+The pilot dashboard includes only `web-import`, `component-renames`, `create-effect`, and the read-only `legacy-subpath-relocation` edit preview. Other supported rules remain terminal-only; their absence from the dashboard is not a clean result or a full-migration claim. The preview proposes safe relocation edits but never applies them during analysis.
+
+The command refuses an existing destination. Add `--force` to replace it atomically. It never launches a browser unless `--open` is also supplied. Every generated HTML embeds project source—the complete matched line range plus one complete line before and after—and the absolute analyzed target path used by editor links. Treat and share the report as project source and local machine metadata. VS Code actions use that fixed generation-time path; if the project is moved or the report is opened on another machine, those links will not point at the project copy there.
+
+The dashboard starts in the current operating-system light or dark preference. Its accessible theme switch changes only the open page; the choice is not stored, so reload and reopen return to the current system preference. Each finding offers a direct VS Code deep link and a small extensible overflow menu with a portable `relative/path:line:column` copy fallback. The header’s wrapped target-root utility row also copies the fixed absolute analyzed root.
 
 A run with detections exits successfully. Complete opaque guidance strings are exact-deduplicated, sorted lexically as whole strings, and printed once to standard output as a terminal aggregate. The Codemod runtime's progress lines and the final disclosure are written to standard error. To capture the findings in a file, redirect standard output: `npx --yes solid-migration-assistant@latest --target . > report.txt`; to also capture progress and the disclosure, redirect both streams: `npx --yes solid-migration-assistant@latest --target . > report.txt 2>&1`. The analyzer does not edit the target or create persistent output there, and Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 

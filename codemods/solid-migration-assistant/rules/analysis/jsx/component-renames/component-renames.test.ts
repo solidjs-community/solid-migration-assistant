@@ -1,6 +1,7 @@
 import type { Codemod } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 import { analyzeJsxComponentRenames } from "./component-renames.ts";
+import { formatComponentRenameGuidance } from "./report.ts";
 
 const SUSPENSE_BOUNDARY_GUIDE =
   "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#suspense--errorboundary--loading--errored";
@@ -11,7 +12,7 @@ const SUSPENSE_LIST_GUIDE =
 
 const testJsxComponentRenames: Codemod<TSX> = async (root) => {
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const guidance = analyzeJsxComponentRenames(root.root(), {
+  const { guidance, report } = analyzeJsxComponentRenames(root.root(), {
     filename: "ignored-context-filename.tsx",
   });
   const expected = [
@@ -45,6 +46,24 @@ Guidance: Read the complete list site, its each value, child callback, props, an
   }
   if (guidance.some((entry) => !entry.includes("Manual review required"))) {
     throw new Error("every JSX component finding must require manual review");
+  }
+
+
+  for (const [index, finding] of report.findings.entries()) {
+    if ("guidance" in finding || !finding.summary || !finding.reason || finding.nextSteps.length === 0 || finding.cautions.length === 0 || !finding.officialGuideUrl) {
+      throw new Error("component report must expose structured guidance and stop conditions");
+    }
+    if (formatComponentRenameGuidance(finding) !== guidance[index]) throw new Error("component terminal guidance drifted from its report contract");
+    if (finding.snippet.matchStartLine !== finding.line || finding.snippet.matchEndLine < finding.snippet.matchStartLine || finding.snippet.matchEndLine > finding.snippet.endLine) {
+      throw new Error("snippet must carry the AST match line range");
+    }
+    if (!finding.snippet.text.includes(finding.legacyName)) throw new Error("component snippet must contain the matched element");
+    if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
+      throw new Error(`snippet must start one complete line before ${finding.line}`);
+    }
+    if (finding.snippet.endLine < finding.line || finding.snippet.text.split("\n").length !== finding.snippet.endLine - finding.snippet.startLine + 1) {
+      throw new Error(`snippet must include the full match and complete line bounds at ${finding.line}`);
+    }
   }
 
   return null;

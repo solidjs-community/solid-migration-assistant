@@ -1,8 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { renderReportHtml, writeReportAtomically } from "./report-artifact.mjs";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -21,36 +23,46 @@ Analyzer: ${packageMetadata.name}@${packageMetadata.version}
 Reviewed migration destination: ${SOLID_TARGET} (source commit ${SOLID_SOURCE_COMMIT})
 Immutable migration guide: ${MIGRATION_GUIDE}
 Scope: This source-only analyzer covers project-owned .js, .jsx, .ts, and .tsx source. Coverage is incomplete and advisory, makes no migration-readiness claim, and supports only the exact destination above; other Solid versions are unsupported.
-Execution: Read-only. The analyzer does not run target typechecks, builds, tests, scripts, or applications and creates no target report.
-Privacy and output: Analyzer telemetry is disabled and no analyzer telemetry or generated report is emitted. Codemod may retain normal workflow or task state outside the target in platform user-data directories; consult Codemod's privacy and state behavior.
+Execution: Read-only. The analyzer does not run target typechecks, builds, tests, scripts, or applications and creates no target report unless the user explicitly requests one with --report FILE.
+Privacy and output: Analyzer telemetry is disabled; a generated report is emitted only when explicitly requested with --report FILE. Every generated HTML contains bounded project source snippets and the absolute analyzed target path; treat and share it as project source and local machine metadata. Codemod may retain normal workflow or task state outside the target in platform user-data directories; consult Codemod's privacy and state behavior.
 Feedback: ${FEEDBACK_URL}
 [solid-migration-assistant] End final disclosure`;
 
 export class CliUsageError extends Error {}
 
-export function parseTarget(argumentsList) {
-  let target = ".";
-  let hasExplicitTarget = false;
+export function parseArguments(argumentsList) {
+  const options = { target: ".", report: null, force: false, open: false };
+  const seen = new Set();
 
   for (let index = 0; index < argumentsList.length; index += 1) {
     const argument = argumentsList[index];
-    if (argument !== "--target") {
-      throw new CliUsageError(`unknown argument: ${argument}`);
+    if (argument === "--target" || argument === "--report") {
+      if (seen.has(argument)) throw new CliUsageError(`${argument} may only be specified once`);
+      const value = argumentsList[index + 1];
+      if (!value || value.startsWith("--")) throw new CliUsageError(`${argument} requires a value`);
+      seen.add(argument);
+      if (argument === "--target") options.target = value;
+      else options.report = value;
+      index += 1;
+      continue;
     }
-    if (hasExplicitTarget) {
-      throw new CliUsageError("--target may only be specified once");
+    if (argument === "--force" || argument === "--open") {
+      if (seen.has(argument)) throw new CliUsageError(`${argument} may only be specified once`);
+      seen.add(argument);
+      if (argument === "--force") options.force = true;
+      else options.open = true;
+      continue;
     }
-
-    const value = argumentsList[index + 1];
-    if (!value || value.startsWith("--")) {
-      throw new CliUsageError("--target requires a value");
-    }
-    target = value;
-    hasExplicitTarget = true;
-    index += 1;
+    throw new CliUsageError(`unknown argument: ${argument}`);
   }
 
-  return target;
+  if (options.force && options.report === null) throw new CliUsageError("--force requires --report FILE");
+  if (options.open && options.report === null) throw new CliUsageError("--open requires --report FILE");
+  return options;
+}
+
+export function parseTarget(argumentsList) {
+  return parseArguments(argumentsList).target;
 }
 
 export function resolveCodemodLauncher() {
@@ -71,28 +83,66 @@ export function buildCodemodArguments(target) {
   ];
 }
 
-export function runCodemod(target, { spawnImpl = spawnSync } = {}) {
-  return spawnImpl(
+export function runCodemod(
+  target,
+  { reportDataFile, spawnImpl = spawnSync } = {},
+) {
+  const reportMode = Boolean(reportDataFile);
+  const result = spawnImpl(
     process.execPath,
     [resolveCodemodLauncher(), ...buildCodemodArguments(target)],
     {
       cwd: packageDirectory,
-      // Codemod routes all workflow step console output to its stderr and its
-      // progress envelope to stdout. Swap the child's fds so the guidance (the
-      // product) reaches our stdout while progress stays on our stderr.
-      stdio: [0, 2, 1],
+      // Codemod routes workflow output to stderr and progress to stdout.
+      // Default mode swaps those descriptors without buffering. Report mode
+      // captures both only long enough to remove the private data envelope,
+      // then forwards every existing terminal byte to the same destination.
+      stdio: reportMode ? [0, "pipe", "pipe"] : [0, 2, 1],
+      ...(reportMode
+        ? {
+            encoding: "utf8",
+            maxBuffer: 100 * 1024 * 1024,
+            env: { ...process.env, SOLID_MIGRATION_REPORT_MODE: "1" },
+          }
+        : {}),
     },
   );
+
+  if (reportMode) {
+    const { output, reportData } = extractReportData(result.stderr ?? "");
+    if (output) process.stdout.write(output);
+    if (result.stdout) process.stderr.write(result.stdout);
+    if (reportData !== null) writeFileSync(reportDataFile, reportData, { encoding: "utf8", flag: "wx" });
+  }
+  return result;
+}
+
+export function extractReportData(output) {
+  const prefix = "__SOLID_MIGRATION_REPORT_DATA__";
+  let reportData = null;
+  const terminalLines = [];
+  for (const line of output.split(/(?<=\n)/)) {
+    const marker = line.indexOf(prefix);
+    if (marker < 0) {
+      terminalLines.push(line);
+      continue;
+    }
+    if (reportData !== null) throw new Error("workflow emitted report data more than once");
+    reportData = line.slice(marker + prefix.length).trimEnd();
+    const before = line.slice(0, marker);
+    if (before.trim()) terminalLines.push(before.endsWith("\n") ? before : `${before}\n`);
+  }
+  return { output: terminalLines.join(""), reportData };
 }
 
 export function main(
   argumentsList = process.argv.slice(2),
-  { cwd, runImpl = runCodemod } = {},
+  { cwd, runImpl = runCodemod, openImpl = openReport } = {},
 ) {
   let status = 1;
 
   try {
-    status = run(argumentsList, cwd ?? process.cwd(), runImpl);
+    status = run(argumentsList, cwd ?? process.cwd(), runImpl, openImpl);
   } catch (error) {
     console.error(
       `[solid-migration-assistant] analyzer execution failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -104,35 +154,72 @@ export function main(
   return status;
 }
 
-function run(argumentsList, invocationDirectory, runImpl) {
-  let targetArgument;
+function run(argumentsList, invocationDirectory, runImpl, openImpl) {
+  let options;
   try {
-    targetArgument = parseTarget(argumentsList);
+    options = parseArguments(argumentsList);
   } catch (error) {
     if (error instanceof CliUsageError) return fail(error.message);
     throw error;
   }
 
-  const target = resolve(invocationDirectory, targetArgument);
+  const target = resolve(invocationDirectory, options.target);
   try {
-    if (!statSync(target).isDirectory()) {
-      return fail(`target is not a directory: ${target}`);
-    }
+    if (!statSync(target).isDirectory()) return fail(`target is not a directory: ${target}`);
   } catch (error) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return fail(`target does not exist: ${target}`);
     }
     throw error;
   }
 
-  const result = runImpl(target);
+  if (options.report === null) {
+    const result = runImpl(target);
+    if (result.error) throw result.error;
+    return result.status ?? 1;
+  }
+
+  const reportPath = resolve(invocationDirectory, options.report);
+  if (existsSync(reportPath) && !options.force) {
+    return fail(`report already exists (use --force to replace it): ${reportPath}`);
+  }
+  if (existsSync(reportPath) && !statSync(reportPath).isFile()) {
+    return fail(`report path is not a file: ${reportPath}`);
+  }
+
+  const dataDirectory = mkdtempSync(join(tmpdir(), "solid-migration-report-data-"));
+  const reportDataFile = join(dataDirectory, "report.json");
+  try {
+    const result = runImpl(target, { reportDataFile });
+    if (result.error) throw result.error;
+    const status = result.status ?? 1;
+    if (status !== 0) return status;
+
+    const template = readFileSync(resolve(packageDirectory, "assets/dashboard/index.html"), "utf8");
+    const reportData = readFileSync(reportDataFile, "utf8");
+    const html = renderReportHtml(template, reportData, { analyzedTargetRoot: target });
+    try {
+      writeReportAtomically(reportPath, html, { force: options.force });
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "EEXIST") {
+        return fail(`report already exists (use --force to replace it): ${reportPath}`);
+      }
+      throw error;
+    }
+    if (options.open) openImpl(reportPath);
+    return 0;
+  } finally {
+    rmSync(dataDirectory, { recursive: true, force: true });
+  }
+}
+
+export function openReport(path, { spawnImpl = spawnSync, platform = process.platform } = {}) {
+  const command = platform === "darwin" ? ["open", [path]]
+    : platform === "win32" ? ["cmd", ["/c", "start", "", path]]
+      : ["xdg-open", [path]];
+  const result = spawnImpl(command[0], command[1], { stdio: "ignore" });
   if (result.error) throw result.error;
-  return result.status ?? 1;
+  if (result.status !== 0) throw new Error(`browser launcher exited with status ${String(result.status)}`);
 }
 
 function fail(message) {

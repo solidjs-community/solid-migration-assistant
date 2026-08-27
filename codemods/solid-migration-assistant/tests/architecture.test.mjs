@@ -160,7 +160,6 @@ test("ships read-only analyze and deterministic transform workflows", () => {
 
   for (const path of [
     "scripts/write-report.ts",
-    "shared/report.ts",
     "shared/report-path.ts",
     "workflow.transform.yaml",
   ]) {
@@ -307,7 +306,8 @@ test("registers every supported detector and one deterministic emitter", () => {
     "utf8",
   );
   assert.doesNotMatch(analysis, /compareGuidance|guidanceLocation|siteGuidance/);
-  assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 1);
+  assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 2);
+  assert.match(emitter, /__SOLID_MIGRATION_REPORT_DATA__/);
 });
 
 test("exposes analyze and transform workflows", () => {
@@ -335,7 +335,7 @@ test("exposes analyze and transform workflows", () => {
 test("colocates exact analysis rule production, adapters, and fixtures", () => {
   assert.deepEqual(directRuleFolders(analysisDirectory), EXPECTED_ANALYSIS_FOLDERS);
   assert.deepEqual(
-    ruleFiles(analysisDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+    ruleFiles(analysisDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts") && name !== "report.ts"),
     EXPECTED_ANALYSIS_PRODUCTION,
   );
   assert.deepEqual(
@@ -355,7 +355,7 @@ test("colocates exact transformation rule production, adapters, and fixtures", (
     EXPECTED_TRANSFORM_FOLDERS,
   );
   assert.deepEqual(
-    ruleFiles(transformationsDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+    ruleFiles(transformationsDirectory, (name) => name.endsWith(".ts") && !name.endsWith(".test.ts") && name !== "report.ts"),
     EXPECTED_TRANSFORM_PRODUCTION,
   );
   assert.deepEqual(
@@ -371,6 +371,54 @@ test("colocates exact transformation rule production, adapters, and fixtures", (
   });
 });
 
+test("colocates contracts and Solid renderers only for selected pilot slices", () => {
+  const pilots = [
+    [analysisDirectory, "imports/web-import"],
+    [analysisDirectory, "jsx/component-renames"],
+    [analysisDirectory, "reactivity/create-effect"],
+    [transformationsDirectory, "imports/legacy-subpath-relocation"],
+  ];
+  for (const [directory, folder] of pilots) {
+    assert.equal(existsSync(resolve(directory, folder, "report.ts")), true, folder);
+    assert.equal(existsSync(resolve(directory, folder, "ui.tsx")), true, folder);
+    const reportSource = readFileSync(resolve(directory, folder, "report.ts"), "utf8");
+    const uiSource = readFileSync(resolve(directory, folder, "ui.tsx"), "utf8");
+    assert.match(reportSource, /summary: string/);
+    assert.match(reportSource, /reason: string/);
+    assert.match(reportSource, /nextSteps: readonly string\[\]/);
+    assert.match(reportSource, /officialGuideUrl: string/);
+    assert.doesNotMatch(reportSource, /guidance: string/);
+    assert.match(uiSource, /GuidanceSections/);
+    assert.match(uiSource, /summary=\{finding\.summary\}/);
+    assert.doesNotMatch(uiSource, /finding\.guidance|\.split\(/);
+  }
+  assert.equal(ruleFiles(analysisDirectory, (name) => name === "ui.tsx").length, 3);
+  assert.equal(ruleFiles(transformationsDirectory, (name) => name === "ui.tsx").length, 1);
+});
+
+test("keeps direct editor and copy utility actions keyboard-native", () => {
+  const app = readFileSync(resolve(packageDirectory, "dashboard/app.tsx"), "utf8");
+  const findings = readFileSync(resolve(packageDirectory, "dashboard/finding-ui.tsx"), "utf8");
+  const copyButton = readFileSync(resolve(packageDirectory, "dashboard/copy-button.tsx"), "utf8");
+  const styles = readFileSync(resolve(packageDirectory, "dashboard/styles.css"), "utf8");
+  assert.match(findings, /class="open-editor"/);
+  assert.match(findings, /class="overflow-actions"/);
+  assert.match(findings, /idleLabel="Copy location"/);
+  assert.match(app, /idleLabel="Copy root"/);
+  assert.match(copyButton, /<button/);
+  assert.match(styles, /overflow-wrap: anywhere/);
+  assert.match(findings, /matchStartLine/);
+  assert.match(findings, /class="line-number"/);
+  assert.match(styles, /overflow-x: auto/);
+  assert.match(styles, /white-space: pre/);
+});
+
+test("keeps project report aggregation opaque in the workflow runner", () => {
+  const analyzer = readFileSync(resolve(packageDirectory, "scripts/analyze.ts"), "utf8");
+  assert.match(analyzer, /aggregateRuleReports\(reports/);
+  assert.doesNotMatch(analyzer, /\.findings|\.snippet/);
+});
+
 test("uses normal analyzer end-to-end fixtures", () => {
   assert.deepEqual(readdirSync(testsDirectory).sort(), [
     "architecture.test.mjs",
@@ -378,6 +426,7 @@ test("uses normal analyzer end-to-end fixtures", () => {
     "empty",
     "fixture",
     "packaging.test.mjs",
+    "report.test.mjs",
     "rules.test.mjs",
     "transform-expected",
     "transform-fixture",
@@ -469,7 +518,7 @@ function assertRuleLayout(
     );
     assert.deepEqual(
       files.filter(
-        (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
+        (name) => name.endsWith(".ts") && !name.endsWith(".test.ts") && name !== "report.ts",
       ),
       [`${ruleName}.ts`],
       folder,

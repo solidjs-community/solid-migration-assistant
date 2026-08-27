@@ -2,7 +2,7 @@
 
 Solid Migration Assistant is an experimental Solid 1.9 → Solid 2 migration assistant targeting Solid `2.0.0-rc.0`. It ships two workflows: a read-only `analyze` workflow that prints guidance for supported migration sites, and a deterministic `transform` workflow that relocates a small, pure subset of legacy import subpaths.
 
-The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed to standard output; the Codemod runtime's progress lines and the final disclosure are written to standard error. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
+The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed to standard output; the Codemod runtime's progress lines and the final disclosure are written to standard error. The analyzer never edits the target and generates no artifact unless `--report FILE` is explicitly supplied. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 
 ## Run the RC analyzer and transform
 
@@ -21,6 +21,14 @@ The current directory is analyzed by default. To analyze another directory:
 ```sh
 npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
 ```
+
+To keep the same terminal guidance and also write the selected-rule pilot dashboard:
+
+```sh
+npx --yes solid-migration-assistant@latest --target . --report migration-report.html
+```
+
+The portable HTML covers `web-import`, `component-renames`, `create-effect`, and read-only legacy-subpath relocation previews. It contains the full matched source line range plus one complete context line before and after every finding. Treat it as project source. Existing files are refused unless `--force` is explicit; browsers open only with `--open`.
 
 The supported rules detect the complete Solid 2 RC migration quick rename / removal map:
 

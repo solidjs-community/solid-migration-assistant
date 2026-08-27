@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -8,6 +8,8 @@ import {
   buildCodemodArguments,
   DISCLOSURE,
   main,
+  openReport,
+  parseArguments,
   parseTarget,
   resolveCodemodLauncher,
   runCodemod,
@@ -19,6 +21,12 @@ const require = createRequire(import.meta.url);
 test("defaults the target to the invocation directory", () => {
   assert.equal(parseTarget([]), ".");
   assert.equal(parseTarget(["--target", "project"]), "project");
+  assert.deepEqual(parseArguments(["--report", "report.html", "--open", "--force"]), {
+    target: ".",
+    report: "report.html",
+    force: true,
+    open: true,
+  });
 });
 
 test("rejects unknown, missing, and duplicate options", () => {
@@ -32,6 +40,9 @@ test("rejects unknown, missing, and duplicate options", () => {
     () => parseTarget(["--target", "first", "--target", "second"]),
     /--target may only be specified once/,
   );
+  assert.throws(() => parseArguments(["--report"]), /--report requires a value/);
+  assert.throws(() => parseArguments(["--force"]), /--force requires --report FILE/);
+  assert.throws(() => parseArguments(["--open"]), /--open requires --report FILE/);
 });
 
 test("runs the pinned package-local Codemod launcher with safe flags", () => {
@@ -126,7 +137,8 @@ test("publishes exact immutable public-preview disclosure", () => {
     DISCLOSURE,
     /only the exact destination above; other Solid versions are unsupported/,
   );
-  assert.match(DISCLOSURE, /no analyzer telemetry or generated report/);
+  assert.match(DISCLOSURE, /generated report is emitted only when explicitly requested/);
+  assert.match(DISCLOSURE, /Every generated HTML contains bounded project source snippets/);
   assert.match(DISCLOSURE, /Codemod may retain normal workflow or task state/);
   assert.match(DISCLOSURE, /github\.com\/solidjs\/solid\/blob\/ff4d3c44/);
   assert.match(
@@ -159,6 +171,78 @@ test("ends successful, nonzero, and thrown engine invocations with disclosure", 
     DISCLOSURE,
   ]);
   assertFinalDisclosure(thrown.diagnostics);
+});
+
+test("writes report only when explicitly requested and launches only with --open", () => {
+  const surface = mkdtempSync(join(tmpdir(), "sma-cli-report-test-"));
+  const report = join(surface, "migration.html");
+  let opened = null;
+  try {
+    const noFlag = captureMain([], {
+      cwd: surface,
+      runImpl: (...args) => {
+        assert.equal(args.length, 1);
+        return { status: 0 };
+      },
+      openImpl: () => assert.fail("default run must not open a browser"),
+    });
+    assert.equal(noFlag.status, 0);
+    assert.equal(existsSync(report), false);
+
+    const generated = captureMain(["--report", report, "--open"], {
+      cwd: surface,
+      runImpl: (_target, { reportDataFile }) => {
+        writeFileSync(reportDataFile, '{"schemaVersion":1,"reports":{}}');
+        return { status: 0 };
+      },
+      openImpl: (path) => { opened = path; },
+    });
+    assert.equal(generated.status, 0);
+    assert.equal(opened, report);
+    const html = readFileSync(report, "utf8");
+    assert.match(html, /solid-migration-report-data/);
+    assert.match(html, /"schemaVersion":1/);
+    assert.match(html, new RegExp(`"analyzedTargetRoot":"${surface.replaceAll("\\", "\\\\")}"`));
+  } finally {
+    rmSync(surface, { recursive: true, force: true });
+  }
+});
+
+test("refuses report collisions unless --force is explicit", () => {
+  const surface = mkdtempSync(join(tmpdir(), "sma-cli-collision-test-"));
+  const report = join(surface, "migration.html");
+  writeFileSync(report, "old");
+  try {
+    const refused = captureMain(["--report", report], {
+      cwd: surface,
+      runImpl: () => assert.fail("collision must be rejected before analysis"),
+    });
+    assert.equal(refused.status, 2);
+    assert.equal(readFileSync(report, "utf8"), "old");
+
+    const replaced = captureMain(["--report", report, "--force"], {
+      cwd: surface,
+      runImpl: (_target, { reportDataFile }) => {
+        writeFileSync(reportDataFile, '{"schemaVersion":1,"reports":{}}');
+        return { status: 0 };
+      },
+    });
+    assert.equal(replaced.status, 0);
+    assert.notEqual(readFileSync(report, "utf8"), "old");
+  } finally {
+    rmSync(surface, { recursive: true, force: true });
+  }
+});
+
+test("uses platform browser launchers", () => {
+  const invocations = [];
+  for (const [platform, executable] of [["darwin", "open"], ["linux", "xdg-open"], ["win32", "cmd"]]) {
+    openReport("/tmp/report.html", {
+      platform,
+      spawnImpl: (...args) => { invocations.push(args); return { status: 0 }; },
+    });
+    assert.equal(invocations.at(-1)[0], executable);
+  }
 });
 
 test("ends usage and target failures with disclosure", () => {

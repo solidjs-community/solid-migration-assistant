@@ -4,6 +4,7 @@ import {
   relocateLegacySubpaths,
   TRANSFORM_MIGRATION_GUIDE,
 } from "./legacy-subpath-relocation.ts";
+import { formatLegacySubpathRelocationGuidance } from "./report.ts";
 
 type FixtureCase = {
   relocations: ReadonlyArray<{
@@ -134,7 +135,7 @@ const testLegacySubpathRelocation: Codemod<TSX> = async (root) => {
     throw new Error(`unknown fixture marker: ${marker}`);
   }
 
-  const relocations = relocateLegacySubpaths(rootNode, filename);
+  const { edits, report } = relocateLegacySubpaths(rootNode, filename);
 
   const expected = fixtureCase.relocations
     .map(({ location, from, to }) =>
@@ -142,14 +143,30 @@ const testLegacySubpathRelocation: Codemod<TSX> = async (root) => {
     )
     .sort();
 
-  const actual = relocations.map(({ report }) => report).sort();
+  if (report.findings.some((finding) => "guidance" in finding || !finding.summary || !finding.reason || finding.nextSteps.length === 0 || !finding.officialGuideUrl)) {
+    throw new Error("relocation report must expose structured guidance fields only");
+  }
+  if (report.findings.some((finding) => finding.snippet.matchStartLine !== finding.line || finding.snippet.matchEndLine < finding.snippet.matchStartLine || finding.snippet.matchEndLine > finding.snippet.endLine)) {
+    throw new Error("relocation snippets must carry AST match line ranges");
+  }
+  const actual = report.findings.map(formatLegacySubpathRelocationGuidance).sort();
   if (actual.join("\n") !== expected.join("\n")) {
     throw new Error(
       `unexpected relocation report for ${marker}:\n${actual.join("\n")}\nExpected:\n${expected.join("\n")}`,
     );
   }
 
-  const transformed = rootNode.commitEdits(relocations.map(({ edit }) => edit));
+  for (const finding of report.findings) {
+    if (!finding.snippet.text.includes("solid-js")) throw new Error("relocation snippet must contain the matched module");
+    if (finding.snippet.startLine !== Math.max(1, finding.line - 1)) {
+      throw new Error(`snippet must start one complete line before ${finding.line}`);
+    }
+    if (finding.snippet.endLine < finding.line || finding.snippet.text.split("\n").length !== finding.snippet.endLine - finding.snippet.startLine + 1) {
+      throw new Error(`snippet must include the full match and complete line bounds at ${finding.line}`);
+    }
+  }
+
+  const transformed = rootNode.commitEdits(edits);
   const expectedTransformed = fixtureCase.transformed ?? source;
   if (transformed !== expectedTransformed) {
     throw new Error(
