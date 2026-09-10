@@ -7,9 +7,41 @@ nodes:
     name: Apply the deterministic Solid 2 source rewrites
     type: automatic
     steps:
-      - name: Rewrite pure legacy subpath sources, proven solid-js/web sources, and safe intrinsic JSX classList attributes
+      - name: relocateLegacySubpaths
         js-ast-grep:
-          js_file: scripts/transform.ts
+          js_file: scripts/transformations/relocateLegacySubpaths.ts
+          base_path: "."
+          language: "tsx"
+          include:
+            - "**/*.js"
+            - "**/*.jsx"
+            - "**/*.ts"
+            - "**/*.tsx"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"
+            - "**/coverage/**"
+            - "**/*.d.ts"
+      - name: relocateWebPackage
+        js-ast-grep:
+          js_file: scripts/transformations/relocateWebPackage.ts
+          base_path: "."
+          language: "tsx"
+          include:
+            - "**/*.js"
+            - "**/*.jsx"
+            - "**/*.ts"
+            - "**/*.tsx"
+          exclude:
+            - "**/node_modules/**"
+            - "**/dist/**"
+            - "**/build/**"
+            - "**/coverage/**"
+            - "**/*.d.ts"
+      - name: rewriteClassListToClass
+        js-ast-grep:
+          js_file: scripts/transformations/rewriteClassListToClass.ts
           base_path: "."
           language: "tsx"
           include:

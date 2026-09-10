@@ -2,7 +2,7 @@
 
 Solid Migration Assistant is an experimental Solid 1.9 → Solid 2 migration assistant targeting Solid `2.0.0-rc.0`. It ships two workflows: a read-only `analyze` workflow that prints guidance for supported migration sites, and a deterministic `transform` workflow that relocates a small, pure subset of legacy import subpaths, relocates `solid-js/web` statements whose complete named binding set is proven compatible, and renames the provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
 
-The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed to standard output; the Codemod runtime's progress lines and the final disclosure are written to standard error. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
+The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Each of the 37 named analyzers is a separate JSSG entrypoint and sequential workflow step; the workflow is the only production composition layer. Guidance is accumulated across those steps, sorted deterministically, and printed to standard output; the Codemod runtime's progress lines and the final disclosure are written to standard error. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 
 ## Run the RC analyzer and transform
 
@@ -32,7 +32,7 @@ Coverage is deliberately limited. Even when no guidance is printed, review the d
 
 ## Transform
 
-The opt-in `transform` workflow applies three deterministic rewrites in place and changes nothing else. The rules run over the same file in one pass; their edits are ordered by source position and proven non-overlapping before anything is written, so no rule can observe or clobber another's output.
+The opt-in `transform` workflow applies three deterministic rewrites in place and changes nothing else. Each rule is a separate JSSG entrypoint and sequential workflow step, so later rules see the output of earlier rules. The current rules operate on disjoint syntax, and the combined workflow remains covered by exact-output and idempotency tests.
 
 ### Pure subpath relocations
 
@@ -71,6 +71,16 @@ node ./node_modules/codemod/codemod --disable-analytics workflow run -w transfor
 ```
 
 After publication, select the `transform` workflow from the Codemod platform (it is registered with `default: false`).
+
+## Preliminary workspace-pass benchmark
+
+Run the opt-in directional benchmark on the small checked-in fixture:
+
+```sh
+pnpm --dir codemods/solid-migration-assistant benchmark:workspace-passes
+```
+
+Pass `-- --target /path/to/project` to use another target. It compares one no-op JSSG workspace-semantic pass with the same pass repeated to match the production analyzer-step count, then reports medians, added cost, slowdown, and a marginal-pass estimate. It hashes relevant target source before and after. This is not a complete old-versus-new analyzer benchmark and does not control caches or model rule traversal cost.
 
 ## Verify the repository
 

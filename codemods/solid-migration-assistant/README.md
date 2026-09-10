@@ -1,6 +1,6 @@
 # Solid Migration Assistant
 
-This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths, relocates `solid-js/web` statements whose complete named binding set is proven compatible, and rewrites the narrow, provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
+This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow runs each of 37 named analyzers as a separate JSSG entrypoint and sequential workflow step, prints one detailed, location-bearing guidance string per supported migration site, returns no edits, and writes no files. The `transform` workflow runs each of three deterministic rules as its own sequential JSSG step: relocating a small, pure subset of legacy import subpaths, relocating `solid-js/web` statements whose complete named binding set is proven compatible, and rewriting the narrow, provably equivalent subset of intrinsic JSX `classList` attributes to `class`. The YAML workflows are the only production composition layer.
 
 The migration target is pinned to Solid `2.0.0-rc.0` at upstream commit [`ff4d3c44`](https://github.com/solidjs/solid/tree/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5).
 
@@ -65,7 +65,7 @@ Every finding links the immutable pinned [RC migration guide](https://github.com
 
 ## Transform
 
-The opt-in `transform` workflow applies three deterministic rewrites and changes nothing else. All three run in one pass over each file, over disjoint syntax: two rewrite module source strings for disjoint specifier sets, and the third rewrites JSX attribute name nodes. Their edits are merged into one source-ordered list and proven non-overlapping before the file is written, so the result never depends on rule order. Each edit is reported on its own line (`file:line:column`, what changed, plus the migration-guide link). The workflow is idempotent and writes no report files or other artifacts in the target.
+The opt-in `transform` workflow applies three deterministic rewrites and changes nothing else. Each rule is a separate JSSG entrypoint and sequential workflow step, so later rules see earlier output. The current rules operate on disjoint syntax: two rewrite module source strings for disjoint specifier sets, and the third rewrites JSX attribute name nodes. Each edit is reported on its own line (`file:line:column`, what changed, plus the migration-guide link). Exact combined-output and second-run tests cover ordering and idempotency. The workflow writes no report files or other artifacts in the target.
 
 ### Pure subpath relocations
 
@@ -132,6 +132,10 @@ After publication, select the `transform` workflow from the Codemod platform (it
 Current coverage is deliberately limited: the analyzer does not cover indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. No guidance—or a clean run—is not a readiness result and does not imply complete Solid 2 migration coverage.
 
 The read-only `analyze` workflow remains detection-only, including for every `solid-js/web` statement and every `classList` attribute the transform refuses. Broader automated transforms remain roadmap items beyond the five pure import-path relocations, the binding-gated `solid-js/web` relocation, and the intrinsic `classList` rename implemented by the `transform` workflow. Growing the `solid-js/web` allowlist requires fresh upstream evidence per name, not a blanket widening.
+
+## Preliminary workspace-pass benchmark
+
+Run `pnpm benchmark:workspace-passes` for the default checked-in fixture, or `pnpm benchmark:workspace-passes -- --target /path/to/project` for another target. The opt-in script times one no-op workspace-semantic JSSG pass against that pass repeated to match the current analysis-rule step count. It prints raw samples, medians, delta, slowdown ratio, a marginal-pass estimate, and final JSON; relevant source hashes must remain unchanged. The benchmark is directional only: it does not compare full legacy and split analyzers, model rule traversal cost, control OS caches, or run as part of `verify`.
 
 ## Verify
 

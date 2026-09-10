@@ -169,243 +169,125 @@ const EXPECTED_TRANSFORM_FOLDERS = EXPECTED_TRANSFORM_PRODUCTION.map((path) =>
   dirname(path),
 ).sort();
 
-test("ships read-only analyze and deterministic transform workflows", () => {
-  assert.deepEqual(
-    productionScripts(),
-    ["analyze.ts", "emit-report.ts", "transform.ts"],
-  );
-  assert.deepEqual(workflowFiles(), ["workflow.yaml"]);
-  assert.equal(
-    existsSync(resolve(packageDirectory, "transform.yaml")),
-    true,
-  );
-
-  for (const path of [
-    "scripts/write-report.ts",
-    "shared/report.ts",
-    "shared/report-path.ts",
-    "workflow.transform.yaml",
-  ]) {
-    assert.equal(existsSync(resolve(packageDirectory, path)), false, path);
-  }
-
+test("composes every named rule as its own workflow step", () => {
   const analyzeWorkflow = readFileSync(
     resolve(packageDirectory, "workflow.yaml"),
     "utf8",
   );
-  assert.deepEqual(
-    [...analyzeWorkflow.matchAll(/js_file:\s*(\S+)/g)].map((match) => match[1]),
-    ["scripts/analyze.ts", "scripts/emit-report.ts"],
-  );
-  assert.deepEqual(
-    [...analyzeWorkflow.matchAll(/- "(\*\*\/\*\.(?:js|jsx|ts|tsx))"/g)].map(
-      (match) => match[1],
-    ),
-    [
-      "**/*.js",
-      "**/*.jsx",
-      "**/*.ts",
-      "**/*.tsx",
-      "**/*.js",
-      "**/*.jsx",
-      "**/*.ts",
-      "**/*.tsx",
-    ],
-  );
-  assert.equal(
-    (analyzeWorkflow.match(/semantic_analysis: workspace/g) ?? []).length,
-    1,
-  );
-  assert.doesNotMatch(analyzeWorkflow, /semantic_analysis: file/);
-  for (const exclusion of ["node_modules", "dist", "build", "coverage"]) {
-    assert.equal(
-      (analyzeWorkflow.match(new RegExp(`- "\\*\\*/${exclusion}/\\*\\*"`, "g")) ?? [])
-        .length,
-      2,
-      exclusion,
-    );
-  }
-  assert.equal((analyzeWorkflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length, 2);
-  assert.doesNotMatch(analyzeWorkflow, /transform|write.report|\.codemod-reports/i);
-
   const transformWorkflow = readFileSync(
     resolve(packageDirectory, "transform.yaml"),
     "utf8",
   );
-  assert.deepEqual(
-    [...transformWorkflow.matchAll(/js_file:\s*(\S+)/g)].map((match) => match[1]),
-    ["scripts/transform.ts", "scripts/emit-report.ts"],
+  const analysisRules = namedRuleExports(analysisDirectory, "analyze");
+  const transformRules = namedRuleExports(
+    transformationsDirectory,
+    "relocate|rewrite",
   );
+  const analysisEntrypoints = analysisRules.map(
+    ({ name }) => "scripts/analysis/" + name + ".ts",
+  );
+  const transformEntrypoints = transformRules.map(
+    ({ name }) => "scripts/transformations/" + name + ".ts",
+  );
+
+  assert.equal(analysisRules.length, 37);
+  assert.equal(transformRules.length, 3);
   assert.deepEqual(
-    [...transformWorkflow.matchAll(/- "(\*\*\/\*\.(?:js|jsx|ts|tsx))"/g)].map(
+    [...analyzeWorkflow.matchAll(/js_file:\s*(\S+)/g)].map(
       (match) => match[1],
     ),
-    [
-      "**/*.js",
-      "**/*.jsx",
-      "**/*.ts",
-      "**/*.tsx",
-      "**/*.js",
-      "**/*.jsx",
-      "**/*.ts",
-      "**/*.tsx",
-    ],
+    [...analysisEntrypoints, "scripts/emit-report.ts"],
   );
-  for (const exclusion of ["node_modules", "dist", "build", "coverage"]) {
-    assert.equal(
-      (transformWorkflow.match(new RegExp(`- "\\*\\*/${exclusion}/\\*\\*"`, "g")) ?? [])
-        .length,
-      2,
-      exclusion,
-    );
-  }
-  assert.equal((transformWorkflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length, 2);
-  assert.equal((transformWorkflow.match(/max_threads: 1/g) ?? []).length, 1);
-  assert.doesNotMatch(
-    transformWorkflow,
-    /semantic_analysis|scripts\/analyze\.ts|\.codemod-reports/i,
-  );
-});
-
-test("composes every transform rule into one non-overlapping edit pass", () => {
-  const transformScript = readFileSync(
-    resolve(packageDirectory, "scripts/transform.ts"),
-    "utf8",
-  );
-  for (const name of [
-    "relocateLegacySubpaths",
-    "relocateWebPackage",
-    "rewriteClassListToClass",
-    "composeTransformChanges",
-  ]) {
-    assert.match(transformScript, new RegExp(name));
-  }
-  // One commit for all three rules: their edits are ordered, proven disjoint,
-  // and applied together, so no rule can observe another rule's output.
-  assert.equal((transformScript.match(/commitEdits\(/g) ?? []).length, 1);
-
-  // The overlap proof lives in the shared composer, not in the adapter, so a
-  // fourth rule inherits it instead of restating it.
-  const shared = readFileSync(
-    resolve(packageDirectory, "shared/transform.ts"),
-    "utf8",
-  );
-  assert.match(shared, /overlapping transform edits/);
-  assert.doesNotMatch(transformScript, /startPos|endPos/);
-});
-
-/**
- * The composer is the one place where three independently written rules meet,
- * so its ordering and overlap guarantees are exercised directly rather than
- * inferred from the rules that happen to satisfy them today. The module's only
- * import is type-only, so Node's type stripping loads it without a build step.
- */
-test("orders composed changes by position and rejects overlaps", async () => {
-  const { composeTransformChanges } = await import(
-    resolve(packageDirectory, "shared/transform.ts")
-  );
-  const change = (startPos, endPos, report) => ({
-    edit: { startPos, endPos },
-    report,
-  });
-
-  assert.deepEqual(composeTransformChanges([]), []);
-  assert.deepEqual(composeTransformChanges([[], [], []]), []);
-
-  // Rule order must not survive into the output: later rules whose edits come
-  // earlier in the file are sorted ahead of earlier rules' later edits.
   assert.deepEqual(
-    composeTransformChanges([
-      [change(30, 40, "third"), change(10, 20, "first")],
-      [change(20, 30, "second")],
-    ]).map(({ report }) => report),
-    ["first", "second", "third"],
+    [...transformWorkflow.matchAll(/js_file:\s*(\S+)/g)].map(
+      (match) => match[1],
+    ),
+    [...transformEntrypoints, "scripts/emit-report.ts"],
   );
 
-  // Abutting edits share a boundary but do not overlap, so they are allowed:
-  // an import specifier ending exactly where a JSX attribute begins is legal.
+  for (const { name, source } of [...analysisRules, ...transformRules]) {
+    const kind = name.startsWith("analyze") ? "analysis" : "transformations";
+    const path = resolve(packageDirectory, "scripts", kind, name + ".ts");
+    assert.equal(existsSync(path), true, name);
+    const entrypoint = readFileSync(path, "utf8");
+    assert.equal(entrypoint.includes("import { " + name + " }"), true, name);
+    assert.equal(
+      entrypoint.includes("../../rules/" + kind + "/" + source),
+      true,
+      source,
+    );
+    assert.equal(
+      (entrypoint.match(/from "\.\.\/\.\.\/rules\//g) ?? []).length,
+      1,
+      name,
+    );
+    assert.doesNotMatch(entrypoint, /\[[^\]]*rule|flatMap|for \(/);
+  }
+
   assert.equal(
-    composeTransformChanges([[change(0, 10, "a")], [change(10, 20, "b")]])
-      .length,
-    2,
+    (analyzeWorkflow.match(/semantic_analysis: workspace/g) ?? []).length,
+    analysisRules.length,
   );
+  assert.doesNotMatch(analyzeWorkflow, /semantic_analysis: file/);
+  assert.doesNotMatch(transformWorkflow, /semantic_analysis/);
+  assert.equal((analyzeWorkflow.match(/max_threads: 1/g) ?? []).length, 1);
+  assert.equal((transformWorkflow.match(/max_threads: 1/g) ?? []).length, 1);
 
-  for (const overlapping of [
-    [[change(0, 10, "a")], [change(5, 15, "b")]],
-    [[change(0, 10, "a")], [change(0, 10, "duplicate")]],
-    [[change(0, 10, "outer")], [change(2, 4, "nested")]],
+  for (const [workflow, stepCount] of [
+    [analyzeWorkflow, analysisRules.length + 1],
+    [transformWorkflow, transformRules.length + 1],
   ]) {
-    assert.throws(
-      () => composeTransformChanges(overlapping),
-      /overlapping transform edits/,
-      JSON.stringify(overlapping),
+    for (const extension of ["js", "jsx", "ts", "tsx"]) {
+      assert.equal(
+        (workflow.match(new RegExp('- "\\*\\*/\\*\\.' + extension + '"', "g")) ?? [])
+          .length,
+        stepCount,
+        extension,
+      );
+    }
+    for (const exclusion of ["node_modules", "dist", "build", "coverage"]) {
+      assert.equal(
+        (workflow.match(new RegExp('- "\\*\\*/' + exclusion + '/\\*\\*"', "g")) ?? [])
+          .length,
+        stepCount,
+        exclusion,
+      );
+    }
+    assert.equal(
+      (workflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length,
+      stepCount,
     );
   }
-});
 
-test("registers every supported detector and one deterministic emitter", () => {
-  for (const path of EXPECTED_ANALYSIS_PRODUCTION) {
-    assert.equal(existsSync(resolve(analysisDirectory, path)), true, path);
+  for (const obsolete of ["scripts/analyze.ts", "scripts/transform.ts"]) {
+    assert.equal(existsSync(resolve(packageDirectory, obsolete)), false, obsolete);
   }
-
-  const analyzer = readFileSync(
-    resolve(packageDirectory, "scripts/analyze.ts"),
+  const sharedEntrypoint = readFileSync(
+    resolve(packageDirectory, "shared/entrypoint.ts"),
     "utf8",
   );
-  for (const name of [
-    "analyzeBeta32SubpathImports",
-    "analyzeWebImport",
-    "analyzeJsxClassListAttributes",
-    "analyzeJsxComponentRenames",
-    "analyzeOnMount",
-    "analyzeOnCleanup",
-    "analyzeMergeProps",
-    "analyzeSplitProps",
-    "analyzeCreateComputed",
-    "analyzeCreateEffect",
-    "analyzeCreateMemo",
-    "analyzeCreateMutable",
-    "analyzeModifyMutable",
-    "analyzeProduce",
-    "analyzeUnwrap",
-    "analyzeBatch",
-    "analyzeOnHelper",
-    "analyzeCreateResource",
-    "analyzeOnError",
-    "analyzeCatchError",
-    "analyzeResetErrorBoundaries",
-    "analyzeStartTransition",
-    "analyzeUseTransition",
-    "analyzeCreateDeferred",
-    "analyzeCreateSelector",
-    "analyzeIndexArray",
-    "analyzeCreateDynamic",
-    "analyzeFrom",
-    "analyzeObservable",
-    "analyzeEqualFn",
-    "analyzeGetListener",
-    "analyzeWriteSignal",
-    "analyzeEnableScheduling",
-    "analyzeDomAttrNamespaces",
-    "analyzeDomEventNamespaces",
-    "analyzeDomUseDirective",
-    "analyzeContextProvider",
-  ]) {
-    assert.match(analyzer, new RegExp(name));
-  }
+  assert.match(sharedEntrypoint, /createAnalysisEntrypoint\(rule:/);
+  assert.match(sharedEntrypoint, /createTransformEntrypoint\(rule:/);
+  assert.doesNotMatch(sharedEntrypoint, /rules:|flatMap|composeTransformChanges/);
+  assert.doesNotMatch(
+    readFileSync(resolve(packageDirectory, "shared/transform.ts"), "utf8"),
+    /composeTransformChanges|overlapping transform edits/,
+  );
+});
 
+test("retains one deterministic report emitter after all rule steps", () => {
   const emitter = readFileSync(
     resolve(packageDirectory, "scripts/emit-report.ts"),
     "utf8",
   );
   assert.match(emitter, /\.sort\(\)/);
   assert.doesNotMatch(emitter, /localeCompare|compareGuidance/);
+  assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 1);
   const analysis = readFileSync(
     resolve(packageDirectory, "shared/analysis.ts"),
     "utf8",
   );
   assert.doesNotMatch(analysis, /compareGuidance|guidanceLocation|siteGuidance/);
-  assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 1);
 });
 
 test("exposes analyze and transform workflows", () => {
@@ -558,6 +440,22 @@ test("uses normal analyzer end-to-end fixtures", () => {
   assert.equal(emptyPackage.dependencies, undefined);
   assert.doesNotMatch(readFixtureText(), /codemod-reports|transform|report/i);
 });
+
+function namedRuleExports(directory, prefix) {
+  const pattern = new RegExp(
+    "^export function ((?:" + prefix + ")[A-Z][A-Za-z0-9]*)\\(",
+    "gm",
+  );
+  return ruleFiles(directory, (name) =>
+    name.endsWith(".ts") && !name.endsWith(".test.ts"),
+  ).flatMap((source) => {
+    const contents = readFileSync(resolve(directory, source), "utf8");
+    return [...contents.matchAll(pattern)].map((match) => ({
+      name: match[1],
+      source,
+    }));
+  });
+}
 
 function directRuleFolders(directory) {
   const folders = [];

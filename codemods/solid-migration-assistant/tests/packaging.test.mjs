@@ -24,6 +24,8 @@ const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const expectedFiles = [
   "LICENSE",
   "README.md",
+  "benchmarks/workspace-pass.ts",
+  "benchmarks/workspace-passes.mjs",
   "bin/solid-migration-assistant.mjs",
   "package.json",
   "rules/analysis/imports/beta32-subpaths/beta32-subpaths.ts",
@@ -57,14 +59,53 @@ const expectedFiles = [
   "rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
   "rules/transformations/imports/web-package-relocation/web-package-relocation.ts",
   "rules/transformations/jsx/class-list-to-class/class-list-to-class.ts",
-  "scripts/analyze.ts",
+  "scripts/analysis/analyzeBatch.ts",
+  "scripts/analysis/analyzeBeta32SubpathImports.ts",
+  "scripts/analysis/analyzeCatchError.ts",
+  "scripts/analysis/analyzeContextProvider.ts",
+  "scripts/analysis/analyzeCreateComputed.ts",
+  "scripts/analysis/analyzeCreateDeferred.ts",
+  "scripts/analysis/analyzeCreateDynamic.ts",
+  "scripts/analysis/analyzeCreateEffect.ts",
+  "scripts/analysis/analyzeCreateMemo.ts",
+  "scripts/analysis/analyzeCreateMutable.ts",
+  "scripts/analysis/analyzeCreateResource.ts",
+  "scripts/analysis/analyzeCreateSelector.ts",
+  "scripts/analysis/analyzeDomAttrNamespaces.ts",
+  "scripts/analysis/analyzeDomEventNamespaces.ts",
+  "scripts/analysis/analyzeDomUseDirective.ts",
+  "scripts/analysis/analyzeEnableScheduling.ts",
+  "scripts/analysis/analyzeEqualFn.ts",
+  "scripts/analysis/analyzeFrom.ts",
+  "scripts/analysis/analyzeGetListener.ts",
+  "scripts/analysis/analyzeIndexArray.ts",
+  "scripts/analysis/analyzeJsxClassListAttributes.ts",
+  "scripts/analysis/analyzeJsxComponentRenames.ts",
+  "scripts/analysis/analyzeMergeProps.ts",
+  "scripts/analysis/analyzeModifyMutable.ts",
+  "scripts/analysis/analyzeObservable.ts",
+  "scripts/analysis/analyzeOnCleanup.ts",
+  "scripts/analysis/analyzeOnError.ts",
+  "scripts/analysis/analyzeOnHelper.ts",
+  "scripts/analysis/analyzeOnMount.ts",
+  "scripts/analysis/analyzeProduce.ts",
+  "scripts/analysis/analyzeResetErrorBoundaries.ts",
+  "scripts/analysis/analyzeSplitProps.ts",
+  "scripts/analysis/analyzeStartTransition.ts",
+  "scripts/analysis/analyzeUnwrap.ts",
+  "scripts/analysis/analyzeUseTransition.ts",
+  "scripts/analysis/analyzeWebImport.ts",
+  "scripts/analysis/analyzeWriteSignal.ts",
   "scripts/emit-report.ts",
-  "scripts/transform.ts",
+  "scripts/transformations/relocateLegacySubpaths.ts",
+  "scripts/transformations/relocateWebPackage.ts",
+  "scripts/transformations/rewriteClassListToClass.ts",
   "shared/analysis.ts",
+  "shared/entrypoint.ts",
   "shared/run-workflow.mjs",
   "shared/transform.ts",
   "transform.yaml",
-  "workflow.yaml",
+  "workflow.yaml"
 ];
 const expectedDescription =
   "Solid 1.9 to Solid 2 RC migration assistant: read-only analyzer plus deterministic legacy import-path relocation and intrinsic JSX classList-to-class rewriting for project-owned JavaScript and TypeScript source";
@@ -152,7 +193,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 43);
+      assert.equal(expectedFiles.length, 84);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(
