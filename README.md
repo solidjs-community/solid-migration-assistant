@@ -1,6 +1,6 @@
 # Solid Migration Assistant
 
-Solid Migration Assistant is an experimental Solid 1.9 → Solid 2 migration assistant targeting Solid `2.0.0-rc.0`. It ships two workflows: a read-only `analyze` workflow that prints guidance for supported migration sites, and a deterministic `transform` workflow that relocates a small, pure subset of legacy import subpaths.
+Solid Migration Assistant is an experimental Solid 1.9 → Solid 2 migration assistant targeting Solid `2.0.0-rc.0`. It ships two workflows: a read-only `analyze` workflow that prints guidance for supported migration sites, and a deterministic `transform` workflow that relocates a small, pure subset of legacy import subpaths and renames the provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
 
 The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Guidance is sorted deterministically and printed to standard output; the Codemod runtime's progress lines and the final disclosure are written to standard error. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
 
@@ -32,7 +32,9 @@ Coverage is deliberately limited. Even when no guidance is printed, review the d
 
 ## Transform
 
-The opt-in `transform` workflow rewrites exactly five pure legacy Solid import subpaths in place and changes nothing else:
+The opt-in `transform` workflow applies two deterministic rewrites in place and changes nothing else.
+
+It rewrites exactly five pure legacy Solid import subpaths:
 
 - `solid-js/h` → `@solidjs/h`
 - `solid-js/html` → `@solidjs/html`
@@ -40,7 +42,11 @@ The opt-in `transform` workflow rewrites exactly five pure legacy Solid import s
 - `solid-js/jsx-runtime` → `@solidjs/web/jsx-runtime`
 - `solid-js/jsx-dev-runtime` → `@solidjs/web/jsx-dev-runtime`
 
-It covers static imports, re-exports, dynamic `import()`, and `require()` calls; preserves each reference's import form and quote style; and emits one per-edit report line (`file:line:column`, old → new, plus the migration-guide link). Every move is a pure package relocation with no removed, renamed, or behaviorally changed export, so no binding-level review is required for these five paths. The workflow is idempotent and writes no report files or other artifacts in the target. It deliberately leaves `solid-js/web`, `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra` and `vendor/solid-js/h` untouched.
+It covers static imports, re-exports, dynamic `import()`, and `require()` calls, and preserves each reference's import form and quote style. Every move is a pure package relocation with no removed, renamed, or behaviorally changed export, so no binding-level review is required for these five paths. It deliberately leaves `solid-js/web`, `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra` and `vendor/solid-js/h` untouched.
+
+It also renames `classList` to `class` on an intrinsic JSX element whose only class source is one `classList` expression — `<div id="first" classList={flags} />` becomes `<div id="first" class={flags} />` — changing only the attribute name and leaving the value expression byte-identical. Solid 2 folds `classList` into `class`, whose object form applies the same class tokens Solid 1.x applied, which makes that rename an equivalence. Every less certain case is left to the analyzer's manual-review guidance: components and namespaced element names, elements with any other class source (including the `class="card"` plus `classList={…}` merge into the array form), elements with a spread attribute, duplicate `classList` attributes, shorthand/string/empty/comment-only values, and near-miss attribute names. See [`codemods/solid-migration-assistant/README.md`](codemods/solid-migration-assistant/README.md) for the full list.
+
+Each edit emits one report line (`file:line:column`, what changed, plus the migration-guide link). The workflow is idempotent and writes no report files or other artifacts in the target.
 
 In this repository, run `pnpm transform` against the current directory, or invoke the Codemod CLI directly to target another directory:
 
@@ -57,7 +63,7 @@ pnpm install --frozen-lockfile
 pnpm verify
 ```
 
-Verification runs comprehensive analysis and transformation rule fixtures plus end-to-end analyzer and transform fixtures; it checks exact ordered guidance, proves the analyzer leaves every target file unchanged, and proves the transform is idempotent and changes nothing outside the five relocated module strings.
+Verification runs comprehensive analysis and transformation rule fixtures plus end-to-end analyzer and transform fixtures; it checks exact ordered guidance, proves the analyzer leaves every target file unchanged, and proves the transform is idempotent and changes nothing outside the five relocated module strings and the qualifying `classList` attribute names.
 
 See [`codemods/solid-migration-assistant/README.md`](codemods/solid-migration-assistant/README.md) for rule boundaries. Feedback is collected through ordinary [public GitHub issues](https://github.com/devagrawal09/solid-migration-assistant/issues/new).
 

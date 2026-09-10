@@ -55,6 +55,7 @@ const expectedFiles = [
   "rules/analysis/store/produce/produce.ts",
   "rules/analysis/store/unwrap/unwrap.ts",
   "rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
+  "rules/transformations/jsx/class-list-to-class/class-list-to-class.ts",
   "scripts/analyze.ts",
   "scripts/emit-report.ts",
   "scripts/transform.ts",
@@ -65,7 +66,7 @@ const expectedFiles = [
   "workflow.yaml",
 ];
 const expectedDescription =
-  "Solid 1.9 to Solid 2 RC migration assistant: read-only analyzer plus deterministic legacy import-path relocation for project-owned JavaScript and TypeScript source";
+  "Solid 1.9 to Solid 2 RC migration assistant: read-only analyzer plus deterministic legacy import-path relocation and intrinsic JSX classList-to-class rewriting for project-owned JavaScript and TypeScript source";
 const expectedKeywords = [
   "solid",
   "solidjs",
@@ -150,7 +151,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 41);
+      assert.equal(expectedFiles.length, 42);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(

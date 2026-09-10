@@ -126,9 +126,11 @@ const EXPECTED_ANALYSIS_FOLDERS = EXPECTED_ANALYSIS_PRODUCTION.map((path) =>
 
 const EXPECTED_TRANSFORM_PRODUCTION = [
   "imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
+  "jsx/class-list-to-class/class-list-to-class.ts",
 ];
 const EXPECTED_TRANSFORM_TESTS = [
   "imports/legacy-subpath-relocation/legacy-subpath-relocation.test.ts",
+  "jsx/class-list-to-class/class-list-to-class.test.ts",
 ];
 const EXPECTED_TRANSFORM_FIXTURES = [
   "imports/legacy-subpath-relocation/fixtures/destructured-require.fixture.tsx",
@@ -142,6 +144,12 @@ const EXPECTED_TRANSFORM_FIXTURES = [
   "imports/legacy-subpath-relocation/fixtures/shadowed-require.fixture.tsx",
   "imports/legacy-subpath-relocation/fixtures/single-quotes.fixture.tsx",
   "imports/legacy-subpath-relocation/fixtures/static-imports.fixture.tsx",
+  "jsx/class-list-to-class/fixtures/attribute-values.fixture.tsx",
+  "jsx/class-list-to-class/fixtures/class-conflicts.fixture.tsx",
+  "jsx/class-list-to-class/fixtures/no-matches.fixture.tsx",
+  "jsx/class-list-to-class/fixtures/non-intrinsic-elements.fixture.tsx",
+  "jsx/class-list-to-class/fixtures/rewrites.fixture.tsx",
+  "jsx/class-list-to-class/fixtures/spread-attributes.fixture.tsx",
 ];
 const EXPECTED_TRANSFORM_FOLDERS = EXPECTED_TRANSFORM_PRODUCTION.map((path) =>
   dirname(path),
@@ -243,6 +251,27 @@ test("ships read-only analyze and deterministic transform workflows", () => {
     transformWorkflow,
     /semantic_analysis|scripts\/analyze\.ts|\.codemod-reports/i,
   );
+});
+
+test("composes every transform rule into one non-overlapping edit pass", () => {
+  const transformScript = readFileSync(
+    resolve(packageDirectory, "scripts/transform.ts"),
+    "utf8",
+  );
+  for (const name of [
+    "relocateLegacySubpaths",
+    "rewriteClassListToClass",
+    "composeTransformChanges",
+  ]) {
+    assert.match(transformScript, new RegExp(name));
+  }
+  assert.equal((transformScript.match(/commitEdits\(/g) ?? []).length, 1);
+
+  const shared = readFileSync(
+    resolve(packageDirectory, "shared/transform.ts"),
+    "utf8",
+  );
+  assert.match(shared, /overlapping transform edits/);
 });
 
 test("registers every supported detector and one deterministic emitter", () => {

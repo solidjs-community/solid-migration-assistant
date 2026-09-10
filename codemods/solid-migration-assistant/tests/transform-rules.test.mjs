@@ -8,6 +8,7 @@ const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const transformationsDirectory = resolve(packageDirectory, "rules/transformations");
 const ruleCases = [
   { directory: "rules/transformations/imports/legacy-subpath-relocation" },
+  { directory: "rules/transformations/jsx/class-list-to-class" },
 ];
 
 const configuredAdapters = ruleCases.map(adapterForRule).sort();
@@ -17,9 +18,9 @@ const existingAdapters = findFiles(transformationsDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredAdapters.length !== 1 || existingAdapters.length !== 1) {
+if (configuredAdapters.length !== 2 || existingAdapters.length !== 2) {
   throw new Error(
-    `Expected 1 transform rule adapter, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
+    `Expected 2 transform rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
   );
 }
 if (configuredAdapters.join("\n") !== existingAdapters.join("\n")) {
@@ -47,9 +48,9 @@ const existingFixtures = findFiles(transformationsDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredFixtures.length !== 11 || existingFixtures.length !== 11) {
+if (configuredFixtures.length !== 17 || existingFixtures.length !== 17) {
   throw new Error(
-    `Expected 11 colocated transform rule fixtures, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
+    `Expected 17 colocated transform rule fixtures, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
   );
 }
 if (configuredFixtures.join("\n") !== existingFixtures.join("\n")) {
@@ -63,7 +64,7 @@ for (const ruleCase of cases) {
 }
 
 console.log(
-  `Transform rule detection passed: ${ruleCases.length} adapter, ${cases.length} fixture case, 0 targets changed.`,
+  `Transform rule detection passed: ${ruleCases.length} adapters, ${cases.length} fixture cases, 0 targets changed.`,
 );
 
 function adapterForRule({ directory }) {

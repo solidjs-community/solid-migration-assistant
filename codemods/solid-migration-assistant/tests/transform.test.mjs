@@ -24,7 +24,7 @@ const fixtureDirectory = resolve(packageDirectory, "tests/transform-fixture");
 const expectedDirectory = resolve(packageDirectory, "tests/transform-expected");
 
 test(
-  "relocates exactly the five pure legacy subpaths and changes nothing else",
+  "relocates the five pure legacy subpaths, rewrites safe intrinsic classList attributes, and changes nothing else",
   () => {
     const temporaryRoot = mkdtempSync(
       join(tmpdir(), "solid-migration-assistant-transform-"),
@@ -37,6 +37,12 @@ test(
       assert.equal(first.status, 0, output(first));
       assertTreeEquals(target, expectedDirectory);
       assertRelocationReport(first.stderr);
+      assertClassListReport(first.stderr);
+      assert.deepEqual(
+        reportLines(first.stderr),
+        [...reportLines(first.stderr)].sort(),
+        "the combined report is not in deterministic whole-string order",
+      );
 
       const settled = treeSnapshot(target);
       const second = runTransform(target);
@@ -47,9 +53,9 @@ test(
         "a second transform run changed the target (not idempotent)",
       );
       assert.deepEqual(
-        relocationLines(second.stderr),
+        reportLines(second.stderr),
         [],
-        "a second transform run re-reported relocations (not idempotent)",
+        "a second transform run re-reported rewrites (not idempotent)",
       );
       assertNoPersistentArtifacts(target);
     } finally {
@@ -84,11 +90,38 @@ function runTransform(target) {
   );
 }
 
-function relocationLines(stderr) {
+function reportLines(stderr) {
   return stderr
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line.startsWith("src/") && line.includes("Relocate "));
+    .filter((line) => /^src\/\S+:\d+:\d+ /.test(line));
+}
+
+function relocationLines(stderr) {
+  return reportLines(stderr).filter((line) => line.includes("Relocate "));
+}
+
+function classListLines(stderr) {
+  return reportLines(stderr).filter((line) =>
+    line.includes("Rewrite the classList attribute"),
+  );
+}
+
+const CLASS_LIST_GUIDE =
+  "https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#classlist--class-objectarray-forms";
+
+/**
+ * The transform rewrites exactly the four intrinsic classList attributes whose
+ * element carries no other class source and no spread; every other classList
+ * attribute in the fixture tree must survive for the analyzer to report.
+ */
+function assertClassListReport(stderr) {
+  assert.deepEqual(classListLines(stderr), [
+    `src/class-list.tsx:14:14 Rewrite the classList attribute on <section> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
+    `src/class-list.tsx:15:23 Rewrite the classList attribute on <div> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
+    `src/class-list.tsx:16:15 Rewrite the classList attribute on <span> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
+    `src/nested/deep.jsx:8:41 Rewrite the classList attribute on <div> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
+  ]);
 }
 
 function assertRelocationReport(stderr) {

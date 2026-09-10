@@ -1,6 +1,6 @@
 # Solid Migration Assistant
 
-This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths.
+This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths and rewrites the narrow, provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
 
 The migration target is pinned to Solid `2.0.0-rc.0` at upstream commit [`ff4d3c44`](https://github.com/solidjs/solid/tree/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5).
 
@@ -65,7 +65,9 @@ Every finding links the immutable pinned [RC migration guide](https://github.com
 
 ## Transform
 
-The opt-in `transform` workflow relocates exactly five pure legacy Solid import subpaths and changes nothing else:
+The opt-in `transform` workflow applies two deterministic rewrites and changes nothing else. Both run in one pass over each file, over disjoint syntax, and each edit is reported on its own line (`file:line:column`, what changed, plus the migration-guide link). The workflow is idempotent and writes no report files or other artifacts in the target.
+
+### Legacy import subpath relocation
 
 - `solid-js/h` → `@solidjs/h`
 - `solid-js/html` → `@solidjs/html`
@@ -73,7 +75,29 @@ The opt-in `transform` workflow relocates exactly five pure legacy Solid import 
 - `solid-js/jsx-runtime` → `@solidjs/web/jsx-runtime`
 - `solid-js/jsx-dev-runtime` → `@solidjs/web/jsx-dev-runtime`
 
-The transform covers static imports, re-exports, dynamic `import()`, and `require()` calls; preserves each reference's import form and quote style; and emits one per-edit report line (`file:line:column`, old → new, plus the migration-guide link). Every move is a pure package relocation with no removed, renamed, or behaviorally changed export, so the rewrite is safe without binding-level review. The workflow is idempotent and writes no report files or other artifacts in the target. It deliberately leaves `solid-js/web`, `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra` and `vendor/solid-js/h` untouched.
+The transform covers static imports, re-exports, dynamic `import()`, and `require()` calls, and preserves each reference's import form and quote style. Every move is a pure package relocation with no removed, renamed, or behaviorally changed export, so the rewrite is safe without binding-level review. It deliberately leaves `solid-js/web`, `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra` and `vendor/solid-js/h` untouched.
+
+### Intrinsic JSX `classList` → `class`
+
+Solid 2 removes the `classList` attribute and folds its behavior into `class`, which accepts a string, an object whose truthy keys are applied as class names, or an array of those. The runtime applies an object-valued `class` with the same per-key toggling, whitespace-key splitting, and falsy-key skipping that Solid 1.x applied for `classList`, and the compiler decomposes an inline `class={{ … }}` literal per property exactly as it decomposed `classList`. On an element whose only class source is one `classList` expression, renaming the attribute key is therefore an equivalence, so the transform rewrites:
+
+```jsx
+<div id="first" classList={flags} />   →   <div id="first" class={flags} />
+```
+
+Only the attribute name changes; the value expression, its comments, its whitespace, and every other attribute stay byte-identical. An element is rewritten only when it is intrinsic (a plain lowercase-initial element name), carries exactly one plainly named `classList` attribute, and gives that attribute an expression container holding exactly one expression.
+
+Everything else is left to the analyzer's manual-review guidance, by design:
+
+- components, member components (`Components.Widget`), and namespaced element names (`svg:circle`), which never reach the DOM class path;
+- elements with any other class source — `class`, `className`, the same names under a namespace (`attr:class`, `prop:className`, `bool:class`), or a `class:` toggle — including the `class="card"` plus `classList={…}` merge into the array form, whose precedence between the static class and the object's keys is not settled by an upstream test;
+- elements with a spread attribute anywhere, since a spread can supply or override `class` and its position decides precedence;
+- duplicate `classList` attributes on one element;
+- shorthand (`classList`), string (`classList="active"`), empty (`classList={}`), and comment-only values;
+- near-miss and dynamic attribute names such as `ns:classList`, `class-list`, `classlist`, and `data-classList`; and
+- any element whose attribute list does not parse cleanly.
+
+The rewrite assumes Solid semantics for the scanned project, which is what the workflow is scoped to; it does not verify that a file imports Solid, because Solid JSX files frequently import nothing from `solid-js` directly.
 
 In this repository, run `pnpm transform` against the current directory, or invoke the Codemod CLI directly to target another directory:
 
@@ -87,7 +111,7 @@ After publication, select the `transform` workflow from the Codemod platform (it
 
 Current coverage is deliberately limited: the analyzer does not cover indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. No guidance—or a clean run—is not a readiness result and does not imply complete Solid 2 migration coverage.
 
-The read-only `analyze` workflow remains detection-only. Broader automated transforms remain roadmap items beyond the five pure import-path relocations implemented by the `transform` workflow.
+The read-only `analyze` workflow remains detection-only, including for every `classList` attribute the transform refuses. Broader automated transforms remain roadmap items beyond the five pure import-path relocations and the intrinsic `classList` rename implemented by the `transform` workflow.
 
 ## Verify
 

@@ -2,26 +2,33 @@ import type { Codemod } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 import { acquireLock, getState, setState } from "codemod:workflow";
 import { relocateLegacySubpaths } from "../rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts";
-import { TRANSFORM_REPORT_STATE_KEY } from "../shared/transform.ts";
+import { rewriteClassListToClass } from "../rules/transformations/jsx/class-list-to-class/class-list-to-class.ts";
+import {
+  composeTransformChanges,
+  TRANSFORM_REPORT_STATE_KEY,
+} from "../shared/transform.ts";
 
 const transform: Codemod<TSX> = async (root) => {
   const rootNode = root.root();
   const filename = root.relativeFilename().replaceAll("\\", "/");
-  const relocations = relocateLegacySubpaths(rootNode, filename);
+  const changes = composeTransformChanges([
+    relocateLegacySubpaths(rootNode, filename),
+    rewriteClassListToClass(rootNode, filename),
+  ]);
 
-  if (relocations.length === 0) return null;
+  if (changes.length === 0) return null;
 
   const release = acquireLock(TRANSFORM_REPORT_STATE_KEY);
   try {
     const accumulated = getState<string[]>(TRANSFORM_REPORT_STATE_KEY) ?? [];
     setState(TRANSFORM_REPORT_STATE_KEY, [
-      ...new Set([...accumulated, ...relocations.map(({ report }) => report)]),
+      ...new Set([...accumulated, ...changes.map(({ report }) => report)]),
     ]);
   } finally {
     release();
   }
 
-  return rootNode.commitEdits(relocations.map(({ edit }) => edit));
+  return rootNode.commitEdits(changes.map(({ edit }) => edit));
 };
 
 export default transform;

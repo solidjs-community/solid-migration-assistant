@@ -1,0 +1,214 @@
+import type { Edit, SgNode } from "codemod:ast-grep";
+import type TSX from "codemod:ast-grep/langs/tsx";
+
+export const SOLID_SOURCE_COMMIT =
+  "ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5";
+
+export const CLASS_LIST_MIGRATION_GUIDE = `https://github.com/solidjs/solid/blob/${SOLID_SOURCE_COMMIT}/documentation/solid-2.0/MIGRATION.md#classlist--class-objectarray-forms`;
+
+export type ClassListRewrite = {
+  edit: Edit;
+  report: string;
+};
+
+/**
+ * The automatic subset of the Solid 2 `classList` removal.
+ *
+ * Solid 2 deletes the JSX `classList` attribute and folds its behavior into
+ * `class`, which now accepts a string, an object whose truthy keys are applied
+ * as class names, or an array of those (`documentation/solid-2.0/07-dom.md`,
+ * "Enhanced class prop"). The upstream `next` implementation inspected at
+ * commit 7f416cf75dde3b89739d53b15305ac6c3c41355c applies an object-valued
+ * `class` through `className()` in `packages/web/src/client.ts`, whose
+ * `classListToObject()` helper skips falsy values, skips empty and "undefined"
+ * keys, and splits whitespace inside a key — the same per-key toggling Solid
+ * 1.x performed for `classList`. The Babel plugin decomposes an inline
+ * `class={{ ... }}` object literal into per-property compiled output
+ * (`packages/babel-plugin/src/dom/element.ts`), matching the 1.x `classList`
+ * compilation, and `ssrClassName()` in `packages/web/src/server.ts` renders the
+ * same tokens on the server. So on an element whose only class source is one
+ * `classList` expression, renaming the attribute key to `class` and leaving the
+ * expression untouched emits the same classes in Solid 2 that `classList`
+ * emitted in Solid 1.x.
+ *
+ * That equality is what this rule rewrites, and nothing else. An element
+ * qualifies only when all of the following hold:
+ *
+ * - the element is intrinsic: its name is a plain lowercase-initial identifier
+ *   (`div`, `my-element`), never a component, a member component, or a
+ *   namespaced element name;
+ * - it carries exactly one attribute named `classList`, spelled as a plain
+ *   attribute name (never `ns:classList`, `class-list`, or `classlist`);
+ * - that attribute's value is an expression container holding exactly one
+ *   expression (comments inside the container are allowed and preserved);
+ * - the element carries no other class source: no `class` or `className` in
+ *   any namespace (`attr:class`, `prop:className`, `bool:class`) and no
+ *   `class:`-namespaced toggle; and
+ * - the element carries no spread attribute anywhere, since a spread can
+ *   supply or override `class` and its position decides precedence.
+ *
+ * Everything else is left to the read-only analyzer, including merging a
+ * `classList` object with an existing literal `class` into the array form. That
+ * merge is representable (`class={["card", { active: isActive() }]}`), but the
+ * emitted precedence between a template-static class and the object's keys is
+ * not proven by an upstream test, so this rule refuses it by default rather
+ * than guess.
+ *
+ * The rewrite replaces only the attribute's name node, so the value expression,
+ * its comments, whitespace, and every other attribute stay byte-identical.
+ */
+export function rewriteClassListToClass(
+  rootNode: SgNode<TSX>,
+  filename: string,
+): ClassListRewrite[] {
+  const rewrites: ClassListRewrite[] = [];
+
+  for (const elementKind of [
+    "jsx_opening_element",
+    "jsx_self_closing_element",
+  ] as const) {
+    for (const element of rootNode.findAll({ rule: { kind: elementKind } })) {
+      const rewrite = rewriteElement(element, filename);
+      if (rewrite !== null) rewrites.push(rewrite);
+    }
+  }
+
+  return rewrites.sort((left, right) => left.edit.startPos - right.edit.startPos);
+}
+
+type Attribute = {
+  /** The whole `jsx_attribute` node. */
+  node: SgNode<TSX>;
+  /** Its name node: a `property_identifier` or a `jsx_namespace_name`. */
+  name: SgNode<TSX>;
+};
+
+function rewriteElement(
+  element: SgNode<TSX>,
+  filename: string,
+): ClassListRewrite | null {
+  const elementName = element.field("name");
+  if (!isIntrinsicElementName(elementName)) return null;
+
+  const attributes = collectAttributes(element);
+  if (attributes === null) return null;
+
+  const targets = attributes.filter(
+    ({ name }) =>
+      name.kind() === "property_identifier" && name.text() === "classList",
+  );
+  const target = targets.length === 1 ? targets[0] : undefined;
+  if (target === undefined) return null;
+
+  if (
+    attributes.some(
+      (attribute) =>
+        attribute !== target && isClassSourceName(attribute.name.text()),
+    )
+  ) {
+    return null;
+  }
+
+  if (!hasSingleExpressionValue(target.node)) return null;
+
+  const start = target.name.range().start;
+  return {
+    edit: target.name.replace("class"),
+    report: `${filename}:${start.line + 1}:${start.column + 1} Rewrite the classList attribute on <${elementName.text()}> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_MIGRATION_GUIDE}`,
+  };
+}
+
+/**
+ * Intrinsic elements are the only elements whose `class` prop reaches the DOM
+ * renderer. A capitalized name, a member expression (`Components.Widget`), and
+ * a namespaced name (`svg:circle`) are all excluded: components receive
+ * `classList` as an ordinary prop that only their own body interprets, and a
+ * namespaced element name is not the element syntax this rewrite reasons about.
+ */
+function isIntrinsicElementName(
+  name: SgNode<TSX> | null,
+): name is SgNode<TSX> {
+  return (
+    name !== null &&
+    name.kind() === "identifier" &&
+    /^[a-z][A-Za-z0-9-]*$/.test(name.text())
+  );
+}
+
+/**
+ * The element's attributes, or null when the element is not fully understood:
+ * a spread attribute (`{...props}`, parsed as a bare `jsx_expression` in the
+ * attribute list) can carry or override `class`, a parse `ERROR` means the
+ * source is malformed, and an attribute name node of any other kind is a
+ * syntax this rule does not model.
+ */
+function collectAttributes(element: SgNode<TSX>): Attribute[] | null {
+  const attributes: Attribute[] = [];
+
+  for (const child of element.children()) {
+    const kind = child.kind();
+    if (kind === "jsx_expression" || kind === "ERROR") return null;
+    if (kind !== "jsx_attribute") continue;
+
+    const name = child.children()[0];
+    if (
+      name === undefined ||
+      (name.kind() !== "property_identifier" &&
+        name.kind() !== "jsx_namespace_name")
+    ) {
+      return null;
+    }
+    attributes.push({ node: child, name });
+  }
+
+  return attributes;
+}
+
+/**
+ * True for every attribute name that also writes the element's class list, so
+ * the rewrite can refuse elements with more than one class source. This covers
+ * plain `class` and `className`, the same names under any Solid 1.x namespace
+ * (`attr:class`, `bool:class`, `prop:className`), and `class:`-namespaced
+ * single-class toggles.
+ */
+function isClassSourceName(text: string): boolean {
+  const separator = text.indexOf(":");
+  const namespace = separator === -1 ? "" : text.slice(0, separator);
+  const local = separator === -1 ? text : text.slice(separator + 1);
+  if (namespace === "class" || namespace === "classList") return true;
+  return local === "class" || local === "className";
+}
+
+/**
+ * True when the attribute is written as `classList={<one expression>}`. A
+ * shorthand attribute (`<div classList />`), a string value
+ * (`classList="active"`), an empty or comment-only container
+ * (`classList={}`, `classList={/* … *\/}`), and a spread or sequence inside the
+ * container are all refused; a comment beside a single expression is kept.
+ */
+function hasSingleExpressionValue(attribute: SgNode<TSX>): boolean {
+  const parts = attribute.children();
+  if (parts.length !== 3) return false;
+
+  const [, assign, container] = parts;
+  if (assign === undefined || assign.kind() !== "=") return false;
+  if (container === undefined || container.kind() !== "jsx_expression") {
+    return false;
+  }
+
+  const expressions = container
+    .children()
+    .filter(
+      (child) =>
+        child.kind() !== "{" &&
+        child.kind() !== "}" &&
+        child.kind() !== "comment",
+    );
+  const expression = expressions.length === 1 ? expressions[0] : undefined;
+  if (expression === undefined) return false;
+
+  const kind = expression.kind();
+  return (
+    kind !== "ERROR" && kind !== "spread_element" && kind !== "sequence_expression"
+  );
+}

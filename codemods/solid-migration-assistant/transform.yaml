@@ -3,11 +3,11 @@
 version: "1"
 
 nodes:
-  - id: relocate-legacy-solid-subpaths
-    name: Relocate deterministic legacy Solid subpath imports
+  - id: apply-deterministic-solid-2-rewrites
+    name: Apply the deterministic Solid 2 source rewrites
     type: automatic
     steps:
-      - name: Rewrite the five pure legacy subpath module sources
+      - name: Rewrite the five pure legacy subpath module sources and safe intrinsic JSX classList attributes
         js-ast-grep:
           js_file: scripts/transform.ts
           base_path: "."
@@ -23,7 +23,7 @@ nodes:
             - "**/build/**"
             - "**/coverage/**"
             - "**/*.d.ts"
-      - name: Emit the relocation report once in deterministic whole-string order
+      - name: Emit the rewrite report once in deterministic whole-string order
         js-ast-grep:
           js_file: scripts/emit-report.ts
           base_path: "."
