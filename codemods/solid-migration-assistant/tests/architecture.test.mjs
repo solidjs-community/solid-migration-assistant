@@ -267,6 +267,21 @@ test("composes every named rule as its own workflow step", () => {
   for (const script of ["test", "verify", "check-types", "validate"]) {
     assert.doesNotMatch(packageJson.scripts[script], /benchmark/, script);
   }
+  const benchmarkProbe = readFileSync(
+    resolve(packageDirectory, "benchmarks/workspace-pass.ts"),
+    "utf8",
+  );
+  const benchmarkDriver = readFileSync(
+    resolve(packageDirectory, "benchmarks/workspace-passes.mjs"),
+    "utf8",
+  );
+  assert.match(benchmarkProbe, /binding\.references\(\)/);
+  assert.match(benchmarkProbe, /createWorkspacePass\(marker:/);
+  assert.match(benchmarkDriver, /createBenchmarkWorkflow/);
+  assert.match(benchmarkDriver, /createWorkspacePass\(\$\{JSON\.stringify/);
+  assert.match(benchmarkDriver, /HOME: stateDirectory/);
+  assert.match(benchmarkDriver, /XDG_CACHE_HOME/);
+  assert.match(benchmarkDriver, /XDG_DATA_HOME/);
 
   assert.equal(
     (analyzeWorkflow.match(/semantic_analysis: workspace/g) ?? []).length,
