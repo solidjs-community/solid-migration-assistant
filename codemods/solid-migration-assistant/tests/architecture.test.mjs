@@ -498,8 +498,14 @@ test("keeps each transform rule inside its declared scope", () => {
   assert.ok(allowlist, "web rule must declare PROVEN_WEB_BINDINGS as a Set");
   assert.deepEqual(
     [...allowlist[1].matchAll(/"([A-Za-z]+)"/g)].map((match) => match[1]),
-    ["Dynamic", "hydrate", "isServer", "render"],
+    ["hydrate", "isServer", "render"],
   );
+  // Dynamic is prescribed by upstream prose and by the Babel plugin's
+  // auto-import defaults, but no such export exists in the rc.7 runtime
+  // source. A list that promises proven bindings must not admit it, and the
+  // rule must say why rather than leaving the omission unexplained.
+  assert.doesNotMatch(allowlist[1], /Dynamic/);
+  assert.match(webRule, /`Dynamic` is deliberately \*\*not\*\* on this list/);
 
   // The classList rewrite is JSX-only and must stay off the import rules'
   // territory, and the read-only classList analyzer stays in place to report

@@ -38,31 +38,35 @@ export const WEB_RELOCATION_TARGET = "@solidjs/web";
  *   from the web entry, keeping their 1.9 shapes:
  *   `render(code, element, init?, options?) => () => void` and
  *   `hydrate(code, element, options?) => () => void`.
- * - `Dynamic` — the same guide states `<Dynamic component={...}>` "still
- *   exists and is user-facing unchanged", now a thin wrapper over the new
- *   `dynamic` factory, and its 2.0 example is literally
- *   `import { Dynamic } from "@solidjs/web"`. The Babel plugin agrees: at
- *   rc.7 `packages/babel-plugin/src/config.ts` auto-imports `Dynamic` from
- *   the default `moduleName` of `@solidjs/web`. Note that unlike the three
- *   names above, `Dynamic` cannot be confirmed against a runtime declaration:
- *   no `Dynamic` symbol exists anywhere under `packages/` at rc.7, so the
- *   export is in flight. This entry rests on the guide and the compiler
- *   config prescribing the exact import this rule writes, not on a located
- *   export site. If upstream lands `Dynamic` under a different name or
- *   module, this entry must be withdrawn.
  * - `isServer` — declared identically on all four entries: `false` in
  *   `packages/(solid/)web/src/index.ts` and `true` in the server entry, on
  *   both 1.9.13 and rc.7.
  *
- * Everything else — including `Portal`, `isDev`, `renderToString`,
+ * `Dynamic` is deliberately **not** on this list, and its exclusion states the
+ * evidence bar the list holds to. Upstream prose and compiler configuration
+ * both point at it: `documentation/solid-2.0/MIGRATION.md` says
+ * `<Dynamic component={...}>` "still exists and is user-facing unchanged" and
+ * shows `import { Dynamic } from "@solidjs/web"` as the 2.0 form, and
+ * `packages/babel-plugin/src/config.ts` auto-imports `Dynamic` from its
+ * default `moduleName` of `@solidjs/web`. But no `Dynamic` export exists: the
+ * identifier does not appear anywhere under `packages/` at rc.7. A guide
+ * describes the intended end state and a compiler config describes what the
+ * compiler expects to exist; neither is a binding that can be proven
+ * compatible, which is what this list promises. Rewriting an import to a name
+ * the target package does not export would break the build it claims to
+ * migrate, so `Dynamic` stays vetoed until an actual exported implementation
+ * lands, at which point it can be added against a located export site.
+ *
+ * Everything else — including `Dynamic`, `Portal`, `isDev`, `renderToString`,
  * `renderToStream`, `generateHydrationScript`, `getRequestEvent`, `For`,
  * `Show`, `Switch`, `Match`, `NoHydration`, `template`, `insert`, `spread`,
  * and `default` — is vetoed. Some of those names are genuinely gone or
  * changed; the rest are simply not proven here, and an unproven name must
- * block the move rather than ride along with a proven one.
+ * block the move rather than ride along with a proven one. The read-only
+ * web-import analyzer (`rules/analysis/imports/web-import/`) is unchanged and
+ * still reports every statement this rule refuses, `Dynamic` included.
  */
 export const PROVEN_WEB_BINDINGS: ReadonlySet<string> = new Set([
-  "Dynamic",
   "hydrate",
   "isServer",
   "render",

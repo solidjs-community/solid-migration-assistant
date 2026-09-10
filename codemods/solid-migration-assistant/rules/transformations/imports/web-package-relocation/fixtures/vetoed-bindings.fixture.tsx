@@ -13,7 +13,15 @@ import { NoHydration, Hydration } from "solid-js/web";
 import { template, insert, spread, delegateEvents } from "solid-js/web";
 import { ssr, ssrClassList, ssrHydrationKey } from "solid-js/web";
 import type { DynamicProps } from "solid-js/web";
+// Dynamic is prescribed by the migration guide and by the Babel plugin's
+// auto-import defaults, but no such export exists in the rc.7 runtime source,
+// so it is vetoed on its own and it vetoes any statement it appears in.
+import { Dynamic } from "solid-js/web";
+import { Dynamic as DynamicAliased } from "solid-js/web";
+import { Dynamic as DynamicWithRender, render as renderVetoedByDynamic } from "solid-js/web";
 export { Portal as PortalOut } from "solid-js/web";
+export { Dynamic as DynamicOut } from "solid-js/web";
+export { Dynamic as DynamicWithProven, isServer as isServerVetoedByDynamic } from "solid-js/web";
 export type { DynamicProps as DynamicPropsOut } from "solid-js/web";
 
 void Portal;
@@ -44,4 +52,8 @@ void delegateEvents;
 void ssr;
 void ssrClassList;
 void ssrHydrationKey;
+void Dynamic;
+void DynamicAliased;
+void DynamicWithRender;
+void renderVetoedByDynamic;
 type _DynamicProps = DynamicProps;

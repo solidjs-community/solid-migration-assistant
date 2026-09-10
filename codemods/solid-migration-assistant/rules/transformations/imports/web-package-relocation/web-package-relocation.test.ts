@@ -27,10 +27,10 @@ const FIXTURE_CASES: Record<string, FixtureCase> = {
     relocations: [
       { location: "2:38", bindings: "render" },
       { location: "3:43", bindings: "hydrate" },
-      { location: "4:45", bindings: "Dynamic" },
+      { location: "4:46", bindings: "isServer" },
       { location: "5:46", bindings: "isServer" },
     ],
-    transformed: "// fixture: escaped-specifiers\nimport { render as escapedHex } from \"@solidjs/web\";\nimport { hydrate as escapedUnicode } from \"@solidjs/web\";\nimport { Dynamic as escapedCodePoint } from \"@solidjs/web\";\nexport { isServer as escapedContinued } from \"@solidjs/web\";\nimport { render as escapedBackslash } from \"solid-js\\\\x2fweb\";\nimport { Portal as escapedVeto } from \"solid-js\\x2fweb\";\n\nvoid escapedHex;\nvoid escapedUnicode;\nvoid escapedCodePoint;\nvoid escapedBackslash;\nvoid escapedVeto;\n",
+    transformed: "// fixture: escaped-specifiers\nimport { render as escapedHex } from \"@solidjs/web\";\nimport { hydrate as escapedUnicode } from \"@solidjs/web\";\nimport { isServer as escapedCodePoint } from \"@solidjs/web\";\nexport { isServer as escapedContinued } from \"@solidjs/web\";\nimport { render as escapedBackslash } from \"solid-js\\\\x2fweb\";\nimport { Portal as escapedVeto } from \"solid-js\\x2fweb\";\n\nvoid escapedHex;\nvoid escapedUnicode;\nvoid escapedCodePoint;\nvoid escapedBackslash;\nvoid escapedVeto;\n",
   },
   "local-exports": {
     relocations: [],
@@ -38,34 +38,34 @@ const FIXTURE_CASES: Record<string, FixtureCase> = {
   },
   "mixed-bindings": {
     relocations: [
-      { location: "8:65", bindings: "render, Dynamic" },
-      { location: "9:67", bindings: "hydrate, isServer" },
+      { location: "9:65", bindings: "render, isServer" },
+      { location: "10:67", bindings: "hydrate, isServer" },
     ],
-    transformed: "// fixture: mixed-bindings\nimport { render, Portal } from \"solid-js/web\";\nimport { Portal as PortalAliased, hydrate as hydrateAliased } from \"solid-js/web\";\nimport { isServer, isDev } from \"solid-js/web\";\nimport { type Dynamic as DynamicMixed, Suspense } from \"solid-js/web\";\nexport { Dynamic, createDynamic } from \"solid-js/web\";\nexport { render as renderOut, Portal as portalOut } from \"solid-js/web\";\nimport { render as provenAlone, Dynamic as provenDynamic } from \"@solidjs/web\";\nexport { hydrate as provenOut, isServer as provenServerOut } from \"@solidjs/web\";\n\nvoid render;\nvoid Portal;\nvoid PortalAliased;\nvoid hydrateAliased;\nvoid isServer;\nvoid isDev;\nvoid Suspense;\nvoid provenAlone;\nvoid provenDynamic;\ntype _DynamicMixed = DynamicMixed;\n",
+    transformed: "// fixture: mixed-bindings\nimport { render, Portal } from \"solid-js/web\";\nimport { Portal as PortalAliased, hydrate as hydrateAliased } from \"solid-js/web\";\nimport { isServer, isDev } from \"solid-js/web\";\nimport { type Dynamic as DynamicMixed, Suspense } from \"solid-js/web\";\nexport { Dynamic, createDynamic } from \"solid-js/web\";\nexport { render as renderOut, Portal as portalOut } from \"solid-js/web\";\nimport { render as mixedWithDynamic, Dynamic as vetoedDynamic } from \"solid-js/web\";\nimport { render as provenAlone, isServer as provenServer } from \"@solidjs/web\";\nexport { hydrate as provenOut, isServer as provenServerOut } from \"@solidjs/web\";\n\nvoid render;\nvoid Portal;\nvoid PortalAliased;\nvoid hydrateAliased;\nvoid isServer;\nvoid isDev;\nvoid Suspense;\nvoid mixedWithDynamic;\nvoid vetoedDynamic;\nvoid provenAlone;\nvoid provenServer;\ntype _DynamicMixed = DynamicMixed;\n",
   },
   "named-imports": {
     relocations: [
       { location: "2:24", bindings: "render" },
       { location: "3:46", bindings: "hydrate, render" },
-      { location: "4:25", bindings: "Dynamic" },
+      { location: "4:41", bindings: "hydrate" },
       { location: "5:26", bindings: "isServer" },
       { location: "6:43", bindings: "render" },
-      { location: "7:68", bindings: "Dynamic, hydrate" },
+      { location: "7:70", bindings: "isServer, hydrate" },
       { location: "11:8", bindings: "isServer, render" },
       { location: "12:64", bindings: "render" },
     ],
-    transformed: "// fixture: named-imports\nimport { render } from \"@solidjs/web\";\nimport { hydrate, render as renderApp } from \"@solidjs/web\";\nimport { Dynamic } from '@solidjs/web';\nimport { isServer } from \"@solidjs/web\";\nimport type { render as RenderType } from \"@solidjs/web\";\nimport { type Dynamic as DynamicType, hydrate as hydrateApp } from \"@solidjs/web\";\nimport {\n  isServer as onServer,\n  render as renderIndented,\n} from \"@solidjs/web\";\nimport { render as duplicateOne, render as duplicateTwo } from \"@solidjs/web\";\n\nvoid render;\nvoid hydrate;\nvoid renderApp;\nvoid Dynamic;\nvoid isServer;\nvoid hydrateApp;\nvoid onServer;\nvoid renderIndented;\nvoid duplicateOne;\nvoid duplicateTwo;\ntype _RenderType = typeof RenderType;\ntype _DynamicType = DynamicType;\n",
+    transformed: "// fixture: named-imports\nimport { render } from \"@solidjs/web\";\nimport { hydrate, render as renderApp } from \"@solidjs/web\";\nimport { hydrate as singleQuoted } from '@solidjs/web';\nimport { isServer } from \"@solidjs/web\";\nimport type { render as RenderType } from \"@solidjs/web\";\nimport { type isServer as IsServerType, hydrate as hydrateApp } from \"@solidjs/web\";\nimport {\n  isServer as onServer,\n  render as renderIndented,\n} from \"@solidjs/web\";\nimport { render as duplicateOne, render as duplicateTwo } from \"@solidjs/web\";\n\nvoid render;\nvoid hydrate;\nvoid renderApp;\nvoid singleQuoted;\nvoid isServer;\nvoid hydrateApp;\nvoid onServer;\nvoid renderIndented;\nvoid duplicateOne;\nvoid duplicateTwo;\ntype _RenderType = typeof RenderType;\ntype _IsServerType = IsServerType;\n",
   },
   "named-re-exports": {
     relocations: [
       { location: "2:24", bindings: "render" },
       { location: "3:39", bindings: "hydrate" },
-      { location: "4:35", bindings: "Dynamic, isServer" },
+      { location: "4:52", bindings: "hydrate, isServer" },
       { location: "5:43", bindings: "render" },
-      { location: "6:76", bindings: "isServer, Dynamic" },
+      { location: "6:74", bindings: "isServer, render" },
       { location: "9:8", bindings: "hydrate" },
     ],
-    transformed: "// fixture: named-re-exports\nexport { render } from \"@solidjs/web\";\nexport { hydrate as hydrateApp } from \"@solidjs/web\";\nexport { Dynamic, isServer } from '@solidjs/web';\nexport type { render as RenderType } from \"@solidjs/web\";\nexport { type isServer as IsServerType, Dynamic as DynamicComponent } from \"@solidjs/web\";\nexport {\n  hydrate,\n} from \"@solidjs/web\";\n",
+    transformed: "// fixture: named-re-exports\nexport { render } from \"@solidjs/web\";\nexport { hydrate as hydrateApp } from \"@solidjs/web\";\nexport { hydrate as hydrateSingle, isServer } from '@solidjs/web';\nexport type { render as RenderType } from \"@solidjs/web\";\nexport { type isServer as IsServerType, render as renderComponent } from \"@solidjs/web\";\nexport {\n  hydrate,\n} from \"@solidjs/web\";\n",
   },
   "near-miss-modules": {
     relocations: [],

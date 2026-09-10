@@ -127,7 +127,7 @@ function assertClassListReport(stderr) {
 const LEGACY_SUBPATH_RELOCATION =
   /^src\/[^:]+:\d+:\d+ Relocate solid-js\/(?:h|html|universal|jsx-runtime|jsx-dev-runtime) to @solidjs\/(?:h|html|universal|web\/jsx-runtime|web\/jsx-dev-runtime)\. Official migration guide: https:\/\/github\.com\/solidjs\/solid\/blob\/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5\/documentation\/solid-2\.0\/MIGRATION\.md#imports-where-things-live-now$/;
 
-const PROVEN_BINDING = "(?:Dynamic|hydrate|isServer|render)";
+const PROVEN_BINDING = "(?:hydrate|isServer|render)";
 const WEB_PACKAGE_RELOCATION = new RegExp(
   `^src/[^:]+:\\d+:\\d+ Relocate solid-js/web to @solidjs/web for proven bindings ${PROVEN_BINDING}(?:, ${PROVEN_BINDING})*\\. Official migration guide: https://github\\.com/solidjs/solid/blob/7f416cf75dde3b89739d53b15305ac6c3c41355c/documentation/solid-2\\.0/MIGRATION\\.md#imports-where-things-live-now$`,
 );

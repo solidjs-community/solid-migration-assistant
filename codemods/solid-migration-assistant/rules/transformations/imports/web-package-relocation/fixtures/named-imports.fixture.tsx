@@ -1,10 +1,10 @@
 // fixture: named-imports
 import { render } from "solid-js/web";
 import { hydrate, render as renderApp } from "solid-js/web";
-import { Dynamic } from 'solid-js/web';
+import { hydrate as singleQuoted } from 'solid-js/web';
 import { isServer } from "solid-js/web";
 import type { render as RenderType } from "solid-js/web";
-import { type Dynamic as DynamicType, hydrate as hydrateApp } from "solid-js/web";
+import { type isServer as IsServerType, hydrate as hydrateApp } from "solid-js/web";
 import {
   isServer as onServer,
   render as renderIndented,
@@ -14,7 +14,7 @@ import { render as duplicateOne, render as duplicateTwo } from "solid-js/web";
 void render;
 void hydrate;
 void renderApp;
-void Dynamic;
+void singleQuoted;
 void isServer;
 void hydrateApp;
 void onServer;
@@ -22,4 +22,4 @@ void renderIndented;
 void duplicateOne;
 void duplicateTwo;
 type _RenderType = typeof RenderType;
-type _DynamicType = DynamicType;
+type _IsServerType = IsServerType;

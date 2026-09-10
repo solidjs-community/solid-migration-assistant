@@ -1,7 +1,7 @@
 // fixture: escaped-specifiers
 import { render as escapedHex } from "solid-js\x2fweb";
 import { hydrate as escapedUnicode } from "solid-js\u002fweb";
-import { Dynamic as escapedCodePoint } from "solid-js\u{2f}web";
+import { isServer as escapedCodePoint } from "solid-js\u{2f}web";
 export { isServer as escapedContinued } from "solid-js/\
 web";
 import { render as escapedBackslash } from "solid-js\\x2fweb";
