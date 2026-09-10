@@ -34,12 +34,22 @@ export const WEB_RELOCATION_TARGET = "@solidjs/web";
  * - `render`, `hydrate` — `documentation/solid-2.0/MIGRATION.md` opens the
  *   "Imports: where things live now" section by relocating exactly this pair
  *   from `solid-js/web` to `@solidjs/web` with the import unchanged.
- *   Declared at `packages/web/src/client.ts` in rc.7 with the 1.9 shape
- *   `(code, element, init?, options?) => () => void`.
+ *   Both are declared in `packages/web/src/client.ts` at rc.7 and re-exported
+ *   from the web entry, keeping their 1.9 shapes:
+ *   `render(code, element, init?, options?) => () => void` and
+ *   `hydrate(code, element, options?) => () => void`.
  * - `Dynamic` — the same guide states `<Dynamic component={...}>` "still
  *   exists and is user-facing unchanged", now a thin wrapper over the new
- *   `dynamic` factory. Exported from both the client and server entries on
- *   both versions.
+ *   `dynamic` factory, and its 2.0 example is literally
+ *   `import { Dynamic } from "@solidjs/web"`. The Babel plugin agrees: at
+ *   rc.7 `packages/babel-plugin/src/config.ts` auto-imports `Dynamic` from
+ *   the default `moduleName` of `@solidjs/web`. Note that unlike the three
+ *   names above, `Dynamic` cannot be confirmed against a runtime declaration:
+ *   no `Dynamic` symbol exists anywhere under `packages/` at rc.7, so the
+ *   export is in flight. This entry rests on the guide and the compiler
+ *   config prescribing the exact import this rule writes, not on a located
+ *   export site. If upstream lands `Dynamic` under a different name or
+ *   module, this entry must be withdrawn.
  * - `isServer` — declared identically on all four entries: `false` in
  *   `packages/(solid/)web/src/index.ts` and `true` in the server entry, on
  *   both 1.9.13 and rc.7.

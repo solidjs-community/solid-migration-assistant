@@ -147,9 +147,12 @@ function assertRelocationReport(stderr) {
     [],
     "a relocation line matched neither the legacy subpath nor the web package format",
   );
-  assert.ok(
-    legacy.length >= 21,
-    `expected at least 21 legacy subpath relocations, got ${legacy.length}`,
+  // Exact counts, not lower bounds: a rule that silently widened its scope and
+  // relocated more statements than the fixture tree licenses must fail here.
+  assert.equal(
+    legacy.length,
+    21,
+    `expected exactly 21 legacy subpath relocations, got ${legacy.length}`,
   );
   assert.equal(
     web.length,

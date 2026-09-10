@@ -294,6 +294,55 @@ test("composes every transform rule into one non-overlapping edit pass", () => {
   assert.doesNotMatch(transformScript, /startPos|endPos/);
 });
 
+/**
+ * The composer is the one place where three independently written rules meet,
+ * so its ordering and overlap guarantees are exercised directly rather than
+ * inferred from the rules that happen to satisfy them today. The module's only
+ * import is type-only, so Node's type stripping loads it without a build step.
+ */
+test("orders composed changes by position and rejects overlaps", async () => {
+  const { composeTransformChanges } = await import(
+    resolve(packageDirectory, "shared/transform.ts")
+  );
+  const change = (startPos, endPos, report) => ({
+    edit: { startPos, endPos },
+    report,
+  });
+
+  assert.deepEqual(composeTransformChanges([]), []);
+  assert.deepEqual(composeTransformChanges([[], [], []]), []);
+
+  // Rule order must not survive into the output: later rules whose edits come
+  // earlier in the file are sorted ahead of earlier rules' later edits.
+  assert.deepEqual(
+    composeTransformChanges([
+      [change(30, 40, "third"), change(10, 20, "first")],
+      [change(20, 30, "second")],
+    ]).map(({ report }) => report),
+    ["first", "second", "third"],
+  );
+
+  // Abutting edits share a boundary but do not overlap, so they are allowed:
+  // an import specifier ending exactly where a JSX attribute begins is legal.
+  assert.equal(
+    composeTransformChanges([[change(0, 10, "a")], [change(10, 20, "b")]])
+      .length,
+    2,
+  );
+
+  for (const overlapping of [
+    [[change(0, 10, "a")], [change(5, 15, "b")]],
+    [[change(0, 10, "a")], [change(0, 10, "duplicate")]],
+    [[change(0, 10, "outer")], [change(2, 4, "nested")]],
+  ]) {
+    assert.throws(
+      () => composeTransformChanges(overlapping),
+      /overlapping transform edits/,
+      JSON.stringify(overlapping),
+    );
+  }
+});
+
 test("registers every supported detector and one deterministic emitter", () => {
   for (const path of EXPECTED_ANALYSIS_PRODUCTION) {
     assert.equal(existsSync(resolve(analysisDirectory, path)), true, path);
