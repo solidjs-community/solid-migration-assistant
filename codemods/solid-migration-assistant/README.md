@@ -1,6 +1,6 @@
 # Solid Migration Assistant
 
-This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths and rewrites the narrow, provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
+This package implements Solid Migration Assistant as two workflows for a narrow Solid 1.9 client-application profile. The read-only `analyze` workflow scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source files and prints one detailed, location-bearing guidance string per supported migration site; it returns no edits and writes no files. The `transform` workflow deterministically relocates a small, pure subset of legacy import subpaths, relocates `solid-js/web` statements whose complete named binding set is proven compatible, and rewrites the narrow, provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
 
 The migration target is pinned to Solid `2.0.0-rc.0` at upstream commit [`ff4d3c44`](https://github.com/solidjs/solid/tree/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5).
 
@@ -65,9 +65,11 @@ Every finding links the immutable pinned [RC migration guide](https://github.com
 
 ## Transform
 
-The opt-in `transform` workflow applies two deterministic rewrites and changes nothing else. Both run in one pass over each file, over disjoint syntax, and each edit is reported on its own line (`file:line:column`, what changed, plus the migration-guide link). The workflow is idempotent and writes no report files or other artifacts in the target.
+The opt-in `transform` workflow applies three deterministic rewrites and changes nothing else. All three run in one pass over each file, over disjoint syntax: two rewrite module source strings for disjoint specifier sets, and the third rewrites JSX attribute name nodes. Their edits are merged into one source-ordered list and proven non-overlapping before the file is written, so the result never depends on rule order. Each edit is reported on its own line (`file:line:column`, what changed, plus the migration-guide link). The workflow is idempotent and writes no report files or other artifacts in the target.
 
-### Legacy import subpath relocation
+### Pure subpath relocations
+
+Five subpaths move wholesale:
 
 - `solid-js/h` → `@solidjs/h`
 - `solid-js/html` → `@solidjs/html`
@@ -75,7 +77,17 @@ The opt-in `transform` workflow applies two deterministic rewrites and changes n
 - `solid-js/jsx-runtime` → `@solidjs/web/jsx-runtime`
 - `solid-js/jsx-dev-runtime` → `@solidjs/web/jsx-dev-runtime`
 
-The transform covers static imports, re-exports, dynamic `import()`, and `require()` calls, and preserves each reference's import form and quote style. Every move is a pure package relocation with no removed, renamed, or behaviorally changed export, so the rewrite is safe without binding-level review. It deliberately leaves `solid-js/web`, `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra` and `vendor/solid-js/h` untouched.
+This rule covers static imports, re-exports, dynamic `import()`, and `require()` calls, and preserves each reference's import form and quote style. Every one of these moves is a pure package relocation with no removed, renamed, or behaviorally changed export, so the rewrite is safe without binding-level review.
+
+### Binding-gated `solid-js/web` → `@solidjs/web`
+
+`solid-js/web` is **not** a pure relocation. Its export surface changed between Solid 1.9.13 and 2.0.0-rc.7: `createDynamic`, `Index`, `SuspenseList`, `renderToStringAsync`, `ssrClassList`, and `pipeToNodeWritable` are gone; `Suspense`, `ErrorBoundary`, and `mergeProps` were renamed to `Loading`, `Errored`, and `merge`; `Portal` lost `useShadow`, `isSVG`, and `ref`; and `isDev` is no longer pinned to `false` on the server entry. A separate default-deny rule therefore relocates a `solid-js/web` statement only when it is a named static import or a named re-export **and** every name it takes from the module is on this allowlist of bindings proven identical across the move:
+
+`Dynamic`, `hydrate`, `isServer`, `render`
+
+Every other name is vetoed, so a statement that mixes an allowed name with a vetoed one is left entirely unchanged. Namespace imports, default imports, side-effect imports, empty name lists, `export *`, `export * as`, `export { default as … }`, dynamic `import()`, `require()`, `import("solid-js/web").X` type queries, string-literal specifier names, and import attributes are all rejected outright. Aliases, inline `type` modifiers, and quote style survive untouched, and an escaped specifier such as `"solid-js\x2fweb"` is the same module, so it is eligible once its bindings pass.
+
+Because this rule owns `solid-js/web` exclusively, the pure-relocation map above never contains it, and no `solid-js/web` statement is ever rewritten on the strength of its module string alone.
 
 ### Intrinsic JSX `classList` → `class`
 
@@ -99,6 +111,10 @@ Everything else is left to the analyzer's manual-review guidance, by design:
 
 The rewrite assumes Solid semantics for the scanned project, which is what the workflow is scoped to; it does not verify that a file imports Solid, because Solid JSX files frequently import nothing from `solid-js` directly.
 
+### Shared limits
+
+All three rules deliberately leave `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra`, `vendor/solid-js/h`, and `solid-js/web/storage` untouched.
+
 In this repository, run `pnpm transform` against the current directory, or invoke the Codemod CLI directly to target another directory:
 
 ```sh
@@ -111,7 +127,7 @@ After publication, select the `transform` workflow from the Codemod platform (it
 
 Current coverage is deliberately limited: the analyzer does not cover indirect calls, shadowed bindings, unsupported argument counts, re-exports, dynamic imports, `require`, TypeScript `import()` type expressions, configuration, dependencies, SSR, libraries, monorepos, or cross-file intent. Binding-sensitive call and JSX rules also exclude aliased and namespace bindings. No guidance—or a clean run—is not a readiness result and does not imply complete Solid 2 migration coverage.
 
-The read-only `analyze` workflow remains detection-only, including for every `classList` attribute the transform refuses. Broader automated transforms remain roadmap items beyond the five pure import-path relocations and the intrinsic `classList` rename implemented by the `transform` workflow.
+The read-only `analyze` workflow remains detection-only, including for every `solid-js/web` statement and every `classList` attribute the transform refuses. Broader automated transforms remain roadmap items beyond the five pure import-path relocations, the binding-gated `solid-js/web` relocation, and the intrinsic `classList` rename implemented by the `transform` workflow. Growing the `solid-js/web` allowlist requires fresh upstream evidence per name, not a blanket widening.
 
 ## Verify
 

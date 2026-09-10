@@ -1,0 +1,20 @@
+// fixture: mixed-bindings
+import { render, Portal } from "solid-js/web";
+import { Portal as PortalAliased, hydrate as hydrateAliased } from "solid-js/web";
+import { isServer, isDev } from "solid-js/web";
+import { type Dynamic as DynamicMixed, Suspense } from "solid-js/web";
+export { Dynamic, createDynamic } from "solid-js/web";
+export { render as renderOut, Portal as portalOut } from "solid-js/web";
+import { render as provenAlone, Dynamic as provenDynamic } from "solid-js/web";
+export { hydrate as provenOut, isServer as provenServerOut } from "solid-js/web";
+
+void render;
+void Portal;
+void PortalAliased;
+void hydrateAliased;
+void isServer;
+void isDev;
+void Suspense;
+void provenAlone;
+void provenDynamic;
+type _DynamicMixed = DynamicMixed;

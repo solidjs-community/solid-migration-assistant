@@ -8,13 +8,14 @@ import { nearH as prefixNearMiss } from "solid-js/h-extra";
 import { nearH as suffixNearMiss } from "vendor/solid-js/h";
 import { nearStore as escapedNearMiss } from "solid-js\\x2fstore";
 import { createStore } from "solid-js/store";
-import { render } from "solid-js/web";
+import * as web from "solid-js/web";
 import migratedH from "@solidjs/h";
 
 function require(name: string): unknown {
   return name;
 }
 const shadowed = require("solid-js/html");
+const shadowedWeb = require("solid-js/web");
 
 const viaResolve = require.resolve("solid-js/universal");
 const viaTemplate = import(`solid-js/jsx-runtime`);
@@ -28,9 +29,10 @@ void prefixNearMiss;
 void suffixNearMiss;
 void escapedNearMiss;
 void createStore;
-void render;
+void web;
 void migratedH;
 void shadowed;
+void shadowedWeb;
 void viaResolve;
 void viaTemplate;
 void url;

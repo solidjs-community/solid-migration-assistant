@@ -1,7 +1,10 @@
-// Nested JSX module with a legacy subpath reference and a classList attribute
-// in the same file, so both transform rules must edit it in one pass.
+// Nested JSX module carrying a legacy subpath reference, a proven solid-js/web
+// import, a vetoed one, and a classList attribute, so all three transform rules
+// must edit this one file in a single pass.
 import { createRenderer } from "solid-js/universal";
 import { jsx } from "solid-js/jsx-runtime";
+import { render, isServer } from "solid-js/web";
+import { Suspense } from "solid-js/web";
 
 export function App() {
   return (
@@ -14,3 +17,6 @@ export function App() {
 const dynamic = import("solid-js/html");
 void dynamic;
 void jsx;
+void render;
+void isServer;
+void Suspense;

@@ -7,7 +7,7 @@ nodes:
     name: Apply the deterministic Solid 2 source rewrites
     type: automatic
     steps:
-      - name: Rewrite the five pure legacy subpath module sources and safe intrinsic JSX classList attributes
+      - name: Rewrite pure legacy subpath sources, proven solid-js/web sources, and safe intrinsic JSX classList attributes
         js-ast-grep:
           js_file: scripts/transform.ts
           base_path: "."

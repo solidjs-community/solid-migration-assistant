@@ -55,6 +55,7 @@ const expectedFiles = [
   "rules/analysis/store/produce/produce.ts",
   "rules/analysis/store/unwrap/unwrap.ts",
   "rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
+  "rules/transformations/imports/web-package-relocation/web-package-relocation.ts",
   "rules/transformations/jsx/class-list-to-class/class-list-to-class.ts",
   "scripts/analyze.ts",
   "scripts/emit-report.ts",
@@ -151,7 +152,7 @@ test(
     );
 
     try {
-      assert.equal(expectedFiles.length, 42);
+      assert.equal(expectedFiles.length, 43);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(

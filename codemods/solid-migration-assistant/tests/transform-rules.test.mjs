@@ -6,8 +6,11 @@ import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const transformationsDirectory = resolve(packageDirectory, "rules/transformations");
+const EXPECTED_ADAPTER_COUNT = 3;
+const EXPECTED_FIXTURE_COUNT = 29;
 const ruleCases = [
   { directory: "rules/transformations/imports/legacy-subpath-relocation" },
+  { directory: "rules/transformations/imports/web-package-relocation" },
   { directory: "rules/transformations/jsx/class-list-to-class" },
 ];
 
@@ -18,9 +21,12 @@ const existingAdapters = findFiles(transformationsDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredAdapters.length !== 2 || existingAdapters.length !== 2) {
+if (
+  configuredAdapters.length !== EXPECTED_ADAPTER_COUNT ||
+  existingAdapters.length !== EXPECTED_ADAPTER_COUNT
+) {
   throw new Error(
-    `Expected 2 transform rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
+    `Expected ${EXPECTED_ADAPTER_COUNT} transform rule adapters, found ${configuredAdapters.length} configured and ${existingAdapters.length} on disk.`,
   );
 }
 if (configuredAdapters.join("\n") !== existingAdapters.join("\n")) {
@@ -48,9 +54,12 @@ const existingFixtures = findFiles(transformationsDirectory, (name) =>
   .map((path) => relative(packageDirectory, path))
   .sort();
 
-if (configuredFixtures.length !== 17 || existingFixtures.length !== 17) {
+if (
+  configuredFixtures.length !== EXPECTED_FIXTURE_COUNT ||
+  existingFixtures.length !== EXPECTED_FIXTURE_COUNT
+) {
   throw new Error(
-    `Expected 17 colocated transform rule fixtures, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
+    `Expected ${EXPECTED_FIXTURE_COUNT} colocated transform rule fixtures, found ${configuredFixtures.length} configured and ${existingFixtures.length} on disk.`,
   );
 }
 if (configuredFixtures.join("\n") !== existingFixtures.join("\n")) {

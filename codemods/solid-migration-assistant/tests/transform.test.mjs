@@ -24,7 +24,7 @@ const fixtureDirectory = resolve(packageDirectory, "tests/transform-fixture");
 const expectedDirectory = resolve(packageDirectory, "tests/transform-expected");
 
 test(
-  "relocates the five pure legacy subpaths, rewrites safe intrinsic classList attributes, and changes nothing else",
+  "relocates the five pure legacy subpaths plus proven solid-js/web statements, rewrites safe intrinsic classList attributes, and changes nothing else",
   () => {
     const temporaryRoot = mkdtempSync(
       join(tmpdir(), "solid-migration-assistant-transform-"),
@@ -120,9 +120,17 @@ function assertClassListReport(stderr) {
     `src/class-list.tsx:14:14 Rewrite the classList attribute on <section> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
     `src/class-list.tsx:15:23 Rewrite the classList attribute on <div> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
     `src/class-list.tsx:16:15 Rewrite the classList attribute on <span> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
-    `src/nested/deep.jsx:8:41 Rewrite the classList attribute on <div> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
+    `src/nested/deep.jsx:11:41 Rewrite the classList attribute on <div> to class, preserving its value expression. Official migration guide: ${CLASS_LIST_GUIDE}`,
   ]);
 }
+
+const LEGACY_SUBPATH_RELOCATION =
+  /^src\/[^:]+:\d+:\d+ Relocate solid-js\/(?:h|html|universal|jsx-runtime|jsx-dev-runtime) to @solidjs\/(?:h|html|universal|web\/jsx-runtime|web\/jsx-dev-runtime)\. Official migration guide: https:\/\/github\.com\/solidjs\/solid\/blob\/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5\/documentation\/solid-2\.0\/MIGRATION\.md#imports-where-things-live-now$/;
+
+const PROVEN_BINDING = "(?:Dynamic|hydrate|isServer|render)";
+const WEB_PACKAGE_RELOCATION = new RegExp(
+  `^src/[^:]+:\\d+:\\d+ Relocate solid-js/web to @solidjs/web for proven bindings ${PROVEN_BINDING}(?:, ${PROVEN_BINDING})*\\. Official migration guide: https://github\\.com/solidjs/solid/blob/7f416cf75dde3b89739d53b15305ac6c3c41355c/documentation/solid-2\\.0/MIGRATION\\.md#imports-where-things-live-now$`,
+);
 
 function assertRelocationReport(stderr) {
   const lines = relocationLines(stderr);
@@ -131,13 +139,28 @@ function assertRelocationReport(stderr) {
     [...lines].sort(),
     "relocation report is not in deterministic whole-string order",
   );
-  assert.ok(lines.length >= 21, `expected at least 21 relocations, got ${lines.length}`);
+
+  const legacy = lines.filter((line) => LEGACY_SUBPATH_RELOCATION.test(line));
+  const web = lines.filter((line) => WEB_PACKAGE_RELOCATION.test(line));
+  assert.deepEqual(
+    lines.filter((line) => !legacy.includes(line) && !web.includes(line)),
+    [],
+    "a relocation line matched neither the legacy subpath nor the web package format",
+  );
+  assert.ok(
+    legacy.length >= 21,
+    `expected at least 21 legacy subpath relocations, got ${legacy.length}`,
+  );
+  assert.equal(
+    web.length,
+    5,
+    `expected exactly 5 proven solid-js/web relocations, got ${web.length}`,
+  );
   for (const line of lines) {
-    assert.match(
-      line,
-      /^src\/[^:]+:\d+:\d+ Relocate solid-js\/(?:h|html|universal|jsx-runtime|jsx-dev-runtime) to @solidjs\/(?:h|html|universal|web\/jsx-runtime|web\/jsx-dev-runtime)\. Official migration guide: https:\/\/github\.com\/solidjs\/solid\/blob\/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5\/documentation\/solid-2\.0\/MIGRATION\.md#imports-where-things-live-now$/,
-    );
-    assert.doesNotMatch(line, /solid-js\/store|solid-js\/web\b/);
+    assert.doesNotMatch(line, /solid-js\/store/);
+  }
+  for (const line of legacy) {
+    assert.doesNotMatch(line, /solid-js\/web\b/);
   }
 }
 

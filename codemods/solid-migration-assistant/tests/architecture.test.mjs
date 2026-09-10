@@ -126,10 +126,12 @@ const EXPECTED_ANALYSIS_FOLDERS = EXPECTED_ANALYSIS_PRODUCTION.map((path) =>
 
 const EXPECTED_TRANSFORM_PRODUCTION = [
   "imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
+  "imports/web-package-relocation/web-package-relocation.ts",
   "jsx/class-list-to-class/class-list-to-class.ts",
 ];
 const EXPECTED_TRANSFORM_TESTS = [
   "imports/legacy-subpath-relocation/legacy-subpath-relocation.test.ts",
+  "imports/web-package-relocation/web-package-relocation.test.ts",
   "jsx/class-list-to-class/class-list-to-class.test.ts",
 ];
 const EXPECTED_TRANSFORM_FIXTURES = [
@@ -144,6 +146,18 @@ const EXPECTED_TRANSFORM_FIXTURES = [
   "imports/legacy-subpath-relocation/fixtures/shadowed-require.fixture.tsx",
   "imports/legacy-subpath-relocation/fixtures/single-quotes.fixture.tsx",
   "imports/legacy-subpath-relocation/fixtures/static-imports.fixture.tsx",
+  "imports/web-package-relocation/fixtures/coexistence.fixture.tsx",
+  "imports/web-package-relocation/fixtures/escaped-specifiers.fixture.tsx",
+  "imports/web-package-relocation/fixtures/local-exports.fixture.tsx",
+  "imports/web-package-relocation/fixtures/mixed-bindings.fixture.tsx",
+  "imports/web-package-relocation/fixtures/named-imports.fixture.tsx",
+  "imports/web-package-relocation/fixtures/named-re-exports.fixture.tsx",
+  "imports/web-package-relocation/fixtures/near-miss-modules.fixture.tsx",
+  "imports/web-package-relocation/fixtures/no-matches.fixture.tsx",
+  "imports/web-package-relocation/fixtures/non-named-forms.fixture.tsx",
+  "imports/web-package-relocation/fixtures/runtime-forms.fixture.tsx",
+  "imports/web-package-relocation/fixtures/unsupported-shapes.fixture.tsx",
+  "imports/web-package-relocation/fixtures/vetoed-bindings.fixture.tsx",
   "jsx/class-list-to-class/fixtures/attribute-values.fixture.tsx",
   "jsx/class-list-to-class/fixtures/class-conflicts.fixture.tsx",
   "jsx/class-list-to-class/fixtures/no-matches.fixture.tsx",
@@ -260,18 +274,24 @@ test("composes every transform rule into one non-overlapping edit pass", () => {
   );
   for (const name of [
     "relocateLegacySubpaths",
+    "relocateWebPackage",
     "rewriteClassListToClass",
     "composeTransformChanges",
   ]) {
     assert.match(transformScript, new RegExp(name));
   }
+  // One commit for all three rules: their edits are ordered, proven disjoint,
+  // and applied together, so no rule can observe another rule's output.
   assert.equal((transformScript.match(/commitEdits\(/g) ?? []).length, 1);
 
+  // The overlap proof lives in the shared composer, not in the adapter, so a
+  // fourth rule inherits it instead of restating it.
   const shared = readFileSync(
     resolve(packageDirectory, "shared/transform.ts"),
     "utf8",
   );
   assert.match(shared, /overlapping transform edits/);
+  assert.doesNotMatch(transformScript, /startPos|endPos/);
 });
 
 test("registers every supported detector and one deterministic emitter", () => {
@@ -398,6 +418,57 @@ test("colocates exact transformation rule production, adapters, and fixtures", (
   assertRuleLayout(transformationsDirectory, EXPECTED_TRANSFORM_PRODUCTION, {
     fixturesSubdirectory: true,
   });
+});
+
+test("keeps each transform rule inside its declared scope", () => {
+  // solid-js/web belongs to the binding-gated rule only; it must never be
+  // added to the pure-relocation map, which rewrites without proving names.
+  const legacyRule = readFileSync(
+    resolve(
+      transformationsDirectory,
+      "imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
+    ),
+    "utf8",
+  );
+  assert.doesNotMatch(legacyRule, /"solid-js\/web"/);
+  assert.equal(
+    (legacyRule.match(/"solid-js\/[a-z-]+": "@solidjs\//g) ?? []).length,
+    5,
+  );
+
+  const webRule = readFileSync(
+    resolve(
+      transformationsDirectory,
+      "imports/web-package-relocation/web-package-relocation.ts",
+    ),
+    "utf8",
+  );
+  const allowlist = /PROVEN_WEB_BINDINGS[^=]*= new Set\(\[([^\]]*)\]\)/.exec(
+    webRule,
+  );
+  assert.ok(allowlist, "web rule must declare PROVEN_WEB_BINDINGS as a Set");
+  assert.deepEqual(
+    [...allowlist[1].matchAll(/"([A-Za-z]+)"/g)].map((match) => match[1]),
+    ["Dynamic", "hydrate", "isServer", "render"],
+  );
+
+  // The classList rewrite is JSX-only and must stay off the import rules'
+  // territory, and the read-only classList analyzer stays in place to report
+  // everything the rewrite refuses.
+  const classListRule = readFileSync(
+    resolve(
+      transformationsDirectory,
+      "jsx/class-list-to-class/class-list-to-class.ts",
+    ),
+    "utf8",
+  );
+  assert.doesNotMatch(classListRule, /import_statement|export_statement/);
+  assert.match(classListRule, /jsx_opening_element/);
+  assert.match(classListRule, /jsx_self_closing_element/);
+  assert.equal(
+    existsSync(resolve(analysisDirectory, "jsx/class-list/class-list.ts")),
+    true,
+  );
 });
 
 test("uses normal analyzer end-to-end fixtures", () => {

@@ -21,9 +21,15 @@ export type TransformChange = {
  * Each rule scans the same tree independently, so the merged list is sorted by
  * source position to keep the committed edits and their reports independent of
  * rule order. Two rules editing overlapping ranges would make the result depend
- * on which edit wins, so an overlap fails loudly instead: the rules composed
- * here own disjoint syntax (module source strings versus JSX attribute names),
- * and this guard keeps that a checked invariant rather than an assumption.
+ * on which edit wins, so an overlap fails loudly instead.
+ *
+ * The three rules composed today own disjoint syntax, so the guard should never
+ * fire: legacy-subpath-relocation and web-package-relocation both rewrite module
+ * source strings but match disjoint specifier sets (the five pure subpaths
+ * versus `solid-js/web`), and class-list-to-class rewrites JSX attribute name
+ * nodes, which no import or export statement contains. That disjointness is a
+ * property of the current rules rather than of the composition, so it is checked
+ * here instead of assumed on their behalf.
  */
 export function composeTransformChanges(
   ruleChanges: ReadonlyArray<readonly TransformChange[]>,
