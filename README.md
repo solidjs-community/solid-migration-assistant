@@ -80,7 +80,7 @@ Run the opt-in directional benchmark on the small checked-in fixture:
 pnpm --dir codemods/solid-migration-assistant benchmark:workspace-passes
 ```
 
-Pass `-- --target /path/to/project` to use another target. It compares one no-op JSSG workspace-semantic pass with the same pass repeated to match the production analyzer-step count, then reports medians, added cost, slowdown, and a marginal-pass estimate. It hashes relevant target source before and after. This is not a complete old-versus-new analyzer benchmark and does not control caches or model rule traversal cost.
+Pass `-- --target /path/to/project` to use another target. It compares one no-op JSSG step declared with `semantic_analysis: workspace` against the same step repeated to match the production analyzer-step count, then reports raw samples, medians, added cost, slowdown, and a marginal-pass estimate. It hashes relevant target source before and after. Each sample times a whole Codemod CLI invocation, so process startup dominates small targets, and the no-op rule never queries semantic references, so it does not exercise the workspace semantic index in the current runtime; it measures per-step dispatch and file traversal overhead only. This is not a complete old-versus-new analyzer benchmark and does not control caches or model rule traversal cost.
 
 ## Verify the repository
 

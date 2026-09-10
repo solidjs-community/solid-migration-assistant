@@ -221,7 +221,51 @@ test("composes every named rule as its own workflow step", () => {
       1,
       name,
     );
+    const factory =
+      kind === "analysis"
+        ? "createAnalysisEntrypoint"
+        : "createTransformEntrypoint";
+    assert.equal(
+      entrypoint.includes("export default " + factory + "(" + name + ");"),
+      true,
+      name,
+    );
     assert.doesNotMatch(entrypoint, /\[[^\]]*rule|flatMap|for \(/);
+  }
+
+  // Exactly one entrypoint file per named rule: no strays, duplicates, or
+  // leftover central scripts anywhere under scripts/, and only one analyze
+  // workflow file.
+  assert.deepEqual(productionScripts(), ["emit-report.ts"]);
+  assert.deepEqual(workflowFiles(), ["workflow.yaml"]);
+  assert.deepEqual(
+    readdirSync(resolve(packageDirectory, "scripts/analysis")).sort(),
+    analysisRules.map(({ name }) => name + ".ts").sort(),
+  );
+  assert.deepEqual(
+    readdirSync(resolve(packageDirectory, "scripts/transformations")).sort(),
+    transformRules.map(({ name }) => name + ".ts").sort(),
+  );
+
+  // Every workflow step must reference a packaged entrypoint, and the opt-in
+  // benchmark must ship but stay out of the verified test surface.
+  const packageJson = JSON.parse(
+    readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
+  );
+  for (const workflow of [analyzeWorkflow, transformWorkflow]) {
+    for (const [, jsFile] of workflow.matchAll(/js_file:\s*(\S+)/g)) {
+      assert.equal(packageJson.files.includes(jsFile), true, jsFile);
+    }
+  }
+  for (const shipped of [
+    "shared/entrypoint.ts",
+    "benchmarks/workspace-pass.ts",
+    "benchmarks/workspace-passes.mjs",
+  ]) {
+    assert.equal(packageJson.files.includes(shipped), true, shipped);
+  }
+  for (const script of ["test", "verify", "check-types", "validate"]) {
+    assert.doesNotMatch(packageJson.scripts[script], /benchmark/, script);
   }
 
   assert.equal(

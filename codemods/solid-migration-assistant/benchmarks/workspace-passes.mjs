@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
-  lstatSync,
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
@@ -19,6 +19,16 @@ const analysisStepCount = readFileSync(workflowPath, "utf8")
 const { target, samples } = parseArguments(process.argv.slice(2));
 const temporarySuffix = `${process.pid}-${randomUUID()}`;
 const temporaryWorkflows = [];
+// Without handlers a terminal interrupt kills this process mid-run and leaks
+// the temporary workflows. With them, Node defers the signal until the current
+// synchronous Codemod run returns (the interrupted child fails that run), so
+// the `finally` below and this handler both remove the temporary workflows.
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    removeTemporaryWorkflows();
+    process.exit(1);
+  });
+}
 
 try {
   const singleWorkflow = writeWorkflow("single", 1);
@@ -54,6 +64,17 @@ try {
   const slowdownRatio = repeatedMedianMs / singleMedianMs;
   const marginalPassMs =
     analysisStepCount > 1 ? addedMs / (analysisStepCount - 1) : 0;
+  for (const [name, value] of Object.entries({
+    singleMedianMs,
+    repeatedMedianMs,
+    addedMs,
+    slowdownRatio,
+    marginalPassMs,
+  })) {
+    if (!Number.isFinite(value)) {
+      throw new Error(`benchmark metric ${name} is not finite: ${value}`);
+    }
+  }
   const result = {
     target,
     analysisStepCount,
@@ -71,17 +92,27 @@ try {
   console.log(`Target: ${target}`);
   console.log(`Production analysis rule steps: ${analysisStepCount}`);
   console.log(`Measured samples per mode: ${samples}`);
+  console.log(`One-pass samples: ${formatSamples(singleSamples)}`);
+  console.log(`${analysisStepCount}-pass samples: ${formatSamples(repeatedSamples)}`);
   console.log(`One-pass median: ${singleMedianMs.toFixed(1)} ms`);
   console.log(`${analysisStepCount}-pass median: ${repeatedMedianMs.toFixed(1)} ms`);
   console.log(`Added cost: ${addedMs.toFixed(1)} ms`);
   console.log(`Slowdown: ${slowdownRatio.toFixed(2)}x`);
   console.log(`Marginal pass estimate: ${marginalPassMs.toFixed(1)} ms`);
   console.log(
-    "Caveat: this directional pilot measures repeated no-op workflow and workspace-semantic pass overhead. It does not compare complete legacy and split analyzers, model rule traversal cost, control OS caches, or constitute a stable performance test.",
+    "Caveat: this directional pilot times whole Codemod CLI invocations, so process startup dominates small targets such as the default fixture, and deltas inside run-to-run noise can be negative. The no-op rule never queries semantic references, so in the current runtime it does not exercise the workspace semantic index; the measurement isolates per-step workflow dispatch and file traversal overhead only. It does not compare complete legacy and split analyzers, model rule traversal cost, control OS caches, or constitute a stable performance test.",
   );
   console.log(JSON.stringify(result));
 } finally {
+  removeTemporaryWorkflows();
+}
+
+function removeTemporaryWorkflows() {
   for (const workflow of temporaryWorkflows) rmSync(workflow, { force: true });
+}
+
+function formatSamples(values) {
+  return `${values.map((value) => value.toFixed(1)).join(", ")} ms`;
 }
 
 function parseArguments(argumentsList) {
@@ -91,6 +122,8 @@ function parseArguments(argumentsList) {
   for (let index = 0; index < argumentsList.length; index += 1) {
     const argument = argumentsList[index];
     const value = argumentsList[index + 1];
+    // pnpm forwards the literal `--` separator from `pnpm <script> -- --target`.
+    if (argument === "--") continue;
     if (argument === "--target" && value) {
       target = resolve(value);
       index += 1;
@@ -107,8 +140,8 @@ function parseArguments(argumentsList) {
   if (!Number.isInteger(samples) || samples < 3) {
     throw new Error("--samples must be an integer of at least 3");
   }
-  if (!lstatSync(target).isDirectory()) {
-    throw new Error(`benchmark target is not a directory: ${target}`);
+  if (!statSync(target, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error(`benchmark target is not an existing directory: ${target}`);
   }
   if (analysisStepCount < 1) {
     throw new Error("workflow.yaml contains no analysis rule steps");

@@ -135,7 +135,7 @@ The read-only `analyze` workflow remains detection-only, including for every `so
 
 ## Preliminary workspace-pass benchmark
 
-Run `pnpm benchmark:workspace-passes` for the default checked-in fixture, or `pnpm benchmark:workspace-passes -- --target /path/to/project` for another target. The opt-in script times one no-op workspace-semantic JSSG pass against that pass repeated to match the current analysis-rule step count. It prints raw samples, medians, delta, slowdown ratio, a marginal-pass estimate, and final JSON; relevant source hashes must remain unchanged. The benchmark is directional only: it does not compare full legacy and split analyzers, model rule traversal cost, control OS caches, or run as part of `verify`.
+Run `pnpm benchmark:workspace-passes` for the default checked-in fixture, or `pnpm benchmark:workspace-passes -- --target /path/to/project` for another target. The opt-in script times one no-op JSSG step declared with `semantic_analysis: workspace` against that step repeated to match the current analysis-rule step count. It prints raw samples, medians, delta, slowdown ratio, a marginal-pass estimate, and final JSON; relevant source hashes must remain unchanged. The benchmark is directional only. Each sample times a whole Codemod CLI invocation, so process startup dominates small targets and deltas inside run-to-run noise can be negative. The no-op rule never queries semantic references, so in the current runtime it does not exercise the workspace semantic index; it isolates per-step workflow dispatch and file traversal overhead only. It does not compare full legacy and split analyzers, model rule traversal cost, control OS caches, or run as part of `verify`.
 
 ## Verify
 
