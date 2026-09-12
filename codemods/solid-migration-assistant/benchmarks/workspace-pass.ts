@@ -1,10 +1,20 @@
-import type { Codemod } from "codemod:ast-grep";
+import type { SgRoot } from "codemod:ast-grep";
 import type TSX from "codemod:ast-grep/langs/tsx";
 
-export function createWorkspacePass(marker: string): Codemod<TSX> {
+/**
+ * One workspace-semantic pass for the benchmark: resolve the references of
+ * the first imported binding in each file, which makes the bridge consult
+ * the workspace index it built for the command, then report nothing. Every
+ * marker does identical work; the marker only makes each generated inline
+ * definition's bundled artifact distinct, as each YAML step's entrypoint
+ * used to be.
+ */
+export function createWorkspacePass(
+  marker: string,
+): (root: SgRoot<TSX>) => null {
   if (marker.length === 0) throw new Error("workspace-pass marker is required");
 
-  return async (root) => {
+  return (root) => {
     for (const statement of root.root().findAll({
       rule: { kind: "import_statement" },
     })) {
@@ -21,5 +31,3 @@ export function createWorkspacePass(marker: string): Codemod<TSX> {
     return null;
   };
 }
-
-export default createWorkspacePass("packaged-probe");

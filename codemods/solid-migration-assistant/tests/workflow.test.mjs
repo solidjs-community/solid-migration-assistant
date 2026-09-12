@@ -1,25 +1,83 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
+import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { DISCLOSURE } from "../shared/run-workflow.mjs";
+import { DISCLOSURE, resolveBridgeBinary } from "../shared/run-workflow.mjs";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const workspaceDirectory = resolve(packageDirectory, "../..");
+const launcher = resolve(packageDirectory, "bin/solid-migration-assistant.mjs");
+const analyzeWorkflow = resolve(packageDirectory, "workflows/analyze.ts");
+const transformWorkflow = resolve(packageDirectory, "workflows/transform.ts");
 const fixtureDirectory = resolve(packageDirectory, "tests/fixture");
 const emptyDirectory = resolve(packageDirectory, "tests/empty");
+const SOURCE_INCLUDE = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"];
+const SOURCE_EXCLUDE = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/coverage/**",
+  "**/*.d.ts",
+];
+/** The 37 analyzers, in the order the workflow declares them in its group. */
+const expectedAnalyzers = [
+  "analyzeBeta32SubpathImports",
+  "analyzeWebImport",
+  "analyzeJsxClassListAttributes",
+  "analyzeJsxComponentRenames",
+  "analyzeContextProvider",
+  "analyzeDomAttrNamespaces",
+  "analyzeDomEventNamespaces",
+  "analyzeDomUseDirective",
+  "analyzeOnCleanup",
+  "analyzeOnMount",
+  "analyzeMergeProps",
+  "analyzeSplitProps",
+  "analyzeBatch",
+  "analyzeCreateComputed",
+  "analyzeCreateDynamic",
+  "analyzeCreateEffect",
+  "analyzeCreateMemo",
+  "analyzeCreateResource",
+  "analyzeCreateSelector",
+  "analyzeOnError",
+  "analyzeCatchError",
+  "analyzeResetErrorBoundaries",
+  "analyzeFrom",
+  "analyzeObservable",
+  "analyzeIndexArray",
+  "analyzeOnHelper",
+  "analyzeStartTransition",
+  "analyzeUseTransition",
+  "analyzeCreateDeferred",
+  "analyzeEqualFn",
+  "analyzeGetListener",
+  "analyzeWriteSignal",
+  "analyzeEnableScheduling",
+  "analyzeCreateMutable",
+  "analyzeModifyMutable",
+  "analyzeProduce",
+  "analyzeUnwrap",
+];
+const expectedRewrites = [
+  "relocateLegacySubpaths",
+  "relocateWebPackage",
+  "rewriteClassListToClass",
+];
 const expectedGuidance = [
   'src/excluded.ts:3:1 Manual review required: choose a Solid 2 replacement for this createComputed call.\nWhy: Solid 2.0.0-rc.0 removes createComputed; the correct replacement depends on whether the callback derives a value, performs an effect, or encodes stateful update logic. This call has 1 semantic argument(s).\nGuidance: Read the complete callback, its consumers, nearby signal/store declarations, and ordering assumptions. Use createMemo only for a readonly derived value that consumers read. Use Solid 2\'s split createEffect when reactive reads can be isolated in the compute callback and imperative work belongs in the untracked effect callback. Use function-form createSignal, or derived createStore for object and array projections, only when writable derived state is intentional. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a rewrite when the callback uses its previous value or an initial/options argument, writes to a dependency or may form a cycle, mixes several operations, relies on immediate or render ordering, registers cleanup, starts async work, contains nested control flow or reactive primitive creation, or has unclear ownership or consumers. Ask for the smallest focused test or runtime observation that exposes the required value, timing, and write behavior. Official migration guide: https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#createcomputed--creatememo-createeffect-or-derived-createsignal',
   'src/excluded.ts:4:1 Manual review required: migrate this mergeProps call to a reviewed merge.\nWhy: Solid 2.0.0-rc.0 replaces mergeProps with merge, but merge treats a property that exists on a later source with the value undefined as the winner instead of falling through to an earlier source. This call has 2 semantic argument(s).\nGuidance: Read every source in argument order, list all overlapping keys, and trace every consumer of the merged value. Replace mergeProps with merge from solid-js only after proving that every later overlapping value is non-undefined and that zero-argument behavior, one-source result identity, and mutation semantics do not matter. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a replacement when existing TypeScript types or the inferred Merge result type are the only runtime-safety evidence, a source is any/unknown/union-typed at runtime, a props or store proxy, a function, or has getters or dynamic key presence, source or result identity or mutation is observed, or a consumer depends on fallback-through-undefined behavior. If old undefined-fallback behavior is required, preserve live reactive reads with a targeted manual guard at the disputed property boundary rather than object spread or Object.assign. Ask for the smallest focused test or runtime observation that exposes the disputed property\'s value, precedence, identity, and mutation boundary. Official migration guide: https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#mergeprops--splitprops--merge--omit',
@@ -52,13 +110,692 @@ const expectedGuidance = [
   'src/workspace-reference.tsx:3:32 Manual review required: migrate this mergeProps call to a reviewed merge.\nWhy: Solid 2.0.0-rc.0 replaces mergeProps with merge, but merge treats a property that exists on a later source with the value undefined as the winner instead of falling through to an earlier source. This call has 2 semantic argument(s).\nGuidance: Read every source in argument order, list all overlapping keys, and trace every consumer of the merged value. Replace mergeProps with merge from solid-js only after proving that every later overlapping value is non-undefined and that zero-argument behavior, one-source result identity, and mutation semantics do not matter. Make and validate this migration yourself; this analyzer never edits or runs the target project. Stop without proposing a replacement when existing TypeScript types or the inferred Merge result type are the only runtime-safety evidence, a source is any/unknown/union-typed at runtime, a props or store proxy, a function, or has getters or dynamic key presence, source or result identity or mutation is observed, or a consumer depends on fallback-through-undefined behavior. If old undefined-fallback behavior is required, preserve live reactive reads with a targeted manual guard at the disputed property boundary rather than object spread or Object.assign. Ask for the smallest focused test or runtime observation that exposes the disputed property\'s value, precedence, identity, and mutation boundary. Official migration guide: https://github.com/solidjs/solid/blob/ff4d3c4479163fbdd3327f5b22d0c3ea7bd1a2c5/documentation/solid-2.0/MIGRATION.md#mergeprops--splitprops--merge--omit'
 ];
 
-function assertFinalDisclosure(value) {
-  const stripped = stripAnsi(value).trimEnd();
-  assert.ok(stripped.endsWith(DISCLOSURE));
+test(
+  "prints the exact deduplicated, sorted guidance once per run and leaves the target untouched",
+  { timeout: 180_000 },
+  () => {
+    // The analyzers are one parallel group, so the bridge processes of this
+    // run overlap up to the engine's admission capacity. Byte-identical
+    // output across runs is what proves the aggregation does not depend on
+    // the order in which those commands happen to finish, and the unchanged
+    // tree snapshot is what proves no analyzer wrote to the target.
+    const before = treeSnapshot(fixtureDirectory);
+    const runs = [1, 2].map(() => runLauncher(["--target", fixtureDirectory]));
+    for (const [index, run] of runs.entries()) {
+      assert.equal(run.status, 0, `run ${index + 1}: ${run.stderr}`);
+      assert.equal(run.stdout, expectedStdout(expectedGuidance));
+      assert.equal(run.stderr, `${DISCLOSURE}\n`);
+      assertDetectionOnlyTerminalOutput(run.stdout);
+    }
+    assert.deepEqual(
+      Buffer.from(runs[0].stdout, "utf8"),
+      Buffer.from(runs[1].stdout, "utf8"),
+    );
+    assert.deepEqual(
+      treeSnapshot(fixtureDirectory),
+      before,
+      "the analyzer changed its target",
+    );
+    assertNoPersistentArtifacts(fixtureDirectory);
+  },
+);
+
+test(
+  "resolves cross-file and binding-resolved call sites through the workspace semantic index",
+  { timeout: 180_000 },
+  () => {
+    // src/workspace-reference.tsx calls mergeProps through the re-export in
+    // src/workspace-export.ts. The finding is discovered from the exporting
+    // file's import binding via references(), so it must disappear with that
+    // file, and the aliased and namespace calls in src/nonmatches.tsx must
+    // keep being resolved by binding rather than by name.
+    const crossFile = expectedGuidance.filter((entry) =>
+      entry.startsWith("src/workspace-reference.tsx:"),
+    );
+    assert.equal(crossFile.length, 1);
+    assert.equal(
+      expectedGuidance.filter((entry) =>
+        /^src\/nonmatches\.tsx:[45]:1 /.test(entry),
+      ).length,
+      2,
+    );
+
+    const surface = mkdtempSync(join(tmpdir(), "sma-workspace-"));
+    try {
+      const target = join(surface, "target");
+      cpSync(fixtureDirectory, target, { recursive: true });
+      const complete = runLauncher(["--target", target]);
+      assert.equal(complete.status, 0, complete.stderr);
+      assert.equal(complete.stdout, expectedStdout(expectedGuidance));
+
+      rmSync(join(target, "src/workspace-export.ts"));
+      const partial = runLauncher(["--target", target]);
+      assert.equal(partial.status, 0, partial.stderr);
+      assert.equal(
+        partial.stdout,
+        expectedStdout(
+          expectedGuidance.filter((entry) => !crossFile.includes(entry)),
+        ),
+      );
+    } finally {
+      rmSync(surface, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "defaults the target to the invocation directory and resolves a relative --target",
+  { timeout: 180_000 },
+  () => {
+    const defaulted = runLauncher([], { cwd: fixtureDirectory });
+    assert.equal(defaulted.status, 0, defaulted.stderr);
+    assert.equal(defaulted.stdout, expectedStdout(expectedGuidance));
+    assert.equal(defaulted.stderr, `${DISCLOSURE}\n`);
+
+    const relativeTarget = runLauncher(["analyze", "--target", "tests/fixture"], {
+      cwd: packageDirectory,
+    });
+    assert.equal(relativeTarget.status, 0, relativeTarget.stderr);
+    assert.equal(relativeTarget.stdout, expectedStdout(expectedGuidance));
+    assert.equal(relativeTarget.stderr, `${DISCLOSURE}\n`);
+  },
+);
+
+test(
+  "prints only the disclosure for a target without supported sites",
+  { timeout: 180_000 },
+  () => {
+    const before = treeSnapshot(emptyDirectory);
+    const result = runLauncher(["--target", emptyDirectory]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `${DISCLOSURE}\n`);
+    assert.deepEqual(treeSnapshot(emptyDirectory), before);
+    assertNoPersistentArtifacts(emptyDirectory);
+  },
+);
+
+test("ends usage and target failures with the disclosure and exit code 2 before any engine starts", () => {
+  // The launcher resolves targets against the child's real working
+  // directory, so the expected paths must be real paths too.
+  const surface = realpathSync.native(mkdtempSync(join(tmpdir(), "sma-usage-")));
+  const fileTarget = join(surface, "file-target");
+  writeFileSync(fileTarget, "not a directory\n");
+  // A bridge that would fail loudly if the launcher started the engine anyway.
+  const env = { CODEMOD_BRIDGE_BIN: join(surface, "never-built") };
+
+  try {
+    const cases = [
+      {
+        argumentsList: ["--unknown"],
+        expected: "[solid-migration-assistant] unknown argument: --unknown",
+      },
+      {
+        argumentsList: ["--target", "missing"],
+        expected: `[solid-migration-assistant] target does not exist: ${join(surface, "missing")}`,
+      },
+      {
+        argumentsList: ["--target", fileTarget],
+        expected: `[solid-migration-assistant] target is not a directory: ${fileTarget}`,
+      },
+    ];
+    for (const { argumentsList, expected } of cases) {
+      const result = runLauncher(argumentsList, { cwd: surface, env });
+      assert.equal(result.status, 2, result.stderr);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, `${expected}\n${DISCLOSURE}\n`);
+    }
+  } finally {
+    rmSync(surface, { recursive: true, force: true });
+  }
+});
+
+test("locates the bridge beside the linked orchestration checkout unless CODEMOD_BRIDGE_BIN overrides it", () => {
+  const resolved = resolveBridgeBinary({});
+  assert.match(resolved, /[\\/]target[\\/]debug[\\/]butterflow-execution-bridge$/);
+  assert.equal(existsSync(resolved), true, `build the bridge first: ${resolved}`);
   assert.equal(
-    stripped.split("[solid-migration-assistant] Final disclosure").length - 1,
-    1,
+    resolveBridgeBinary({ CODEMOD_BRIDGE_BIN: "custom/bridge" }),
+    resolve("custom/bridge"),
   );
+});
+
+test("reports a missing bridge on stderr, exits 1, and prints no guidance", () => {
+  const surface = mkdtempSync(join(tmpdir(), "sma-bridge-"));
+  try {
+    const missing = join(surface, "missing-bridge");
+    const result = runLauncher(["--target", fixtureDirectory], {
+      env: { CODEMOD_BRIDGE_BIN: missing },
+    });
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.equal(
+      result.stderr,
+      `[solid-migration-assistant] analyzer execution failed: bridge binary not found at ${missing}; build it with 'cargo build -p butterflow-execution-bridge' in the codemod checkout that provides @codemod.com/orchestration, or point CODEMOD_BRIDGE_BIN at a build\n${DISCLOSURE}\n`,
+    );
+  } finally {
+    rmSync(surface, { recursive: true, force: true });
+  }
+});
+
+test(
+  "reports a failed command with its status, exits 1, and leaves the target untouched",
+  { timeout: 180_000 },
+  () => {
+    const surface = mkdtempSync(join(tmpdir(), "sma-failure-"));
+    try {
+      const bridge = fakeBridge(surface, "exit 7");
+      const before = treeSnapshot(fixtureDirectory);
+      const result = runLauncher(["--target", fixtureDirectory], {
+        env: { CODEMOD_BRIDGE_BIN: bridge },
+      });
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      // The analyzers are a parallel group, so the failure that surfaces is
+      // whichever admitted command rejects first rather than a fixed one.
+      // Everything around the command name stays exact.
+      const failed = analyzerNameIn(
+        result.stderr,
+        /command '(\w+)' failed: bridge exited with code 7 and wrote no response/,
+      );
+      assert.equal(
+        result.stderr,
+        `[solid-migration-assistant] analyzer execution failed: command '${failed}' failed: bridge exited with code 7 and wrote no response\n${DISCLOSURE}\n`,
+      );
+      assert.deepEqual(treeSnapshot(fixtureDirectory), before);
+    } finally {
+      rmSync(surface, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "cancels the commands in flight on SIGINT, kills their bridges, refuses the queued ones, and still ends with the disclosure",
+  { timeout: 60_000 },
+  async () => {
+    const surface = mkdtempSync(join(tmpdir(), "sma-cancel-"));
+    try {
+      // Every admitted command writes its own pid file, so the test can kill
+      // the run while an unknown number of bridges are in flight and still
+      // prove that all of them died.
+      const pidDirectory = join(surface, "pids");
+      mkdirSync(pidDirectory);
+      const bridge = fakeBridge(
+        surface,
+        `echo $$ > "${pidDirectory}/$$"\nexec sleep 60`,
+      );
+      const output = { stdout: "", stderr: "" };
+      const child = spawn(process.execPath, [launcher, "--target", fixtureDirectory], {
+        cwd: packageDirectory,
+        env: { ...process.env, CODEMOD_BRIDGE_BIN: bridge },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      child.stdout.setEncoding("utf8").on("data", (chunk) => {
+        output.stdout += chunk;
+      });
+      child.stderr.setEncoding("utf8").on("data", (chunk) => {
+        output.stderr += chunk;
+      });
+      const exited = new Promise((resolveExit) => {
+        child.once("exit", (code, signal) => resolveExit({ code, signal }));
+      });
+
+      await waitFor(
+        () => readdirSync(pidDirectory).length > 0,
+        "a bridge to start",
+      );
+      child.kill("SIGINT");
+      const exit = await exited;
+
+      assert.deepEqual(exit, { code: 1, signal: null });
+      assert.equal(output.stdout, "");
+      // A member of the group is either admitted, and its bridge is killed,
+      // or still queued for capacity, and is refused without spawning
+      // anything. Either is a correct cancellation; which one surfaces
+      // depends on how far the group had progressed.
+      const cancelled = analyzerNameIn(
+        output.stderr,
+        /command '(\w+)' cancelled: (?:bridge killed by SIGKILL on abort|cancelled while queued for execution capacity)/,
+      );
+      const reason = /cancelled: (.+)\n/.exec(output.stderr)[1];
+      assert.ok(
+        [
+          "bridge killed by SIGKILL on abort",
+          "cancelled while queued for execution capacity",
+        ].includes(reason),
+        reason,
+      );
+      assert.equal(
+        output.stderr,
+        `[solid-migration-assistant] analyzer execution failed: command '${cancelled}' cancelled: ${reason}\n${DISCLOSURE}\n`,
+      );
+      const pids = readdirSync(pidDirectory).map((name) =>
+        Number.parseInt(readFileSync(join(pidDirectory, name), "utf8"), 10),
+      );
+      assert.ok(pids.length > 0);
+      await waitFor(
+        () => pids.every((pid) => !isAlive(pid)),
+        "every started bridge to be killed",
+      );
+    } finally {
+      rmSync(surface, { recursive: true, force: true });
+    }
+  },
+);
+
+test("bundles each rule with its imported helpers into a self-contained transform artifact", async () => {
+  const { buildFile } = await import("@codemod.com/orchestration");
+
+  const analyze = buildFile(analyzeWorkflow);
+  assert.deepEqual(
+    analyze.artifacts.map((artifact) => artifact.name),
+    expectedAnalyzers,
+  );
+  assert.equal(new Set(analyze.artifacts.map((artifact) => artifact.hash)).size, 37);
+  assert.equal(
+    (
+      analyze.source.match(
+        /transform: \{"name":"analyze[A-Za-z0-9]+","hash":"[0-9a-f]{64}"\}/g,
+      ) ?? []
+    ).length,
+    37,
+  );
+  for (const artifact of analyze.artifacts) {
+    assertSelfContainedArtifact(artifact, "analyzeFile");
+  }
+  // Binding-resolved rules reach the workspace index through the bundled
+  // shared scanner, not through anything the sandbox must resolve on disk.
+  const mergeProps = analyze.artifacts.find(
+    (artifact) => artifact.name === "analyzeMergeProps",
+  );
+  assert.match(mergeProps.source, /function findImportedCalls\(/);
+  assert.match(mergeProps.source, /\.references\(\)/);
+
+  const transform = buildFile(transformWorkflow);
+  assert.deepEqual(
+    transform.artifacts.map((artifact) => artifact.name),
+    expectedRewrites,
+  );
+  for (const artifact of transform.artifacts) {
+    assertSelfContainedArtifact(artifact, "transformFile");
+    assert.match(artifact.source, /commitEdits\(/);
+  }
+});
+
+test("declares the 37 analyzers as one parallel group of workspace-semantic commands and aggregates every output despite out-of-order completion", async () => {
+  const { AdmissionScheduler, loadWorkflow, run } = await import(
+    "@codemod.com/orchestration"
+  );
+  const { exports, artifacts } = await loadWorkflow(analyzeWorkflow);
+  const { executor, requests, completionOrder, peakInFlight } = reversingExecutor(
+    {
+      analyzeWebImport: [["b\nsecond line", "a"], ["a"]],
+      analyzeUnwrap: [["c"], ["a"]],
+    },
+    expectedAnalyzers.length,
+  );
+
+  const result = await run(exports.default, {
+    executor,
+    // Enough capacity for every member, so admission never serialises the
+    // group and the executor alone decides the completion order.
+    scheduler: new AdmissionScheduler({ capacity: expectedAnalyzers.length * 4 }),
+  });
+
+  // The group is declared once over the whole list: all 37 are in flight
+  // together, and each one finishes only after every analyzer declared after
+  // it has already finished.
+  assert.equal(peakInFlight(), expectedAnalyzers.length);
+  assert.deepEqual(completionOrder(), [...expectedAnalyzers].reverse());
+  // The exact same aggregate as a one-at-a-time run: flattened, exact
+  // deduplicated, and sorted as whole strings.
+  assert.deepEqual(result.output, { guidance: ["a", "b\nsecond line", "c"] });
+  assert.equal(result.replayed, false);
+  // Commands are still issued in declaration order, so command identity and
+  // history do not depend on the schedule.
+  assert.deepEqual(
+    requests.map((request) => request.commandId),
+    expectedAnalyzers,
+  );
+  for (const request of requests) {
+    assert.equal(request.protocolVersion, 5);
+    assert.equal(request.context, undefined);
+    const { operation } = request;
+    assert.deepEqual(Object.keys(operation).sort(), [
+      "exclude",
+      "include",
+      "kind",
+      "language",
+      "semanticAnalysis",
+      "transform",
+    ]);
+    assert.equal(operation.kind, "jssg");
+    assert.equal(operation.language, "tsx");
+    assert.deepEqual(operation.include, SOURCE_INCLUDE);
+    assert.deepEqual(operation.exclude, SOURCE_EXCLUDE);
+    assert.equal(operation.semanticAnalysis, "workspace");
+    assert.equal(operation.transform.name, request.commandId);
+    assert.ok(artifacts.has(operation.transform.hash), request.commandId);
+  }
+});
+
+test("lets the engine's admission scheduler, not the group, decide how many analyzers run at once", async () => {
+  const { AdmissionScheduler, loadWorkflow, run } = await import(
+    "@codemod.com/orchestration"
+  );
+  const { exports } = await loadWorkflow(analyzeWorkflow);
+  // Two workspace-semantic batches fit in eight units at the engine's weight
+  // of four each; the ninth unit a third batch would need is not available.
+  const capacity = 8;
+  const scheduler = new AdmissionScheduler({ capacity });
+  const { executor, weights, admitted } = boundedGroupExecutor(
+    scheduler,
+    expectedAnalyzers.length,
+  );
+
+  const result = await run(exports.default, { executor, scheduler });
+
+  assert.deepEqual(result.output, { guidance: [] });
+  assert.deepEqual([...new Set(weights())], [4]);
+  assert.deepEqual(admitted().sort(), [...expectedAnalyzers].sort());
+  // The scheduler's own accounting: the group did overlap, and it never
+  // exceeded the budget while doing so.
+  const stats = scheduler.stats();
+  assert.equal(stats.capacity, capacity);
+  assert.equal(stats.peakActive, 2);
+  assert.equal(stats.peakUsed, capacity);
+  assert.deepEqual({ used: stats.used, active: stats.active, queued: stats.queued }, {
+    used: 0,
+    active: 0,
+    queued: 0,
+  });
+});
+
+test(
+  "bounds the bridge processes a real run starts to the engine's admission capacity",
+  { timeout: 180_000 },
+  async () => {
+    const surface = mkdtempSync(join(tmpdir(), "sma-capacity-"));
+    try {
+      // Eight units admit two workspace-semantic analyzers at a time. Each
+      // stand-in bridge registers itself, then waits until it can see a peer,
+      // so the run cannot pass unless the scheduler really overlaps two
+      // commands; it records the most bridges it ever saw alive at once, so
+      // the run also cannot pass if the scheduler overlaps three. The last
+      // odd member has no peer and gives up after its own bounded wait.
+      const live = join(surface, "live");
+      mkdirSync(live);
+      const observed = join(surface, "observed");
+      const bridge = fakeBridge(
+        surface,
+        [
+          `live="${live}"`,
+          `: > "$live/$$"`,
+          "peak=0",
+          "attempt=0",
+          "while [ $attempt -lt 100 ]; do",
+          `  count=$(ls "$live" | wc -l | tr -d ' ')`,
+          '  [ "$count" -gt "$peak" ] && peak="$count"',
+          '  [ "$count" -ge 2 ] && break',
+          "  attempt=$((attempt + 1))",
+          "  sleep 0.05",
+          "done",
+          `echo "$peak" >> "${observed}"`,
+          `rm -f "$live/$$"`,
+          "exit 7",
+        ].join("\n"),
+      );
+      const before = treeSnapshot(fixtureDirectory);
+      const result = runLauncher(["--target", fixtureDirectory], {
+        env: {
+          CODEMOD_BRIDGE_BIN: bridge,
+          CODEMOD_ORCHESTRATION_CAPACITY: "8",
+        },
+      });
+
+      // Every member still runs even though the group already failed.
+      const peaks = readFileSync(observed, "utf8")
+        .trim()
+        .split("\n")
+        .map((line) => Number.parseInt(line, 10));
+      assert.equal(peaks.length, expectedAnalyzers.length);
+      assert.deepEqual(
+        { mostSeenAtOnce: Math.max(...peaks), overBudget: peaks.filter((peak) => peak > 2) },
+        { mostSeenAtOnce: 2, overBudget: [] },
+      );
+      assert.deepEqual(readdirSync(live), [], "a bridge outlived its command");
+      // Read-only commands, so a bounded concurrent run still writes nothing.
+      assert.deepEqual(treeSnapshot(fixtureDirectory), before);
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      const failed = analyzerNameIn(
+        result.stderr,
+        /command '(\w+)' failed: bridge exited with code 7 and wrote no response/,
+      );
+      assert.equal(
+        result.stderr,
+        `[solid-migration-assistant] analyzer execution failed: command '${failed}' failed: bridge exited with code 7 and wrote no response\n${DISCLOSURE}\n`,
+      );
+    } finally {
+      rmSync(surface, { recursive: true, force: true });
+    }
+  },
+);
+
+test("issues the three rewrites as separate sequential commands without semantic analysis and returns the report as data", async () => {
+  const { loadWorkflow, run } = await import("@codemod.com/orchestration");
+  const { exports, artifacts } = await loadWorkflow(transformWorkflow);
+  const { executor, requests, overlapped } = scriptedExecutor({
+    relocateWebPackage: [["y"], ["x"]],
+    rewriteClassListToClass: [["x", "z"]],
+  });
+
+  const result = await run(exports.default, { executor });
+
+  assert.deepEqual(result.output, { report: ["x", "y", "z"] });
+  // The default capacity would admit more than one of these, so the rewrites
+  // stay sequential because the workflow awaits them one at a time, not
+  // because the scheduler ran out of room.
+  assert.equal(overlapped(), false, "rewrites were not awaited one at a time");
+  assert.deepEqual(
+    requests.map((request) => request.commandId),
+    expectedRewrites,
+  );
+  for (const request of requests) {
+    const { operation } = request;
+    assert.deepEqual(Object.keys(operation).sort(), [
+      "exclude",
+      "include",
+      "kind",
+      "language",
+      "transform",
+    ]);
+    assert.equal(operation.language, "tsx");
+    assert.deepEqual(operation.include, SOURCE_INCLUDE);
+    assert.deepEqual(operation.exclude, SOURCE_EXCLUDE);
+    assert.equal(operation.transform.name, request.commandId);
+    assert.ok(artifacts.has(operation.transform.hash), request.commandId);
+  }
+});
+
+function runLauncher(argumentsList, { cwd = packageDirectory, env = {} } = {}) {
+  return spawnSync(process.execPath, [launcher, ...argumentsList], {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    env: { ...process.env, ...env },
+  });
+}
+
+function expectedStdout(guidance) {
+  return guidance.length === 0 ? "" : `${guidance.join("\n\n")}\n`;
+}
+
+/** A stand-in bridge binary: a shell script the launcher spawns instead of the Rust build. */
+function fakeBridge(directory, body) {
+  const path = join(directory, "fake-bridge");
+  writeFileSync(path, `#!/bin/sh\n${body}\n`);
+  chmodSync(path, 0o755);
+  return path;
+}
+
+function isAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitFor(condition, what, timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 25));
+  }
+}
+
+function assertSelfContainedArtifact(artifact, adapter) {
+  assert.match(artifact.hash, /^[0-9a-f]{64}$/);
+  assert.match(artifact.source, new RegExp(`function ${artifact.name}\\(`));
+  assert.match(artifact.source, new RegExp(`function ${adapter}\\(`));
+  assert.match(artifact.source, /export \{[^}]*default[^}]*\}/);
+  assert.doesNotMatch(artifact.source, /from "\.{1,2}\//);
+  assert.doesNotMatch(artifact.source, /@codemod\.com\/orchestration/);
+  assert.doesNotMatch(artifact.source, /codemod:workflow/);
+}
+
+/**
+ * An executor that answers every JSSG command from a script instead of a
+ * bridge, records each request, and notices when two commands overlap.
+ */
+function scriptedExecutor(outputs) {
+  const requests = [];
+  let inFlight = 0;
+  let overlapped = false;
+  return {
+    requests,
+    overlapped: () => overlapped,
+    executor: {
+      async execute(request) {
+        inFlight += 1;
+        if (inFlight > 1) overlapped = true;
+        requests.push(request);
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 1));
+        inFlight -= 1;
+        return {
+          protocolVersion: 5,
+          commandId: request.commandId,
+          status: "succeeded",
+          output: outputs[request.commandId] ?? [],
+        };
+      },
+    },
+  };
+}
+
+/**
+ * An executor that answers every JSSG command from a script, keeps every
+ * command in flight until all `memberCount` of them have arrived, and then
+ * completes them in the exact reverse of their declaration order. Nothing
+ * here is timed, so the out-of-order completion is deterministic.
+ */
+function reversingExecutor(outputs, memberCount) {
+  const requests = [];
+  const completed = [];
+  let peak = 0;
+  let allArrived;
+  const arrived = new Promise((resolve) => {
+    allArrived = resolve;
+  });
+  // `successors[index]` settles once every later member has completed;
+  // the sentinel past the last member is already settled.
+  const successors = Array.from({ length: memberCount + 1 }, () => {
+    let settle;
+    const promise = new Promise((resolve) => {
+      settle = resolve;
+    });
+    return { promise, settle };
+  });
+  successors[memberCount].settle();
+
+  return {
+    requests,
+    completionOrder: () => completed,
+    peakInFlight: () => peak,
+    executor: {
+      async execute(request) {
+        const index = requests.length;
+        requests.push(request);
+        peak = Math.max(peak, requests.length - completed.length);
+        if (requests.length === memberCount) allArrived();
+
+        await arrived;
+        await successors[index + 1].promise;
+        completed.push(request.commandId);
+        successors[index].settle();
+        return {
+          protocolVersion: 5,
+          commandId: request.commandId,
+          status: "succeeded",
+          output: outputs[request.commandId] ?? [],
+        };
+      },
+    },
+  };
+}
+
+/**
+ * An executor that holds every admitted command until `scheduler` has
+ * admitted as many as its capacity allows, or as many as the group has left.
+ * It never releases early, so the scheduler's own peak is the real bound
+ * rather than a sample of one moment.
+ */
+function boundedGroupExecutor(scheduler, memberCount) {
+  const admitted = [];
+  const weights = [];
+  let live = 0;
+  let finished = 0;
+  let waiting = [];
+
+  return {
+    admitted: () => admitted,
+    weights: () => weights,
+    executor: {
+      async execute(request) {
+        const weight = scheduler.weightFor(request.operation);
+        weights.push(weight);
+        admitted.push(request.commandId);
+        const bound = Math.max(1, Math.floor(scheduler.capacity / weight));
+        live += 1;
+        await new Promise((resolve) => {
+          waiting.push(resolve);
+          if (live === Math.min(bound, memberCount - finished)) {
+            const release = waiting;
+            waiting = [];
+            for (const settle of release) settle();
+          }
+        });
+        live -= 1;
+        finished += 1;
+        return {
+          protocolVersion: 5,
+          commandId: request.commandId,
+          status: "succeeded",
+          output: [],
+        };
+      },
+    },
+  };
+}
+
+/** The analyzer name a diagnostic reports, proven to be one of the 37. */
+function analyzerNameIn(stderr, pattern) {
+  const match = pattern.exec(stderr);
+  assert.ok(match, stderr);
+  assert.ok(expectedAnalyzers.includes(match[1]), match[1]);
+  return match[1];
 }
 
 function stripAnsi(value) {

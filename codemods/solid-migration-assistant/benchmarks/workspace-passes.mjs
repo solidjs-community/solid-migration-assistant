@@ -1,31 +1,60 @@
 import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import {
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { basename, dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const workflowPath = resolve(packageDirectory, "workflow.yaml");
-const codemodPath = resolve(packageDirectory, "node_modules/codemod/codemod");
-const analysisStepCount = readFileSync(workflowPath, "utf8")
-  .split("\n")
-  .filter((line) => line.includes("js_file: scripts/analysis/")).length;
+const driver = fileURLToPath(import.meta.url);
+
+// The orchestration package and the generated workflows are TypeScript
+// source, so the benchmark runs under the same Node flags and node_modules
+// hook the launcher uses. A plain `node benchmarks/workspace-passes.mjs`
+// re-runs itself that way and reports the child's status.
+if (!process.execArgv.includes("--experimental-transform-types")) {
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--disable-warning=ExperimentalWarning",
+      "--experimental-transform-types",
+      "--import",
+      pathToFileURL(resolve(packageDirectory, "shared/register-ts.mjs")).href,
+      driver,
+      ...process.argv.slice(2),
+    ],
+    { stdio: "inherit" },
+  );
+  if (result.error) throw result.error;
+  process.exit(result.status ?? 1);
+}
+
+const { resolveBridgeBinary, runWorkflowFile } = await import(
+  "../shared/run-workflow.mjs"
+);
+const analysisStepCount = (
+  readFileSync(resolve(packageDirectory, "workflows/analyze.ts"), "utf8").match(
+    /^const \w+ = jssg\(\{$/gm,
+  ) ?? []
+).length;
 const { target, samples } = parseArguments(process.argv.slice(2));
+const bridge = resolveBridgeBinary();
+// Reported, not configured: the benchmark runs with the same host capacity a
+// production run gets, so the numbers below describe bounded parallelism.
+const { DEFAULT_WEIGHTS, defaultCapacity } = await import(
+  "@codemod.com/orchestration"
+);
+const schedulerCapacity = defaultCapacity();
+const workspacePassWeight = DEFAULT_WEIGHTS.jssgWorkspace;
+const admittedAtOnce = Math.max(
+  1,
+  Math.floor(schedulerCapacity / Math.min(workspacePassWeight, schedulerCapacity)),
+);
 const temporarySuffix = `${process.pid}-${randomUUID()}`;
 const temporaryArtifacts = [];
 let workflowSequence = 0;
-// Without handlers a terminal interrupt kills this process mid-run and leaks
-// temporary files. With them, Node defers the signal until the current
-// synchronous Codemod run returns (the interrupted child fails that run), so
-// the `finally` below and this handler both remove the temporary files.
+// A terminal interrupt must not leak the generated workflow modules. The
+// orchestration runtime kills the bridge in flight when its signal aborts,
+// but this driver owns no signal; it removes its files and exits.
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
     removeTemporaryArtifacts();
@@ -36,7 +65,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 try {
   const beforeHash = hashTarget(target);
 
-  run(createBenchmarkWorkflow("warmup", 1));
+  await run(createBenchmarkWorkflow("warmup", 1));
 
   const singleSamples = [];
   const repeatedSamples = [];
@@ -53,7 +82,7 @@ try {
           ];
     for (const [label, passCount, results] of order) {
       results.push(
-        run(createBenchmarkWorkflow(`${label}-${index + 1}`, passCount)),
+        await run(createBenchmarkWorkflow(`${label}-${index + 1}`, passCount)),
       );
     }
   }
@@ -83,6 +112,9 @@ try {
   const result = {
     target,
     analysisStepCount,
+    schedulerCapacity,
+    workspacePassWeight,
+    admittedAtOnce,
     samples,
     singleSamplesMs: singleSamples,
     repeatedSamplesMs: repeatedSamples,
@@ -95,18 +127,23 @@ try {
 
   console.log("Preliminary workspace-pass benchmark");
   console.log(`Target: ${target}`);
-  console.log(`Production analysis rule steps: ${analysisStepCount}`);
+  console.log(`Production analysis commands: ${analysisStepCount}`);
   console.log(`Measured samples per mode: ${samples}`);
-  console.log("Cache isolation: fresh workflow, entrypoints, and state per sample");
-  console.log(`One-pass samples: ${formatSamples(singleSamples)}`);
-  console.log(`${analysisStepCount}-pass samples: ${formatSamples(repeatedSamples)}`);
-  console.log(`One-pass median: ${singleMedianMs.toFixed(1)} ms`);
-  console.log(`${analysisStepCount}-pass median: ${repeatedMedianMs.toFixed(1)} ms`);
+  console.log(
+    "Isolation: a fresh generated workflow module and transform artifacts per sample; one bridge process and one workspace index per command",
+  );
+  console.log(
+    `Scheduling: one parallel group per sample, admitted by the engine scheduler at a capacity of ${schedulerCapacity} unit(s) and a weight of ${workspacePassWeight} per workspace-semantic command, so at most ${admittedAtOnce} run at once`,
+  );
+  console.log(`One-command samples: ${formatSamples(singleSamples)}`);
+  console.log(`${analysisStepCount}-command samples: ${formatSamples(repeatedSamples)}`);
+  console.log(`One-command median: ${singleMedianMs.toFixed(1)} ms`);
+  console.log(`${analysisStepCount}-command median: ${repeatedMedianMs.toFixed(1)} ms`);
   console.log(`Added cost: ${addedMs.toFixed(1)} ms`);
   console.log(`Slowdown: ${slowdownRatio.toFixed(2)}x`);
-  console.log(`Marginal pass estimate: ${marginalPassMs.toFixed(1)} ms`);
+  console.log(`Marginal command estimate: ${marginalPassMs.toFixed(1)} ms`);
   console.log(
-    "Caveat: this directional pilot times whole Codemod CLI invocations, so process startup dominates small targets and deltas inside run-to-run noise can be negative. Each pass forces workspace semantic resolution for one imported binding per source file, but it does not reproduce the number or shape of queries made by the real analyzers. It does not compare complete legacy and split analyzers, model full rule traversal cost, control OS caches, or constitute a stable performance test.",
+    "Caveat: this directional pilot times one in-process workflow run per sample, so Node startup is excluded while each command's bridge process startup, workspace indexing, and per-file sandbox runtime are included; deltas inside run-to-run noise can be negative. Both modes are parallel groups admitted by the engine scheduler, so the added cost and the marginal estimate describe bounded parallel commands on this host's capacity and not a serial sum; a machine with different capacity will report different numbers for the same work. Each command forces workspace semantic resolution for one imported binding per source file, but it does not reproduce the number or shape of queries made by the real analyzers. It does not compare complete legacy and split analyzers, model full rule traversal cost, control OS caches, or constitute a stable performance test.",
   );
   console.log(JSON.stringify(result));
 } finally {
@@ -152,108 +189,69 @@ function parseArguments(argumentsList) {
     throw new Error(`benchmark target is not an existing directory: ${target}`);
   }
   if (analysisStepCount < 1) {
-    throw new Error("workflow.yaml contains no analysis rule steps");
+    throw new Error("workflows/analyze.ts contains no inline jssg definitions");
   }
 
   return { target, samples };
 }
 
+/**
+ * A generated workflow module with `passCount` inline workspace-semantic
+ * definitions declared as one `parallel()` group, mirroring how the
+ * production analyze workflow composes its commands: the group only states
+ * that the passes may overlap, and the engine's admission scheduler decides
+ * how many actually run at once. Each definition's transform carries its own
+ * marker so the build step bundles a distinct artifact per pass.
+ */
 function createBenchmarkWorkflow(label, passCount) {
   workflowSequence += 1;
   const runLabel = `${label}-${workflowSequence}`;
-  const entrypoints = Array.from({ length: passCount }, (_, index) =>
-    writeProbeEntrypoint(runLabel, index),
-  );
-  return writeWorkflow(runLabel, entrypoints);
-}
-
-function writeProbeEntrypoint(label, index) {
   const path = resolve(
     packageDirectory,
     "benchmarks",
-    `.workspace-pass-${temporarySuffix}-${label}-${index + 1}.ts`,
+    `.workspace-pass-${runLabel}-${temporarySuffix}.ts`,
   );
   temporaryArtifacts.push(path);
+  const definitions = Array.from(
+    { length: passCount },
+    (_, index) => `
+const pass${index + 1} = jssg({
+  name: ${JSON.stringify(`workspace-pass-${index + 1}`)},
+  language: "tsx",
+  include: SOURCE_INCLUDE,
+  exclude: SOURCE_EXCLUDE,
+  semanticAnalysis: "workspace",
+  transform: (root) => createWorkspacePass(${JSON.stringify(`${runLabel}-${index + 1}`)})(root),
+});`,
+  ).join("\n");
+  const group = Array.from(
+    { length: passCount },
+    (_, index) => `    pass${index + 1},`,
+  ).join("\n");
   writeFileSync(
     path,
-    `import { createWorkspacePass } from "./workspace-pass.ts";\n\nexport default createWorkspacePass(${JSON.stringify(`${label}-${index + 1}`)});\n`,
-  );
-  return path;
-}
+    `import { jssg, parallel, workflow } from "@codemod.com/orchestration";
+import { SOURCE_EXCLUDE, SOURCE_INCLUDE } from "../shared/workflow.ts";
+import { createWorkspacePass } from "./workspace-pass.ts";
+${definitions}
 
-function writeWorkflow(label, entrypoints) {
-  const path = resolve(
-    packageDirectory,
-    `.workspace-pass-${label}-${temporarySuffix}.yaml`,
-  );
-  temporaryArtifacts.push(path);
-  const steps = entrypoints.map((entrypoint, index) => `
-      - name: Benchmark workspace pass ${index + 1}
-        js-ast-grep:
-          js_file: benchmarks/${basename(entrypoint)}
-          base_path: "."
-          language: "tsx"
-          semantic_analysis: workspace
-          include:
-            - "**/*.js"
-            - "**/*.jsx"
-            - "**/*.ts"
-            - "**/*.tsx"
-          exclude:
-            - "**/node_modules/**"
-            - "**/dist/**"
-            - "**/build/**"
-            - "**/coverage/**"
-            - "**/*.d.ts"`).join("");
-  writeFileSync(
-    path,
-    `version: "1"
-nodes:
-  - id: benchmark-${label}
-    name: Benchmark ${label} workspace passes
-    type: automatic
-    steps:${steps}
+export default workflow(async () => {
+  await parallel([
+${group}
+  ]);
+  return { passes: ${passCount} };
+});
 `,
   );
   return path;
 }
 
-function run(workflow) {
-  const stateDirectory = mkdtempSync(
-    join(tmpdir(), "solid-migration-workspace-state-"),
-  );
-  temporaryArtifacts.push(stateDirectory);
+async function run(workflowPath) {
   const start = process.hrtime.bigint();
-  const result = spawnSync(
-    process.execPath,
-    [
-      codemodPath,
-      "--disable-analytics",
-      "workflow",
-      "run",
-      "-w",
-      workflow,
-      "-t",
-      target,
-      "--allow-dirty",
-      "--no-interactive",
-    ],
-    {
-      cwd: packageDirectory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        HOME: stateDirectory,
-        XDG_CACHE_HOME: resolve(stateDirectory, "cache"),
-        XDG_DATA_HOME: resolve(stateDirectory, "data"),
-      },
-    },
-  );
+  const output = await runWorkflowFile({ workflowPath, target, bridge });
   const elapsedMs = Number(process.hrtime.bigint() - start) / 1_000_000;
-  if (result.status !== 0) {
-    throw new Error(
-      `workflow failed (${result.status}): ${result.stderr || result.stdout}`,
-    );
+  if (!output || typeof output.passes !== "number") {
+    throw new Error(`workflow returned no pass count: ${JSON.stringify(output)}`);
   }
   return Number(elapsedMs.toFixed(3));
 }

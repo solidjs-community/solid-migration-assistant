@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
-  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -10,6 +9,7 @@ import {
   readFileSync,
   readdirSync,
   readlinkSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -59,53 +59,14 @@ const expectedFiles = [
   "rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
   "rules/transformations/imports/web-package-relocation/web-package-relocation.ts",
   "rules/transformations/jsx/class-list-to-class/class-list-to-class.ts",
-  "scripts/analysis/analyzeBatch.ts",
-  "scripts/analysis/analyzeBeta32SubpathImports.ts",
-  "scripts/analysis/analyzeCatchError.ts",
-  "scripts/analysis/analyzeContextProvider.ts",
-  "scripts/analysis/analyzeCreateComputed.ts",
-  "scripts/analysis/analyzeCreateDeferred.ts",
-  "scripts/analysis/analyzeCreateDynamic.ts",
-  "scripts/analysis/analyzeCreateEffect.ts",
-  "scripts/analysis/analyzeCreateMemo.ts",
-  "scripts/analysis/analyzeCreateMutable.ts",
-  "scripts/analysis/analyzeCreateResource.ts",
-  "scripts/analysis/analyzeCreateSelector.ts",
-  "scripts/analysis/analyzeDomAttrNamespaces.ts",
-  "scripts/analysis/analyzeDomEventNamespaces.ts",
-  "scripts/analysis/analyzeDomUseDirective.ts",
-  "scripts/analysis/analyzeEnableScheduling.ts",
-  "scripts/analysis/analyzeEqualFn.ts",
-  "scripts/analysis/analyzeFrom.ts",
-  "scripts/analysis/analyzeGetListener.ts",
-  "scripts/analysis/analyzeIndexArray.ts",
-  "scripts/analysis/analyzeJsxClassListAttributes.ts",
-  "scripts/analysis/analyzeJsxComponentRenames.ts",
-  "scripts/analysis/analyzeMergeProps.ts",
-  "scripts/analysis/analyzeModifyMutable.ts",
-  "scripts/analysis/analyzeObservable.ts",
-  "scripts/analysis/analyzeOnCleanup.ts",
-  "scripts/analysis/analyzeOnError.ts",
-  "scripts/analysis/analyzeOnHelper.ts",
-  "scripts/analysis/analyzeOnMount.ts",
-  "scripts/analysis/analyzeProduce.ts",
-  "scripts/analysis/analyzeResetErrorBoundaries.ts",
-  "scripts/analysis/analyzeSplitProps.ts",
-  "scripts/analysis/analyzeStartTransition.ts",
-  "scripts/analysis/analyzeUnwrap.ts",
-  "scripts/analysis/analyzeUseTransition.ts",
-  "scripts/analysis/analyzeWebImport.ts",
-  "scripts/analysis/analyzeWriteSignal.ts",
-  "scripts/emit-report.ts",
-  "scripts/transformations/relocateLegacySubpaths.ts",
-  "scripts/transformations/relocateWebPackage.ts",
-  "scripts/transformations/rewriteClassListToClass.ts",
   "shared/analysis.ts",
   "shared/entrypoint.ts",
+  "shared/register-ts.mjs",
   "shared/run-workflow.mjs",
   "shared/transform.ts",
-  "transform.yaml",
-  "workflow.yaml"
+  "shared/workflow.ts",
+  "workflows/analyze.ts",
+  "workflows/transform.ts",
 ];
 const expectedDescription =
   "Solid 1.9 to Solid 2 RC migration assistant: read-only analyzer plus deterministic legacy import-path relocation and intrinsic JSX classList-to-class rewriting for project-owned JavaScript and TypeScript source";
@@ -122,7 +83,7 @@ const expectedKeywords = [
   "tsx",
 ];
 
-test("publishes complete public npm and Codemod metadata", () => {
+test("publishes complete npm metadata and names its unpublished runtime dependency honestly", () => {
   const packageJson = JSON.parse(
     readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
   );
@@ -131,8 +92,14 @@ test("publishes complete public npm and Codemod metadata", () => {
   assert.equal(packageJson.description, expectedDescription);
   assert.deepEqual(packageJson.keywords, expectedKeywords);
   assert.equal(packageJson.license, "MIT");
-  assert.equal(packageJson.dependencies.codemod, "1.12.13");
-  assert.equal(packageJson.engines.node, ">=20.0.0");
+  // The only runtime dependency is the private orchestration prototype,
+  // reachable solely through a relative link to the sibling codemod
+  // checkout; the pinned Codemod CLI is gone with the YAML workflows.
+  assert.deepEqual(packageJson.dependencies, {
+    "@codemod.com/orchestration": "link:../../../codemod/packages/orchestration",
+  });
+  assert.equal(packageJson.devDependencies.codemod, undefined);
+  assert.equal(packageJson.engines.node, ">=24.0.0");
   assert.equal(packageJson.publishConfig.access, "public");
   assert.equal(packageJson.os, undefined);
   assert.equal(packageJson.cpu, undefined);
@@ -144,22 +111,12 @@ test("publishes complete public npm and Codemod metadata", () => {
   assert.match(packageJson.repository.url, /solid-migration-assistant/);
   assert.match(packageJson.homepage, /solid-migration-assistant/);
   assert.match(packageJson.bugs.url, /solid-migration-assistant\/issues/);
+  assert.equal(packageJson.scripts.validate, undefined);
 
-  const codemod = readFileSync(
-    resolve(packageDirectory, "codemod.yaml"),
-    "utf8",
-  );
-  assert.match(codemod, /^version: "0\.3\.0"$/m);
-  const codemodLines = codemod.split("\n");
-  assert.ok(codemodLines.includes(`description: "${expectedDescription}"`));
-  assert.ok(
-    codemodLines.includes('  languages: ["javascript", "typescript"]'),
-  );
-  assert.ok(
-    codemodLines.includes(
-      `keywords: [${expectedKeywords.map((keyword) => `"${keyword}"`).join(", ")}]`,
-    ),
-  );
+  // No registry manifest or YAML workflow ships or remains.
+  for (const obsolete of ["codemod.yaml", "workflow.yaml", "transform.yaml"]) {
+    assert.equal(existsSync(resolve(packageDirectory, obsolete)), false, obsolete);
+  }
   assert.match(
     readFileSync(resolve(packageDirectory, "LICENSE"), "utf8"),
     /^MIT License/,
@@ -170,30 +127,27 @@ test("publishes complete public npm and Codemod metadata", () => {
     resolve(packageDirectory, "../../README.md"),
   ]) {
     const contents = readFileSync(readme, "utf8");
-    assert.match(
-      contents,
-      /assistant itself imposes no operating-system, CPU-architecture, or libc restriction/,
-    );
-    assert.match(
-      contents,
-      /Actual execution support depends on native runtime availability from the pinned Codemod 1\.12\.13 dependency/,
-    );
-    assert.match(
-      contents,
-      /may persist workflow and task state in normal platform user-data directories/,
-    );
+    assert.match(contents, /@codemod\.com\/orchestration/);
+    assert.match(contents, /link:\.\.\/\.\.\/\.\.\/codemod\/packages\/orchestration/);
+    assert.match(contents, /cargo build -p butterflow-execution-bridge/);
+    assert.match(contents, /CODEMOD_BRIDGE_BIN/);
+    assert.match(contents, /Node 24/);
+    assert.match(contents, /Publication blocker/);
+    assert.doesNotMatch(contents, /Codemod 1\.12\.13/);
+    assert.doesNotMatch(contents, /workflow\.yaml|transform\.yaml|codemod\.yaml/);
+    assert.doesNotMatch(contents, /npx --yes solid-migration-assistant/);
   }
 });
 
 test(
-  "packs only the npm runtime and runs without pnpm on PATH",
+  "packs only the runtime the workflows need and runs from an installed layout without pnpm on PATH",
   () => {
     const temporaryRoot = mkdtempSync(
       join(tmpdir(), "solid-migration-assistant-package-"),
     );
 
     try {
-      assert.equal(expectedFiles.length, 84);
+      assert.equal(expectedFiles.length, 45);
       const packDirectory = join(temporaryRoot, "pack");
       mkdirSync(packDirectory);
       const pack = command(
@@ -217,7 +171,28 @@ test(
       const tarball = join(packDirectory, manifest.filename);
       assert.equal(existsSync(tarball), true);
 
+      // `npm install <tarball>` cannot resolve the `link:` dependency from a
+      // consumer, which is the publication blocker the README documents. The
+      // installed layout is therefore assembled by hand: the tarball's files
+      // under node_modules, plus the private orchestration prototype provided
+      // exactly as this checkout provides it, as a link to the sibling
+      // codemod checkout.
       const consumer = join(temporaryRoot, "consumer");
+      const installed = join(consumer, "node_modules", "solid-migration-assistant");
+      mkdirSync(join(installed, "node_modules", "@codemod.com"), { recursive: true });
+      const extract = command(
+        "tar",
+        ["-xzf", tarball, "--strip-components=1", "-C", installed],
+        temporaryRoot,
+      );
+      assert.equal(extract.status, 0, output(extract));
+      symlinkSync(
+        realpathSync.native(
+          resolve(packageDirectory, "node_modules/@codemod.com/orchestration"),
+        ),
+        join(installed, "node_modules", "@codemod.com", "orchestration"),
+        "dir",
+      );
       mkdirSync(join(consumer, "src"), { recursive: true });
       writeFileSync(
         join(consumer, "package.json"),
@@ -229,70 +204,37 @@ test(
         'import { render } from "solid-js/web";\nvoid render;\n',
       );
 
-      const install = command(
-        "npm",
-        [
-          "install",
-          "--no-audit",
-          "--no-fund",
-          "--no-save",
-          "--package-lock=false",
-          tarball,
-        ],
-        consumer,
-      );
-      assert.equal(install.status, 0, output(install));
-
       const externalSurface = join(temporaryRoot, "external-surface");
       const analyzerEnvironment =
         controlledAnalyzerEnvironment(externalSurface);
-
-      const executable = join(
-        consumer,
-        `node_modules/.bin/solid-migration-assistant${
-          process.platform === "win32" ? ".cmd" : ""
-        }`,
-      );
-      assert.equal(existsSync(executable), true);
+      const executable = join(installed, "bin/solid-migration-assistant.mjs");
       const before = treeSnapshot(consumer);
       const isolatedPath = join(temporaryRoot, "runtime-bin");
       mkdirSync(isolatedPath);
-
-      let analyzerExecutable = executable;
-      let analyzerArguments = [];
       let runtimePath = isolatedPath;
       if (process.platform === "win32") {
-        analyzerExecutable = process.execPath;
-        analyzerArguments = [
-          join(
-            consumer,
-            "node_modules/solid-migration-assistant/bin/solid-migration-assistant.mjs",
-          ),
-        ];
         runtimePath = "";
       } else {
-        const nodeLink = join(isolatedPath, "node");
-        symlinkSync(process.execPath, nodeLink);
+        symlinkSync(process.execPath, join(isolatedPath, "node"));
         assert.deepEqual(readdirSync(isolatedPath), ["node"]);
-        chmodSync(executable, 0o755);
       }
 
       const smokeRuns = [];
       for (let run = 1; run <= 2; run += 1) {
-        const smoke = command(analyzerExecutable, analyzerArguments, consumer, {
+        const smoke = command(process.execPath, [executable], consumer, {
           ...analyzerEnvironment,
           PATH: runtimePath,
         });
         smokeRuns.push(smoke);
 
         assert.equal(smoke.status, 0, `packed run ${run}: ${output(smoke)}`);
-        assert.match(smoke.stdout, /Move this Solid web renderer/);
+        assert.match(smoke.stdout, /^src\/example\.tsx:1:24 Move this Solid web renderer static import\./);
         assert.match(
           smoke.stdout,
           /github\.com\/solidjs\/solid\/blob\/ff4d3c44.*imports-where-things-live-now/,
         );
         assert.doesNotMatch(smoke.stdout, /S2-IMPORT-WEB-001/);
-        assertFinalDisclosure(smoke.stderr);
+        assert.equal(smoke.stderr, `${DISCLOSURE}\n`);
         assert.deepEqual(
           treeSnapshot(consumer),
           before,
@@ -302,38 +244,9 @@ test(
       }
 
       assert.deepEqual(
-        Buffer.from(smokeRuns[0].stdout, "utf8"),
-        Buffer.from(smokeRuns[1].stdout, "utf8"),
-        "complete analyzer-owned guidance bytes changed between packed runs",
-      );
-      const comparableRuns = smokeRuns.map((smoke, index) => {
-        const workflowId =
-          /^(\u001b\[36mWorkflow started\u001b\[0m \u001b\[2m)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\u001b\[0m\r?)$/gm;
-        const workflowDuration =
-          /^(\u001b\[32mWorkflow completed\u001b\[0m \u001b\[2min )([0-9]+(?:\.[0-9]+)?(?:ms|s))(\u001b\[0m\r?)$/gm;
-        assert.equal(
-          [...smoke.stderr.matchAll(workflowId)].length,
-          1,
-          `packed run ${index + 1} workflow UUID envelope`,
-        );
-        assert.equal(
-          [...smoke.stderr.matchAll(workflowDuration)].length,
-          1,
-          `packed run ${index + 1} workflow timing envelope`,
-        );
-        const stableProgress = smoke.stderr
-          .replace(workflowId, "$1<generated-workflow-uuid>$3")
-          .replace(workflowDuration, "$1<generated-workflow-duration>$3");
-        return Buffer.concat([
-          Buffer.from(stableProgress, "utf8"),
-          Buffer.from([0]),
-          Buffer.from(smoke.stdout, "utf8"),
-        ]);
-      });
-      assert.deepEqual(
-        comparableRuns[0],
-        comparableRuns[1],
-        "packed runtime output changed outside Codemod's generated UUID/timing values",
+        Buffer.from(`${smokeRuns[0].stdout}\0${smokeRuns[0].stderr}`, "utf8"),
+        Buffer.from(`${smokeRuns[1].stdout}\0${smokeRuns[1].stderr}`, "utf8"),
+        "packed runtime output changed between runs",
       );
     } finally {
       rmSync(temporaryRoot, { recursive: true, force: true });
@@ -367,6 +280,7 @@ function command(executable, argumentsList, cwd, environment = {}) {
   return spawnSync(executable, argumentsList, {
     cwd,
     encoding: "utf8",
+    maxBuffer: 10 * 1024 * 1024,
     env: {
       ...process.env,
       CI: "true",
@@ -379,11 +293,6 @@ function command(executable, argumentsList, cwd, environment = {}) {
 
 function output(result) {
   return `${result.stdout ?? ""}${result.stderr ?? ""}`;
-}
-
-function assertFinalDisclosure(value) {
-  assert.ok(value.endsWith(`${DISCLOSURE}\n`));
-  assert.equal(value.split(DISCLOSURE).length - 1, 1);
 }
 
 function assertNoAnalyzerArtifacts(target) {
@@ -410,13 +319,13 @@ function visit(root, directory, snapshot) {
   )) {
     const path = join(directory, entry.name);
     const relativePath = relative(root, path).replaceAll("\\", "/");
+    if (entry.isSymbolicLink()) {
+      snapshot[`symlink:${relativePath}`] = readlinkSync(path);
+      continue;
+    }
     if (entry.isDirectory()) {
       snapshot[`directory:${relativePath}`] = true;
       visit(root, path, snapshot);
-      continue;
-    }
-    if (entry.isSymbolicLink()) {
-      snapshot[`symlink:${relativePath}`] = readlinkSync(path);
       continue;
     }
     if (!entry.isFile() || !lstatSync(path).isFile()) continue;

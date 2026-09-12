@@ -1,4 +1,0 @@
-import { analyzeOnError } from "../../rules/analysis/reactivity/error-handling/error-handling.ts";
-import { createAnalysisEntrypoint } from "../../shared/entrypoint.ts";
-
-export default createAnalysisEntrypoint(analyzeOnError);

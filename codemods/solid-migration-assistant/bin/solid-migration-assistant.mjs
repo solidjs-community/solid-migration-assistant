@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-import { main } from "../shared/run-workflow.mjs";
+import { launch } from "../shared/run-workflow.mjs";
 
-process.exitCode = main();
+process.exitCode = await launch(process.argv.slice(2));

@@ -15,5 +15,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true
   },
-  "exclude": ["tests", "**/*.test.ts", "**/*.fixture.tsx"]
+  "exclude": [
+    "tests",
+    "workflows",
+    "shared/workflow.ts",
+    "**/*.test.ts",
+    "**/*.fixture.tsx"
+  ]
 }
