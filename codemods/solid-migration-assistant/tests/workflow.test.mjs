@@ -5,6 +5,7 @@ import {
   chmodSync,
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -32,7 +33,7 @@ const SOURCE_EXCLUDE = [
   "**/coverage/**",
   "**/*.d.ts",
 ];
-/** The 37 analyzers, in the order the workflow awaits them. */
+/** The 37 analyzers, in the order the workflow declares them in its group. */
 const expectedAnalyzers = [
   "analyzeBeta32SubpathImports",
   "analyzeWebImport",
@@ -113,6 +114,11 @@ test(
   "prints the exact deduplicated, sorted guidance once per run and leaves the target untouched",
   { timeout: 180_000 },
   () => {
+    // The analyzers are one parallel group, so the bridge processes of this
+    // run overlap up to the engine's admission capacity. Byte-identical
+    // output across runs is what proves the aggregation does not depend on
+    // the order in which those commands happen to finish, and the unchanged
+    // tree snapshot is what proves no analyzer wrote to the target.
     const before = treeSnapshot(fixtureDirectory);
     const runs = [1, 2].map(() => runLauncher(["--target", fixtureDirectory]));
     for (const [index, run] of runs.entries()) {
@@ -272,34 +278,52 @@ test("reports a missing bridge on stderr, exits 1, and prints no guidance", () =
   }
 });
 
-test("reports the first failed command with its status, exits 1, and leaves the target untouched", () => {
-  const surface = mkdtempSync(join(tmpdir(), "sma-failure-"));
-  try {
-    const bridge = fakeBridge(surface, "exit 7");
-    const before = treeSnapshot(fixtureDirectory);
-    const result = runLauncher(["--target", fixtureDirectory], {
-      env: { CODEMOD_BRIDGE_BIN: bridge },
-    });
-    assert.equal(result.status, 1);
-    assert.equal(result.stdout, "");
-    assert.equal(
-      result.stderr,
-      `[solid-migration-assistant] analyzer execution failed: command 'analyzeBeta32SubpathImports' failed: bridge exited with code 7 and wrote no response\n${DISCLOSURE}\n`,
-    );
-    assert.deepEqual(treeSnapshot(fixtureDirectory), before);
-  } finally {
-    rmSync(surface, { recursive: true, force: true });
-  }
-});
+test(
+  "reports a failed command with its status, exits 1, and leaves the target untouched",
+  { timeout: 180_000 },
+  () => {
+    const surface = mkdtempSync(join(tmpdir(), "sma-failure-"));
+    try {
+      const bridge = fakeBridge(surface, "exit 7");
+      const before = treeSnapshot(fixtureDirectory);
+      const result = runLauncher(["--target", fixtureDirectory], {
+        env: { CODEMOD_BRIDGE_BIN: bridge },
+      });
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      // The analyzers are a parallel group, so the failure that surfaces is
+      // whichever admitted command rejects first rather than a fixed one.
+      // Everything around the command name stays exact.
+      const failed = analyzerNameIn(
+        result.stderr,
+        /command '(\w+)' failed: bridge exited with code 7 and wrote no response/,
+      );
+      assert.equal(
+        result.stderr,
+        `[solid-migration-assistant] analyzer execution failed: command '${failed}' failed: bridge exited with code 7 and wrote no response\n${DISCLOSURE}\n`,
+      );
+      assert.deepEqual(treeSnapshot(fixtureDirectory), before);
+    } finally {
+      rmSync(surface, { recursive: true, force: true });
+    }
+  },
+);
 
 test(
-  "cancels the command in flight on SIGINT, kills its bridge, and still ends with the disclosure",
+  "cancels the commands in flight on SIGINT, kills their bridges, refuses the queued ones, and still ends with the disclosure",
   { timeout: 60_000 },
   async () => {
     const surface = mkdtempSync(join(tmpdir(), "sma-cancel-"));
     try {
-      const pidFile = join(surface, "bridge.pid");
-      const bridge = fakeBridge(surface, `echo $$ > "${pidFile}"\nexec sleep 60`);
+      // Every admitted command writes its own pid file, so the test can kill
+      // the run while an unknown number of bridges are in flight and still
+      // prove that all of them died.
+      const pidDirectory = join(surface, "pids");
+      mkdirSync(pidDirectory);
+      const bridge = fakeBridge(
+        surface,
+        `echo $$ > "${pidDirectory}/$$"\nexec sleep 60`,
+      );
       const output = { stdout: "", stderr: "" };
       const child = spawn(process.execPath, [launcher, "--target", fixtureDirectory], {
         cwd: packageDirectory,
@@ -316,18 +340,43 @@ test(
         child.once("exit", (code, signal) => resolveExit({ code, signal }));
       });
 
-      await waitFor(() => existsSync(pidFile), "the bridge to start");
-      const pid = Number.parseInt(readFileSync(pidFile, "utf8"), 10);
+      await waitFor(
+        () => readdirSync(pidDirectory).length > 0,
+        "a bridge to start",
+      );
       child.kill("SIGINT");
       const exit = await exited;
 
       assert.deepEqual(exit, { code: 1, signal: null });
       assert.equal(output.stdout, "");
+      // A member of the group is either admitted, and its bridge is killed,
+      // or still queued for capacity, and is refused without spawning
+      // anything. Either is a correct cancellation; which one surfaces
+      // depends on how far the group had progressed.
+      const cancelled = analyzerNameIn(
+        output.stderr,
+        /command '(\w+)' cancelled: (?:bridge killed by SIGKILL on abort|cancelled while queued for execution capacity)/,
+      );
+      const reason = /cancelled: (.+)\n/.exec(output.stderr)[1];
+      assert.ok(
+        [
+          "bridge killed by SIGKILL on abort",
+          "cancelled while queued for execution capacity",
+        ].includes(reason),
+        reason,
+      );
       assert.equal(
         output.stderr,
-        `[solid-migration-assistant] analyzer execution failed: command 'analyzeBeta32SubpathImports' cancelled: bridge killed by SIGKILL on abort\n${DISCLOSURE}\n`,
+        `[solid-migration-assistant] analyzer execution failed: command '${cancelled}' cancelled: ${reason}\n${DISCLOSURE}\n`,
       );
-      await waitFor(() => !isAlive(pid), "the bridge to be killed");
+      const pids = readdirSync(pidDirectory).map((name) =>
+        Number.parseInt(readFileSync(join(pidDirectory, name), "utf8"), 10),
+      );
+      assert.ok(pids.length > 0);
+      await waitFor(
+        () => pids.every((pid) => !isAlive(pid)),
+        "every started bridge to be killed",
+      );
     } finally {
       rmSync(surface, { recursive: true, force: true });
     }
@@ -373,19 +422,37 @@ test("bundles each rule with its imported helpers into a self-contained transfor
   }
 });
 
-test("issues one workspace-semantic command per analyzer, in order, one at a time, and returns the aggregated guidance as data", async () => {
-  const { loadWorkflow, run } = await import("@codemod.com/orchestration");
+test("declares the 37 analyzers as one parallel group of workspace-semantic commands and aggregates every output despite out-of-order completion", async () => {
+  const { AdmissionScheduler, loadWorkflow, run } = await import(
+    "@codemod.com/orchestration"
+  );
   const { exports, artifacts } = await loadWorkflow(analyzeWorkflow);
-  const { executor, requests, overlapped } = scriptedExecutor({
-    analyzeWebImport: [["b\nsecond line", "a"], ["a"]],
-    analyzeUnwrap: [["c"], ["a"]],
+  const { executor, requests, completionOrder, peakInFlight } = reversingExecutor(
+    {
+      analyzeWebImport: [["b\nsecond line", "a"], ["a"]],
+      analyzeUnwrap: [["c"], ["a"]],
+    },
+    expectedAnalyzers.length,
+  );
+
+  const result = await run(exports.default, {
+    executor,
+    // Enough capacity for every member, so admission never serialises the
+    // group and the executor alone decides the completion order.
+    scheduler: new AdmissionScheduler({ capacity: expectedAnalyzers.length * 4 }),
   });
 
-  const result = await run(exports.default, { executor });
-
+  // The group is declared once over the whole list: all 37 are in flight
+  // together, and each one finishes only after every analyzer declared after
+  // it has already finished.
+  assert.equal(peakInFlight(), expectedAnalyzers.length);
+  assert.deepEqual(completionOrder(), [...expectedAnalyzers].reverse());
+  // The exact same aggregate as a one-at-a-time run: flattened, exact
+  // deduplicated, and sorted as whole strings.
   assert.deepEqual(result.output, { guidance: ["a", "b\nsecond line", "c"] });
   assert.equal(result.replayed, false);
-  assert.equal(overlapped(), false, "commands were not awaited one at a time");
+  // Commands are still issued in declaration order, so command identity and
+  // history do not depend on the schedule.
   assert.deepEqual(
     requests.map((request) => request.commandId),
     expectedAnalyzers,
@@ -412,6 +479,109 @@ test("issues one workspace-semantic command per analyzer, in order, one at a tim
   }
 });
 
+test("lets the engine's admission scheduler, not the group, decide how many analyzers run at once", async () => {
+  const { AdmissionScheduler, loadWorkflow, run } = await import(
+    "@codemod.com/orchestration"
+  );
+  const { exports } = await loadWorkflow(analyzeWorkflow);
+  // Two workspace-semantic batches fit in eight units at the engine's weight
+  // of four each; the ninth unit a third batch would need is not available.
+  const capacity = 8;
+  const scheduler = new AdmissionScheduler({ capacity });
+  const { executor, weights, admitted } = boundedGroupExecutor(
+    scheduler,
+    expectedAnalyzers.length,
+  );
+
+  const result = await run(exports.default, { executor, scheduler });
+
+  assert.deepEqual(result.output, { guidance: [] });
+  assert.deepEqual([...new Set(weights())], [4]);
+  assert.deepEqual(admitted().sort(), [...expectedAnalyzers].sort());
+  // The scheduler's own accounting: the group did overlap, and it never
+  // exceeded the budget while doing so.
+  const stats = scheduler.stats();
+  assert.equal(stats.capacity, capacity);
+  assert.equal(stats.peakActive, 2);
+  assert.equal(stats.peakUsed, capacity);
+  assert.deepEqual({ used: stats.used, active: stats.active, queued: stats.queued }, {
+    used: 0,
+    active: 0,
+    queued: 0,
+  });
+});
+
+test(
+  "bounds the bridge processes a real run starts to the engine's admission capacity",
+  { timeout: 180_000 },
+  async () => {
+    const surface = mkdtempSync(join(tmpdir(), "sma-capacity-"));
+    try {
+      // Eight units admit two workspace-semantic analyzers at a time. Each
+      // stand-in bridge registers itself, then waits until it can see a peer,
+      // so the run cannot pass unless the scheduler really overlaps two
+      // commands; it records the most bridges it ever saw alive at once, so
+      // the run also cannot pass if the scheduler overlaps three. The last
+      // odd member has no peer and gives up after its own bounded wait.
+      const live = join(surface, "live");
+      mkdirSync(live);
+      const observed = join(surface, "observed");
+      const bridge = fakeBridge(
+        surface,
+        [
+          `live="${live}"`,
+          `: > "$live/$$"`,
+          "peak=0",
+          "attempt=0",
+          "while [ $attempt -lt 100 ]; do",
+          `  count=$(ls "$live" | wc -l | tr -d ' ')`,
+          '  [ "$count" -gt "$peak" ] && peak="$count"',
+          '  [ "$count" -ge 2 ] && break',
+          "  attempt=$((attempt + 1))",
+          "  sleep 0.05",
+          "done",
+          `echo "$peak" >> "${observed}"`,
+          `rm -f "$live/$$"`,
+          "exit 7",
+        ].join("\n"),
+      );
+      const before = treeSnapshot(fixtureDirectory);
+      const result = runLauncher(["--target", fixtureDirectory], {
+        env: {
+          CODEMOD_BRIDGE_BIN: bridge,
+          CODEMOD_ORCHESTRATION_CAPACITY: "8",
+        },
+      });
+
+      // Every member still runs even though the group already failed.
+      const peaks = readFileSync(observed, "utf8")
+        .trim()
+        .split("\n")
+        .map((line) => Number.parseInt(line, 10));
+      assert.equal(peaks.length, expectedAnalyzers.length);
+      assert.deepEqual(
+        { mostSeenAtOnce: Math.max(...peaks), overBudget: peaks.filter((peak) => peak > 2) },
+        { mostSeenAtOnce: 2, overBudget: [] },
+      );
+      assert.deepEqual(readdirSync(live), [], "a bridge outlived its command");
+      // Read-only commands, so a bounded concurrent run still writes nothing.
+      assert.deepEqual(treeSnapshot(fixtureDirectory), before);
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      const failed = analyzerNameIn(
+        result.stderr,
+        /command '(\w+)' failed: bridge exited with code 7 and wrote no response/,
+      );
+      assert.equal(
+        result.stderr,
+        `[solid-migration-assistant] analyzer execution failed: command '${failed}' failed: bridge exited with code 7 and wrote no response\n${DISCLOSURE}\n`,
+      );
+    } finally {
+      rmSync(surface, { recursive: true, force: true });
+    }
+  },
+);
+
 test("issues the three rewrites as separate sequential commands without semantic analysis and returns the report as data", async () => {
   const { loadWorkflow, run } = await import("@codemod.com/orchestration");
   const { exports, artifacts } = await loadWorkflow(transformWorkflow);
@@ -423,6 +593,9 @@ test("issues the three rewrites as separate sequential commands without semantic
   const result = await run(exports.default, { executor });
 
   assert.deepEqual(result.output, { report: ["x", "y", "z"] });
+  // The default capacity would admit more than one of these, so the rewrites
+  // stay sequential because the workflow awaits them one at a time, not
+  // because the scheduler ran out of room.
   assert.equal(overlapped(), false, "rewrites were not awaited one at a time");
   assert.deepEqual(
     requests.map((request) => request.commandId),
@@ -520,6 +693,109 @@ function scriptedExecutor(outputs) {
       },
     },
   };
+}
+
+/**
+ * An executor that answers every JSSG command from a script, keeps every
+ * command in flight until all `memberCount` of them have arrived, and then
+ * completes them in the exact reverse of their declaration order. Nothing
+ * here is timed, so the out-of-order completion is deterministic.
+ */
+function reversingExecutor(outputs, memberCount) {
+  const requests = [];
+  const completed = [];
+  let peak = 0;
+  let allArrived;
+  const arrived = new Promise((resolve) => {
+    allArrived = resolve;
+  });
+  // `successors[index]` settles once every later member has completed;
+  // the sentinel past the last member is already settled.
+  const successors = Array.from({ length: memberCount + 1 }, () => {
+    let settle;
+    const promise = new Promise((resolve) => {
+      settle = resolve;
+    });
+    return { promise, settle };
+  });
+  successors[memberCount].settle();
+
+  return {
+    requests,
+    completionOrder: () => completed,
+    peakInFlight: () => peak,
+    executor: {
+      async execute(request) {
+        const index = requests.length;
+        requests.push(request);
+        peak = Math.max(peak, requests.length - completed.length);
+        if (requests.length === memberCount) allArrived();
+
+        await arrived;
+        await successors[index + 1].promise;
+        completed.push(request.commandId);
+        successors[index].settle();
+        return {
+          protocolVersion: 5,
+          commandId: request.commandId,
+          status: "succeeded",
+          output: outputs[request.commandId] ?? [],
+        };
+      },
+    },
+  };
+}
+
+/**
+ * An executor that holds every admitted command until `scheduler` has
+ * admitted as many as its capacity allows, or as many as the group has left.
+ * It never releases early, so the scheduler's own peak is the real bound
+ * rather than a sample of one moment.
+ */
+function boundedGroupExecutor(scheduler, memberCount) {
+  const admitted = [];
+  const weights = [];
+  let live = 0;
+  let finished = 0;
+  let waiting = [];
+
+  return {
+    admitted: () => admitted,
+    weights: () => weights,
+    executor: {
+      async execute(request) {
+        const weight = scheduler.weightFor(request.operation);
+        weights.push(weight);
+        admitted.push(request.commandId);
+        const bound = Math.max(1, Math.floor(scheduler.capacity / weight));
+        live += 1;
+        await new Promise((resolve) => {
+          waiting.push(resolve);
+          if (live === Math.min(bound, memberCount - finished)) {
+            const release = waiting;
+            waiting = [];
+            for (const settle of release) settle();
+          }
+        });
+        live -= 1;
+        finished += 1;
+        return {
+          protocolVersion: 5,
+          commandId: request.commandId,
+          status: "succeeded",
+          output: [],
+        };
+      },
+    },
+  };
+}
+
+/** The analyzer name a diagnostic reports, proven to be one of the 37. */
+function analyzerNameIn(stderr, pattern) {
+  const match = pattern.exec(stderr);
+  assert.ok(match, stderr);
+  assert.ok(expectedAnalyzers.includes(match[1]), match[1]);
+  return match[1];
 }
 
 function stripAnsi(value) {

@@ -38,6 +38,17 @@ const analysisStepCount = (
 ).length;
 const { target, samples } = parseArguments(process.argv.slice(2));
 const bridge = resolveBridgeBinary();
+// Reported, not configured: the benchmark runs with the same host capacity a
+// production run gets, so the numbers below describe bounded parallelism.
+const { DEFAULT_WEIGHTS, defaultCapacity } = await import(
+  "@codemod.com/orchestration"
+);
+const schedulerCapacity = defaultCapacity();
+const workspacePassWeight = DEFAULT_WEIGHTS.jssgWorkspace;
+const admittedAtOnce = Math.max(
+  1,
+  Math.floor(schedulerCapacity / Math.min(workspacePassWeight, schedulerCapacity)),
+);
 const temporarySuffix = `${process.pid}-${randomUUID()}`;
 const temporaryArtifacts = [];
 let workflowSequence = 0;
@@ -101,6 +112,9 @@ try {
   const result = {
     target,
     analysisStepCount,
+    schedulerCapacity,
+    workspacePassWeight,
+    admittedAtOnce,
     samples,
     singleSamplesMs: singleSamples,
     repeatedSamplesMs: repeatedSamples,
@@ -118,6 +132,9 @@ try {
   console.log(
     "Isolation: a fresh generated workflow module and transform artifacts per sample; one bridge process and one workspace index per command",
   );
+  console.log(
+    `Scheduling: one parallel group per sample, admitted by the engine scheduler at a capacity of ${schedulerCapacity} unit(s) and a weight of ${workspacePassWeight} per workspace-semantic command, so at most ${admittedAtOnce} run at once`,
+  );
   console.log(`One-command samples: ${formatSamples(singleSamples)}`);
   console.log(`${analysisStepCount}-command samples: ${formatSamples(repeatedSamples)}`);
   console.log(`One-command median: ${singleMedianMs.toFixed(1)} ms`);
@@ -126,7 +143,7 @@ try {
   console.log(`Slowdown: ${slowdownRatio.toFixed(2)}x`);
   console.log(`Marginal command estimate: ${marginalPassMs.toFixed(1)} ms`);
   console.log(
-    "Caveat: this directional pilot times one in-process workflow run per sample, so Node startup is excluded while each command's bridge process startup, workspace indexing, and per-file sandbox runtime are included; deltas inside run-to-run noise can be negative. Each command forces workspace semantic resolution for one imported binding per source file, but it does not reproduce the number or shape of queries made by the real analyzers. It does not compare complete legacy and split analyzers, model full rule traversal cost, control OS caches, or constitute a stable performance test.",
+    "Caveat: this directional pilot times one in-process workflow run per sample, so Node startup is excluded while each command's bridge process startup, workspace indexing, and per-file sandbox runtime are included; deltas inside run-to-run noise can be negative. Both modes are parallel groups admitted by the engine scheduler, so the added cost and the marginal estimate describe bounded parallel commands on this host's capacity and not a serial sum; a machine with different capacity will report different numbers for the same work. Each command forces workspace semantic resolution for one imported binding per source file, but it does not reproduce the number or shape of queries made by the real analyzers. It does not compare complete legacy and split analyzers, model full rule traversal cost, control OS caches, or constitute a stable performance test.",
   );
   console.log(JSON.stringify(result));
 } finally {
@@ -180,9 +197,11 @@ function parseArguments(argumentsList) {
 
 /**
  * A generated workflow module with `passCount` inline workspace-semantic
- * definitions awaited in sequence, mirroring how the production analyze
- * workflow composes its commands. Each definition's transform carries its
- * own marker so the build step bundles a distinct artifact per pass.
+ * definitions declared as one `parallel()` group, mirroring how the
+ * production analyze workflow composes its commands: the group only states
+ * that the passes may overlap, and the engine's admission scheduler decides
+ * how many actually run at once. Each definition's transform carries its own
+ * marker so the build step bundles a distinct artifact per pass.
  */
 function createBenchmarkWorkflow(label, passCount) {
   workflowSequence += 1;
@@ -205,19 +224,21 @@ const pass${index + 1} = jssg({
   transform: (root) => createWorkspacePass(${JSON.stringify(`${runLabel}-${index + 1}`)})(root),
 });`,
   ).join("\n");
-  const awaits = Array.from(
+  const group = Array.from(
     { length: passCount },
-    (_, index) => `  await pass${index + 1}();`,
+    (_, index) => `    pass${index + 1},`,
   ).join("\n");
   writeFileSync(
     path,
-    `import { jssg, workflow } from "@codemod.com/orchestration";
+    `import { jssg, parallel, workflow } from "@codemod.com/orchestration";
 import { SOURCE_EXCLUDE, SOURCE_INCLUDE } from "../shared/workflow.ts";
 import { createWorkspacePass } from "./workspace-pass.ts";
 ${definitions}
 
 export default workflow(async () => {
-${awaits}
+  await parallel([
+${group}
+  ]);
   return { passes: ${passCount} };
 });
 `,

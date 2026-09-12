@@ -186,7 +186,7 @@ const PRODUCTION_SOURCES = [
   ...EXPECTED_TRANSFORM_PRODUCTION.map((path) => `rules/transformations/${path}`),
 ];
 
-test("composes every named rule as its own inline jssg definition and sequential command", () => {
+test("composes every named rule as its own inline jssg definition, analyzers as one parallel group and rewrites in sequence", () => {
   const analyzeWorkflow = read("workflows/analyze.ts");
   const transformWorkflow = read("workflows/transform.ts");
   const analysisRules = namedRuleExports(analysisDirectory, "analyze");
@@ -231,25 +231,43 @@ test("composes every named rule as its own inline jssg definition and sequential
   for (const { name, source } of transformRules) {
     assertNamedImport(transformWorkflow, name, `../rules/transformations/${source}`);
   }
+  assert.match(
+    analyzeWorkflow,
+    /^import \{ jssg, parallel, workflow \} from "@codemod\.com\/orchestration";$/m,
+  );
+  assert.match(
+    transformWorkflow,
+    /^import \{ jssg, workflow \} from "@codemod\.com\/orchestration";$/m,
+  );
+  // Only the read-only analyzers may overlap; the mutating rewrites may not.
+  assert.doesNotMatch(transformWorkflow, /parallel\(/);
   for (const workflow of [analyzeWorkflow, transformWorkflow]) {
-    assert.match(workflow, /^import \{ jssg, workflow \} from "@codemod\.com\/orchestration";$/m);
     assert.match(
       workflow,
       /^import \{\n  aggregateReport,\n  FileStrings,\n  SOURCE_EXCLUDE,\n  SOURCE_INCLUDE,\n\} from "\.\.\/shared\/workflow\.ts";$/m,
     );
-    assert.doesNotMatch(workflow, /semanticAnalysis: "file"|selector:|parallel\(|plan\(|input:|target:/);
+    assert.doesNotMatch(workflow, /semanticAnalysis: "file"|selector:|plan\(|input:|target:/);
     assert.doesNotMatch(workflow, /codemod:workflow|acquireLock|getState|setState|console\.log/);
   }
 
-  // The bodies await every definition, one at a time, in the recorded order,
-  // and return the aggregated strings as data. Nothing else runs.
+  // The analyze body declares every definition as one parallel group and the
+  // transform body awaits its three one at a time, in the recorded order.
+  // Both return the aggregated strings as data. Nothing else runs.
   assert.deepEqual(
     listedIdentifiers(analyzeWorkflow, "analyzers").sort(),
     analysisDefinitions.map(({ binding }) => binding).sort(),
   );
   assert.match(
     analyzeWorkflow,
-    /export default workflow\(async \(\) => \{\n  const commands: string\[\]\[\]\[\] = \[\];\n  for \(const analyzer of analyzers\) \{\n    commands\.push\(await analyzer\(\)\);\n  \}\n  return \{ guidance: aggregateReport\(commands\) \};\n\}\);\n$/,
+    /export default workflow\(async \(\) => \{\n  const commands: string\[\]\[\]\[\] = await parallel\(analyzers\);\n  return \{ guidance: aggregateReport\(commands\) \};\n\}\);\n$/,
+  );
+  // One group over the whole list: no manual chunking and no author-declared
+  // concurrency, so the engine scheduler alone decides what actually overlaps.
+  assert.equal((analyzeWorkflow.match(/await parallel\(/g) ?? []).length, 1);
+  assert.equal((analyzeWorkflow.match(/parallel\(analyzers\)/g) ?? []).length, 1);
+  assert.doesNotMatch(
+    analyzeWorkflow,
+    /maxConcurrent|AdmissionScheduler|scheduler:|CODEMOD_ORCHESTRATION_CAPACITY|\.slice\(/,
   );
   assert.deepEqual(
     listedIdentifiers(transformWorkflow, "rewrites"),
@@ -325,6 +343,12 @@ test("aggregates and renders reports deterministically", () => {
   assert.match(launcher, /await loadWorkflow\(workflowPath\)/);
   assert.match(launcher, /await run\(exports\.default, \{/);
   assert.doesNotMatch(launcher, /MemoryHistoryStore|history:|fromJSON|serialize\(/);
+  // Admission capacity is host configuration in the engine; this package
+  // neither passes a scheduler nor exposes a concurrency knob of its own.
+  assert.doesNotMatch(
+    launcher,
+    /scheduler:|AdmissionScheduler|SchedulingExecutor|concurrency|capacity/i,
+  );
   assert.doesNotMatch(launcher, /workflow run|--allow-dirty|codemod\/package\.json/);
   assert.equal(
     read("bin/solid-migration-assistant.mjs"),

@@ -1,17 +1,25 @@
 /**
  * The read-only `analyze` workflow. Each of the 37 named analyzers is its own
- * inline JSSG definition and its own sequential command over the whole
- * target, exactly as the former YAML workflow ran each rule as a separate
- * workspace-semantic step: every command indexes the complete selected file
- * set, so a rule's cross-file `references()` lookups see every project file.
- * A transform returns each file's guidance as structured output and never an
- * edit; the workflow body flattens, deduplicates, and sorts the strings and
- * returns them as data for the launcher to print.
+ * inline JSSG definition and its own command over the whole target, exactly
+ * as the former YAML workflow ran each rule as a separate workspace-semantic
+ * step: every command indexes the complete selected file set, so a rule's
+ * cross-file `references()` lookups see every project file. A transform
+ * returns each file's guidance as structured output and never an edit; the
+ * workflow body flattens, deduplicates, and sorts the strings and returns
+ * them as data for the launcher to print.
+ *
+ * The analyzers read the target and share nothing, so they are declared as
+ * one `parallel()` group rather than awaited one at a time. The group states
+ * only that the commands may overlap; the engine's admission scheduler owns
+ * how many actually run at once, weighting a workspace-semantic JSSG batch
+ * heaviest. Nothing here chunks the group or asks for a concurrency level.
+ * `parallel()` resolves to one output per member in declaration order
+ * regardless of completion order, so the aggregated report is unchanged.
  *
  * A transform may only use its parameters and imported bindings, so each one
  * delegates to the bundled `analyzeFile` adapter with the rule it imports.
  */
-import { jssg, workflow } from "@codemod.com/orchestration";
+import { jssg, parallel, workflow } from "@codemod.com/orchestration";
 import { analyzeBeta32SubpathImports } from "../rules/analysis/imports/beta32-subpaths/beta32-subpaths.ts";
 import { analyzeWebImport } from "../rules/analysis/imports/web-import/web-import.ts";
 import { analyzeJsxClassListAttributes } from "../rules/analysis/jsx/class-list/class-list.ts";
@@ -437,7 +445,7 @@ const unwrap = jssg({
   transform: (root) => analyzeFile(analyzeUnwrap, root),
 });
 
-/** Every analyzer, in the order the former YAML workflow ran its steps. */
+/** Every analyzer, in the order the former YAML workflow declared its steps. */
 export const analyzers = [
   beta32SubpathImports,
   webImport,
@@ -479,9 +487,6 @@ export const analyzers = [
 ];
 
 export default workflow(async () => {
-  const commands: string[][][] = [];
-  for (const analyzer of analyzers) {
-    commands.push(await analyzer());
-  }
+  const commands: string[][][] = await parallel(analyzers);
   return { guidance: aggregateReport(commands) };
 });

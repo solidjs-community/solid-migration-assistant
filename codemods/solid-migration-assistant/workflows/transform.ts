@@ -6,6 +6,10 @@
  * disjoint syntax today, but sequencing is what the exact-output and
  * idempotency tests prove, not a merged single pass.
  *
+ * These three mutate the target, so unlike the read-only analyzers they are
+ * deliberately not declared as one overlapping group: their order is a
+ * correctness property of the files they write, not a schedule.
+ *
  * Each transform returns the rewritten file as its content and the per-edit
  * report lines as structured output; the workflow body flattens,
  * deduplicates, and sorts the lines and returns them as data.
