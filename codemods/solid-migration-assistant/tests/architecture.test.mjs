@@ -169,206 +169,231 @@ const EXPECTED_TRANSFORM_FOLDERS = EXPECTED_TRANSFORM_PRODUCTION.map((path) =>
   dirname(path),
 ).sort();
 
-test("composes every named rule as its own workflow step", () => {
-  const analyzeWorkflow = readFileSync(
-    resolve(packageDirectory, "workflow.yaml"),
-    "utf8",
-  );
-  const transformWorkflow = readFileSync(
-    resolve(packageDirectory, "transform.yaml"),
-    "utf8",
-  );
+/** The workflow-process modules and everything a transform artifact can bundle. */
+const PRODUCTION_SOURCES = [
+  "bin/solid-migration-assistant.mjs",
+  "benchmarks/workspace-pass.ts",
+  "benchmarks/workspace-passes.mjs",
+  "shared/analysis.ts",
+  "shared/entrypoint.ts",
+  "shared/register-ts.mjs",
+  "shared/run-workflow.mjs",
+  "shared/transform.ts",
+  "shared/workflow.ts",
+  "workflows/analyze.ts",
+  "workflows/transform.ts",
+  ...EXPECTED_ANALYSIS_PRODUCTION.map((path) => `rules/analysis/${path}`),
+  ...EXPECTED_TRANSFORM_PRODUCTION.map((path) => `rules/transformations/${path}`),
+];
+
+test("composes every named rule as its own inline jssg definition and sequential command", () => {
+  const analyzeWorkflow = read("workflows/analyze.ts");
+  const transformWorkflow = read("workflows/transform.ts");
   const analysisRules = namedRuleExports(analysisDirectory, "analyze");
   const transformRules = namedRuleExports(
     transformationsDirectory,
     "relocate|rewrite",
   );
-  const analysisEntrypoints = analysisRules.map(
-    ({ name }) => "scripts/analysis/" + name + ".ts",
-  );
-  const transformEntrypoints = transformRules.map(
-    ({ name }) => "scripts/transformations/" + name + ".ts",
-  );
-
   assert.equal(analysisRules.length, 37);
   assert.equal(transformRules.length, 3);
-  assert.deepEqual(
-    [...analyzeWorkflow.matchAll(/js_file:\s*(\S+)/g)].map(
-      (match) => match[1],
-    ),
-    [...analysisEntrypoints, "scripts/emit-report.ts"],
-  );
-  assert.deepEqual(
-    [...transformWorkflow.matchAll(/js_file:\s*(\S+)/g)].map(
-      (match) => match[1],
-    ),
-    [...transformEntrypoints, "scripts/emit-report.ts"],
-  );
 
-  for (const { name, source } of [...analysisRules, ...transformRules]) {
-    const kind = name.startsWith("analyze") ? "analysis" : "transformations";
-    const path = resolve(packageDirectory, "scripts", kind, name + ".ts");
-    assert.equal(existsSync(path), true, name);
-    const entrypoint = readFileSync(path, "utf8");
-    assert.equal(entrypoint.includes("import { " + name + " }"), true, name);
-    assert.equal(
-      entrypoint.includes("../../rules/" + kind + "/" + source),
-      true,
-      source,
-    );
-    assert.equal(
-      (entrypoint.match(/from "\.\.\/\.\.\/rules\//g) ?? []).length,
-      1,
-      name,
-    );
-    const factory =
-      kind === "analysis"
-        ? "createAnalysisEntrypoint"
-        : "createTransformEntrypoint";
-    assert.equal(
-      entrypoint.includes("export default " + factory + "(" + name + ");"),
-      true,
-      name,
-    );
-    assert.doesNotMatch(entrypoint, /\[[^\]]*rule|flatMap|for \(/);
+  // One inline definition per named rule: the command name is the rule name,
+  // the transform delegates to the bundled adapter with exactly that rule,
+  // and every analyzer indexes the whole selected set for cross-file lookups.
+  const analysisDefinitions = definitions(analyzeWorkflow, {
+    adapter: "analyzeFile",
+    semantic: true,
+  });
+  assert.equal(analysisDefinitions.length, 37);
+  assert.equal((analyzeWorkflow.match(/jssg\(\{/g) ?? []).length, 37);
+  assert.deepEqual(
+    analysisDefinitions.map(({ name }) => name).sort(),
+    analysisRules.map(({ name }) => name).sort(),
+  );
+  const transformDefinitions = definitions(transformWorkflow, {
+    adapter: "transformFile",
+    semantic: false,
+  });
+  assert.equal(transformDefinitions.length, 3);
+  assert.equal((transformWorkflow.match(/jssg\(\{/g) ?? []).length, 3);
+  assert.deepEqual(
+    transformDefinitions.map(({ name }) => name).sort(),
+    transformRules.map(({ name }) => name).sort(),
+  );
+  for (const { name, rule } of [...analysisDefinitions, ...transformDefinitions]) {
+    assert.equal(rule, name, `jssg '${name}' must delegate to the rule of the same name`);
   }
 
-  // Exactly one entrypoint file per named rule: no strays, duplicates, or
-  // leftover central scripts anywhere under scripts/, and only one analyze
-  // workflow file.
-  assert.deepEqual(productionScripts(), ["emit-report.ts"]);
-  assert.deepEqual(workflowFiles(), ["workflow.yaml"]);
-  assert.deepEqual(
-    readdirSync(resolve(packageDirectory, "scripts/analysis")).sort(),
-    analysisRules.map(({ name }) => name + ".ts").sort(),
-  );
-  assert.deepEqual(
-    readdirSync(resolve(packageDirectory, "scripts/transformations")).sort(),
-    transformRules.map(({ name }) => name + ".ts").sort(),
-  );
-
-  // Every workflow step must reference a packaged entrypoint, and the opt-in
-  // benchmark must ship but stay out of the verified test surface.
-  const packageJson = JSON.parse(
-    readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
-  );
+  // Every rule is imported from its own module; nothing is re-implemented.
+  for (const { name, source } of analysisRules) {
+    assertNamedImport(analyzeWorkflow, name, `../rules/analysis/${source}`);
+  }
+  for (const { name, source } of transformRules) {
+    assertNamedImport(transformWorkflow, name, `../rules/transformations/${source}`);
+  }
   for (const workflow of [analyzeWorkflow, transformWorkflow]) {
-    for (const [, jsFile] of workflow.matchAll(/js_file:\s*(\S+)/g)) {
-      assert.equal(packageJson.files.includes(jsFile), true, jsFile);
-    }
-  }
-  for (const shipped of [
-    "shared/entrypoint.ts",
-    "benchmarks/workspace-pass.ts",
-    "benchmarks/workspace-passes.mjs",
-  ]) {
-    assert.equal(packageJson.files.includes(shipped), true, shipped);
-  }
-  for (const script of ["test", "verify", "check-types", "validate"]) {
-    assert.doesNotMatch(packageJson.scripts[script], /benchmark/, script);
-  }
-  const benchmarkProbe = readFileSync(
-    resolve(packageDirectory, "benchmarks/workspace-pass.ts"),
-    "utf8",
-  );
-  const benchmarkDriver = readFileSync(
-    resolve(packageDirectory, "benchmarks/workspace-passes.mjs"),
-    "utf8",
-  );
-  assert.match(benchmarkProbe, /binding\.references\(\)/);
-  assert.match(benchmarkProbe, /createWorkspacePass\(marker:/);
-  assert.match(benchmarkDriver, /createBenchmarkWorkflow/);
-  assert.match(benchmarkDriver, /createWorkspacePass\(\$\{JSON\.stringify/);
-  assert.match(benchmarkDriver, /HOME: stateDirectory/);
-  assert.match(benchmarkDriver, /XDG_CACHE_HOME/);
-  assert.match(benchmarkDriver, /XDG_DATA_HOME/);
-
-  assert.equal(
-    (analyzeWorkflow.match(/semantic_analysis: workspace/g) ?? []).length,
-    analysisRules.length,
-  );
-  assert.doesNotMatch(analyzeWorkflow, /semantic_analysis: file/);
-  assert.doesNotMatch(transformWorkflow, /semantic_analysis/);
-  assert.equal((analyzeWorkflow.match(/max_threads: 1/g) ?? []).length, 1);
-  assert.equal((transformWorkflow.match(/max_threads: 1/g) ?? []).length, 1);
-
-  for (const [workflow, stepCount] of [
-    [analyzeWorkflow, analysisRules.length + 1],
-    [transformWorkflow, transformRules.length + 1],
-  ]) {
-    for (const extension of ["js", "jsx", "ts", "tsx"]) {
-      assert.equal(
-        (workflow.match(new RegExp('- "\\*\\*/\\*\\.' + extension + '"', "g")) ?? [])
-          .length,
-        stepCount,
-        extension,
-      );
-    }
-    for (const exclusion of ["node_modules", "dist", "build", "coverage"]) {
-      assert.equal(
-        (workflow.match(new RegExp('- "\\*\\*/' + exclusion + '/\\*\\*"', "g")) ?? [])
-          .length,
-        stepCount,
-        exclusion,
-      );
-    }
-    assert.equal(
-      (workflow.match(/- "\*\*\/\*\.d\.ts"/g) ?? []).length,
-      stepCount,
+    assert.match(workflow, /^import \{ jssg, workflow \} from "@codemod\.com\/orchestration";$/m);
+    assert.match(
+      workflow,
+      /^import \{\n  aggregateReport,\n  FileStrings,\n  SOURCE_EXCLUDE,\n  SOURCE_INCLUDE,\n\} from "\.\.\/shared\/workflow\.ts";$/m,
     );
+    assert.doesNotMatch(workflow, /semanticAnalysis: "file"|selector:|parallel\(|plan\(|input:|target:/);
+    assert.doesNotMatch(workflow, /codemod:workflow|acquireLock|getState|setState|console\.log/);
   }
 
-  for (const obsolete of ["scripts/analyze.ts", "scripts/transform.ts"]) {
+  // The bodies await every definition, one at a time, in the recorded order,
+  // and return the aggregated strings as data. Nothing else runs.
+  assert.deepEqual(
+    listedIdentifiers(analyzeWorkflow, "analyzers").sort(),
+    analysisDefinitions.map(({ binding }) => binding).sort(),
+  );
+  assert.match(
+    analyzeWorkflow,
+    /export default workflow\(async \(\) => \{\n  const commands: string\[\]\[\]\[\] = \[\];\n  for \(const analyzer of analyzers\) \{\n    commands\.push\(await analyzer\(\)\);\n  \}\n  return \{ guidance: aggregateReport\(commands\) \};\n\}\);\n$/,
+  );
+  assert.deepEqual(
+    listedIdentifiers(transformWorkflow, "rewrites"),
+    transformDefinitions.map(({ binding }) => binding),
+  );
+  assert.match(
+    transformWorkflow,
+    /export default workflow\(async \(\) => \{\n  const commands: string\[\]\[\]\[\] = \[\];\n  for \(const rewrite of rewrites\) \{\n    commands\.push\(await rewrite\(\)\);\n  \}\n  return \{ report: aggregateReport\(commands\) \};\n\}\);\n$/,
+  );
+
+  // The per-file adapter is the only bridge between a rule and the runtime.
+  // It is bundled into every artifact, so it must not touch the runtime.
+  const entrypoint = read("shared/entrypoint.ts");
+  assert.match(entrypoint, /export function analyzeFile\(/);
+  assert.match(entrypoint, /export function transformFile\(/);
+  assert.match(entrypoint, /content: null, output: guidance/);
+  assert.match(entrypoint, /content: rootNode\.commitEdits\(/);
+  assert.doesNotMatch(entrypoint, /@codemod\.com\/orchestration|rules:|flatMap|composeTransformChanges/);
+  assert.doesNotMatch(
+    read("shared/transform.ts"),
+    /composeTransformChanges|overlapping transform edits|STATE_KEY/,
+  );
+  assert.doesNotMatch(
+    read("shared/analysis.ts"),
+    /compareGuidance|guidanceLocation|siteGuidance|STATE_KEY/,
+  );
+
+  // No production module depends on the legacy workflow shared state.
+  for (const source of PRODUCTION_SOURCES) {
+    assert.doesNotMatch(read(source), /codemod:workflow|acquireLock|getState|setState/, source);
+  }
+
+  // The YAML composition, its per-rule entrypoints, and the report emitter are gone.
+  for (const obsolete of [
+    "scripts",
+    "workflow.yaml",
+    "transform.yaml",
+    "codemod.yaml",
+    "shared/state.ts",
+  ]) {
     assert.equal(existsSync(resolve(packageDirectory, obsolete)), false, obsolete);
   }
-  const sharedEntrypoint = readFileSync(
-    resolve(packageDirectory, "shared/entrypoint.ts"),
-    "utf8",
+  assert.deepEqual(
+    readdirSync(packageDirectory).filter((name) => name.endsWith(".yaml")),
+    [],
   );
-  assert.match(sharedEntrypoint, /createAnalysisEntrypoint\(rule:/);
-  assert.match(sharedEntrypoint, /createTransformEntrypoint\(rule:/);
-  assert.doesNotMatch(sharedEntrypoint, /rules:|flatMap|composeTransformChanges/);
-  assert.doesNotMatch(
-    readFileSync(resolve(packageDirectory, "shared/transform.ts"), "utf8"),
-    /composeTransformChanges|overlapping transform edits/,
+  assert.deepEqual(readdirSync(resolve(packageDirectory, "workflows")).sort(), [
+    "analyze.ts",
+    "sandbox-modules.d.ts",
+    "transform.ts",
+  ]);
+});
+
+test("aggregates and renders reports deterministically", () => {
+  // The workflows dedupe and sort as whole strings, exactly as the former
+  // emitter did; the launcher only joins what a workflow returned.
+  const sharedWorkflow = read("shared/workflow.ts");
+  assert.match(sharedWorkflow, /new Set<string>\(\)/);
+  assert.match(sharedWorkflow, /return \[\.\.\.unique\]\.sort\(\);/);
+  assert.doesNotMatch(sharedWorkflow, /localeCompare|compareGuidance/);
+  assert.deepEqual(
+    read("shared/workflow.ts").match(/^export const SOURCE_(?:INCLUDE|EXCLUDE)/gm),
+    ["export const SOURCE_INCLUDE", "export const SOURCE_EXCLUDE"],
+  );
+
+  const launcher = read("shared/run-workflow.mjs");
+  assert.equal((launcher.match(/stdout\.write\(/g) ?? []).length, 1);
+  assert.doesNotMatch(launcher, /console\.log\(/);
+  assert.match(launcher, /separator: "\\n\\n",\n    disclosure: true,/);
+  assert.match(launcher, /separator: "\\n",\n    disclosure: false,/);
+  assert.match(launcher, /await import\(\s*"@codemod\.com\/orchestration",?\s*\)/);
+  assert.match(launcher, /new BridgeExecutor\(\{ bin: bridge, cwd: target, artifacts \}\)/);
+  assert.match(launcher, /await loadWorkflow\(workflowPath\)/);
+  assert.match(launcher, /await run\(exports\.default, \{/);
+  assert.doesNotMatch(launcher, /MemoryHistoryStore|history:|fromJSON|serialize\(/);
+  assert.doesNotMatch(launcher, /workflow run|--allow-dirty|codemod\/package\.json/);
+  assert.equal(
+    read("bin/solid-migration-assistant.mjs"),
+    '#!/usr/bin/env node\n\nimport { launch } from "../shared/run-workflow.mjs";\n\nprocess.exitCode = await launch(process.argv.slice(2));\n',
   );
 });
 
-test("retains one deterministic report emitter after all rule steps", () => {
-  const emitter = readFileSync(
-    resolve(packageDirectory, "scripts/emit-report.ts"),
-    "utf8",
+test("exposes the analyze and transform workflows through the launcher and ships what they load", () => {
+  const packageJson = JSON.parse(read("package.json"));
+  assert.equal(packageJson.scripts.analyze, "node ./bin/solid-migration-assistant.mjs");
+  assert.equal(
+    packageJson.scripts.transform,
+    "node ./bin/solid-migration-assistant.mjs transform",
   );
-  assert.match(emitter, /\.sort\(\)/);
-  assert.doesNotMatch(emitter, /localeCompare|compareGuidance/);
-  assert.equal((emitter.match(/console\.log\(/g) ?? []).length, 1);
-  const analysis = readFileSync(
-    resolve(packageDirectory, "shared/analysis.ts"),
-    "utf8",
-  );
-  assert.doesNotMatch(analysis, /compareGuidance|guidanceLocation|siteGuidance/);
-});
-
-test("exposes analyze and transform workflows", () => {
-  const packageJson = JSON.parse(
-    readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
-  );
-  const codemod = readFileSync(
-    resolve(packageDirectory, "codemod.yaml"),
-    "utf8",
-  );
-
-  assert.equal(typeof packageJson.scripts.analyze, "string");
-  assert.equal(typeof packageJson.scripts.transform, "string");
   assert.deepEqual(
     Object.keys(packageJson.scripts)
       .filter((name) => /^test:transform/.test(name))
       .sort(),
     ["test:transform", "test:transform-rules"],
   );
-  assert.match(codemod, /- name: analyze/);
-  assert.match(codemod, /- name: transform/);
-  assert.doesNotMatch(codemod, /name: write|report\.yaml/i);
+  assert.equal(packageJson.scripts.validate, undefined);
+  assert.equal(
+    packageJson.scripts["check-types"],
+    "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.workflows.json",
+  );
+  for (const script of ["test", "verify", "check-types"]) {
+    assert.doesNotMatch(packageJson.scripts[script], /benchmark/, script);
+  }
+  for (const shipped of PRODUCTION_SOURCES) {
+    assert.equal(packageJson.files.includes(shipped), true, shipped);
+  }
+  assert.equal(packageJson.files.includes("workflows/sandbox-modules.d.ts"), false);
+
+  // The sandbox-side and workflow-side type programs stay separate: the
+  // rules are typed against the sandbox's node:* shims, the workflows
+  // against @types/node, and only the workflow program sees the runtime.
+  const sandboxProgram = JSON.parse(read("tsconfig.json"));
+  const workflowProgram = JSON.parse(read("tsconfig.workflows.json"));
+  assert.deepEqual(sandboxProgram.compilerOptions.types, ["@codemod.com/jssg-types"]);
+  assert.equal(sandboxProgram.compilerOptions.erasableSyntaxOnly, true);
+  assert.deepEqual(sandboxProgram.exclude, [
+    "tests",
+    "workflows",
+    "shared/workflow.ts",
+    "**/*.test.ts",
+    "**/*.fixture.tsx",
+  ]);
+  assert.equal(workflowProgram.extends, "./tsconfig.json");
+  assert.deepEqual(workflowProgram.compilerOptions.types, ["node"]);
+  assert.equal(workflowProgram.compilerOptions.erasableSyntaxOnly, false);
+  assert.deepEqual(workflowProgram.include, ["workflows", "shared/workflow.ts"]);
+  assert.match(
+    read("workflows/sandbox-modules.d.ts"),
+    /\/\/\/ <reference types="@codemod\.com\/jssg-types\/main" \/>/,
+  );
+
+  // The opt-in benchmark measures the new engine's per-command cost with the
+  // same inline composition and ships without joining the verified surface.
+  const benchmarkProbe = read("benchmarks/workspace-pass.ts");
+  const benchmarkDriver = read("benchmarks/workspace-passes.mjs");
+  assert.match(benchmarkProbe, /binding\.references\(\)/);
+  assert.match(benchmarkProbe, /createWorkspacePass\(\n  marker:/);
+  assert.doesNotMatch(benchmarkProbe, /export default/);
+  assert.match(benchmarkDriver, /createBenchmarkWorkflow/);
+  assert.match(benchmarkDriver, /createWorkspacePass\(\$\{JSON\.stringify/);
+  assert.match(benchmarkDriver, /semanticAnalysis: "workspace"/);
+  assert.match(benchmarkDriver, /runWorkflowFile\(\{ workflowPath, target, bridge \}\)/);
+  assert.match(benchmarkDriver, /workflows\/analyze\.ts/);
+  assert.doesNotMatch(benchmarkDriver, /workflow\.yaml|js_file|HOME: stateDirectory|XDG_/);
 });
 
 test("colocates exact analysis rule production, adapters, and fixtures", () => {
@@ -500,6 +525,62 @@ test("uses normal analyzer end-to-end fixtures", () => {
   assert.doesNotMatch(readFixtureText(), /codemod-reports|transform|report/i);
 });
 
+function read(path) {
+  return readFileSync(resolve(packageDirectory, path), "utf8");
+}
+
+/**
+ * Every inline definition in a workflow module: `const <binding> = jssg({
+ * name: "<name>", ... transform: (root) => <adapter>(<rule>, root) })`, with
+ * the shared applicability and, for analyzers, workspace semantics.
+ */
+function definitions(workflow, { adapter, semantic }) {
+  const pattern = new RegExp(
+    "^const (\\w+) = jssg\\(\\{\\n" +
+      '  name: "(\\w+)",\\n' +
+      '  language: "tsx",\\n' +
+      "  include: SOURCE_INCLUDE,\\n" +
+      "  exclude: SOURCE_EXCLUDE,\\n" +
+      (semantic ? '  semanticAnalysis: "workspace",\\n' : "") +
+      "  output: FileStrings,\\n" +
+      "  transform: \\(root\\) => " +
+      adapter +
+      "\\((\\w+), root\\),\\n" +
+      "\\}\\);$",
+    "gm",
+  );
+  return [...workflow.matchAll(pattern)].map(([, binding, name, rule]) => ({
+    binding,
+    name,
+    rule,
+  }));
+}
+
+function assertNamedImport(workflow, name, specifier) {
+  const escaped = specifier.replaceAll(".", "\\.").replaceAll("/", "\\/");
+  assert.match(
+    workflow,
+    new RegExp(`^import \\{[^}]*\\b${name}\\b[^}]*\\} from "${escaped}";$`, "m"),
+    `${name} must be imported from ${specifier}`,
+  );
+  assert.equal(
+    (workflow.match(new RegExp(`\\b${name}\\b`, "g")) ?? []).length,
+    3,
+    `${name} appears once in its import, once as a name, and once as the delegated rule`,
+  );
+}
+
+function listedIdentifiers(workflow, list) {
+  const match = new RegExp(`^export const ${list} = \\[([^\\]]*)\\];$`, "m").exec(
+    workflow,
+  );
+  assert.ok(match, `${list} must be an exported array literal`);
+  return match[1]
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+}
+
 function namedRuleExports(directory, prefix) {
   const pattern = new RegExp(
     "^export function ((?:" + prefix + ")[A-Z][A-Za-z0-9]*)\\(",
@@ -619,19 +700,4 @@ function visit(directory, contents) {
     if (entry.isDirectory()) visit(path, contents);
     if (entry.isFile()) contents.push(readFileSync(path, "utf8"));
   }
-}
-
-function productionScripts() {
-  return readdirSync(resolve(packageDirectory, "scripts"), {
-    withFileTypes: true,
-  })
-    .filter((entry) => entry.isFile() && !entry.name.includes(".test."))
-    .map((entry) => entry.name)
-    .sort();
-}
-
-function workflowFiles() {
-  return readdirSync(packageDirectory)
-    .filter((name) => name.startsWith("workflow") && name.endsWith(".yaml"))
-    .sort();
 }

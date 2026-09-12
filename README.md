@@ -1,26 +1,29 @@
 # Solid Migration Assistant
 
-Solid Migration Assistant is an experimental Solid 1.9 → Solid 2 migration assistant targeting Solid `2.0.0-rc.0`. It ships two workflows: a read-only `analyze` workflow that prints guidance for supported migration sites, and a deterministic `transform` workflow that relocates a small, pure subset of legacy import subpaths, relocates `solid-js/web` statements whose complete named binding set is proven compatible, and renames the provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
+Solid Migration Assistant is an experimental Solid 1.9 → Solid 2 migration assistant targeting Solid `2.0.0-rc.0`. It ships two TypeScript workflows: a read-only `analyze` workflow that prints guidance for supported migration sites, and a deterministic `transform` workflow that relocates a small, pure subset of legacy import subpaths, relocates `solid-js/web` statements whose complete named binding set is proven compatible, and renames the provably equivalent subset of intrinsic JSX `classList` attributes to `class`.
 
-The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Each of the 37 named analyzers is a separate JSSG entrypoint and sequential workflow step; the workflow is the only production composition layer. Guidance is accumulated across those steps, sorted deterministically, and printed to standard output; the Codemod runtime's progress lines and the final disclosure are written to standard error. The analyzer never edits the target and does not generate reports, dashboards, or other output there. Codemod analytics are disabled. Codemod may persist workflow and task state in normal platform user-data directories outside the target; the assistant does not redirect or remove that runtime state.
+The assistant scans project-owned `.js`, `.jsx`, `.ts`, and `.tsx` source, prints one detailed guidance string for each supported detection, and exits successfully when migration work is found. Each of the 37 named analyzers is its own inline JSSG definition in `workflows/analyze.ts`, awaited as its own workspace-semantic command; the workflow modules are the only production composition layer. Guidance is returned by each command as structured per-file output, then flattened, deduplicated, sorted deterministically, and printed to standard output; the final disclosure is written to standard error. The analyzer never edits the target and does not generate reports, dashboards, or other output there. No telemetry exists in this runtime, workflow history stays in memory, and each command's exchange with the execution bridge goes through a private temporary directory that is removed afterwards.
 
 ## Run the RC analyzer and transform
 
 > **RC scope:** version `0.3.0` targets Solid `2.0.0-rc.0` and covers only the detections and relocations documented below. A clean analyzer run is not proof that a project is ready for Solid 2.
 
-After npm publication, run the package from a project root with Node 20 or newer and npm (no pnpm installation is needed):
-
-The assistant itself imposes no operating-system, CPU-architecture, or libc restriction in its npm metadata or launcher. Actual execution support depends on native runtime availability from the pinned Codemod 1.12.13 dependency and on the installing package manager and platform. This project does not claim that Codemod provides a working native runtime for every platform or architecture; installation or launch errors from Codemod remain authoritative.
+The workflows run on `@codemod.com/orchestration`, the TypeScript orchestration prototype in the Codemod monorepo, which is private and unpublished, and on its Rust execution bridge, which is not distributed. This repository links the prototype from a sibling checkout (`"@codemod.com/orchestration": "link:../../../codemod/packages/orchestration"` in the package manifest, that is `../codemod` beside this repository on its `prototype/typescript-orchestration` branch) and resolves the bridge at that checkout's `target/debug/butterflow-execution-bridge`; `CODEMOD_BRIDGE_BIN` overrides that path. Node 24 or newer is required.
 
 ```sh
-npx --yes solid-migration-assistant@latest
+# beside this repository
+git clone https://github.com/codemod/codemod ../codemod
+git -C ../codemod switch prototype/typescript-orchestration
+(cd ../codemod && pnpm install && cargo build -p butterflow-execution-bridge)
+
+# in this repository
+pnpm install --frozen-lockfile
+pnpm analyze -- --target /path/to/a/solid-project
 ```
 
-The current directory is analyzed by default. To analyze another directory:
+The current directory is analyzed by default; `--target` selects another directory, absolute or relative to the current one.
 
-```sh
-npx --yes solid-migration-assistant@latest --target /path/to/a/solid-project
-```
+**Publication blocker:** this version is not publishable. `npx solid-migration-assistant` cannot work until `@codemod.com/orchestration` is published and the bridge binary ships with it or as a `codemod` subcommand, because a registry install cannot resolve the `link:` dependency. Do not publish this version.
 
 The supported rules detect the complete Solid 2 RC migration quick rename / removal map:
 
@@ -32,7 +35,7 @@ Coverage is deliberately limited. Even when no guidance is printed, review the d
 
 ## Transform
 
-The opt-in `transform` workflow applies three deterministic rewrites in place and changes nothing else. Each rule is a separate JSSG entrypoint and sequential workflow step, so later rules see the output of earlier rules. The current rules operate on disjoint syntax, and the combined workflow remains covered by exact-output and idempotency tests.
+The opt-in `transform` workflow applies three deterministic rewrites in place and changes nothing else. Each rule is a separate inline JSSG definition in `workflows/transform.ts`, awaited as its own command, so later rules see the output of earlier rules. The current rules operate on disjoint syntax, and the combined workflow remains covered by exact-output and idempotency tests.
 
 ### Pure subpath relocations
 
@@ -62,15 +65,14 @@ Because this rule owns `solid-js/web` exclusively, the pure-subpath map above ne
 
 The third rule renames `classList` to `class` on an intrinsic JSX element whose only class source is one `classList` expression — `<div id="first" classList={flags} />` becomes `<div id="first" class={flags} />` — changing only the attribute name and leaving the value expression byte-identical. Solid 2 folds `classList` into `class`, whose object form applies the same class tokens Solid 1.x applied, which makes that rename an equivalence. Every less certain case is left to the analyzer's manual-review guidance: components, member components, and namespaced element names; elements with any other class source (including the `class="card"` plus `classList={…}` merge into the array form); elements with a spread attribute; duplicate `classList` attributes; shorthand, string, empty, and comment-only values; and near-miss attribute names. See [`codemods/solid-migration-assistant/README.md`](codemods/solid-migration-assistant/README.md) for the full list.
 
-All three rules emit one per-edit report line (`file:line:column`, what changed, plus the migration-guide link). The workflow is idempotent and writes no report files or other artifacts in the target. It deliberately leaves `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra`, `vendor/solid-js/h`, and `solid-js/web/storage` untouched.
+All three rules emit one per-edit report line (`file:line:column`, what changed, plus the migration-guide link) to standard output. The workflow is idempotent and writes no report files or other artifacts in the target. It deliberately leaves `solid-js/store`, already-migrated paths, and near-miss subpaths such as `solid-js/h-extra`, `vendor/solid-js/h`, and `solid-js/web/storage` untouched.
 
-In this repository, run `pnpm transform` against the current directory, or invoke the Codemod CLI directly to target another directory:
+In this repository, run the transform against the current directory or another target:
 
 ```sh
-node ./node_modules/codemod/codemod --disable-analytics workflow run -w transform.yaml -t /path/to/a/solid-project --allow-dirty --no-interactive
+pnpm --dir codemods/solid-migration-assistant transform
+pnpm --dir codemods/solid-migration-assistant transform -- --target /path/to/a/solid-project
 ```
-
-After publication, select the `transform` workflow from the Codemod platform (it is registered with `default: false`).
 
 ## Preliminary workspace-pass benchmark
 
@@ -80,7 +82,7 @@ Run the opt-in directional benchmark on the small checked-in fixture:
 pnpm --dir codemods/solid-migration-assistant benchmark:workspace-passes
 ```
 
-Pass `-- --target /path/to/project` to use another target. It compares one JSSG workspace-semantic step against the same step repeated to match the production analyzer-step count, then reports raw samples, medians, added cost, slowdown, and a marginal-pass estimate. Each pass forces reference resolution for one imported binding per source file, and relevant target source is hashed before and after. Each sample times a whole Codemod CLI invocation, so process startup dominates small targets. The probe does not reproduce the number or shape of semantic queries made by the real analyzers, compare complete old and new analyzer workflows, control caches, or model full rule traversal cost.
+Pass `-- --target /path/to/project` to use another target. It generates temporary workflow modules whose inline definitions mirror the production analyzers and compares one workspace-semantic command against the same command repeated to match the production analyzer count, then reports raw samples, medians, added cost, slowdown, and a marginal-command estimate. Each command forces reference resolution for one imported binding per source file, and relevant target source is hashed before and after. Each sample times one in-process workflow run, so Node startup is excluded while each command's bridge process startup, workspace indexing, and per-file sandbox runtime are included. The probe does not reproduce the number or shape of semantic queries made by the real analyzers, compare complete old and new analyzer workflows, control caches, or model full rule traversal cost.
 
 ## Verify the repository
 
@@ -89,7 +91,7 @@ pnpm install --frozen-lockfile
 pnpm verify
 ```
 
-Verification runs comprehensive analysis and transformation rule fixtures plus end-to-end analyzer and transform fixtures; it checks exact ordered guidance, proves the analyzer leaves every target file unchanged, and proves the transform is idempotent and changes nothing outside the relocated module strings and the qualifying `classList` attribute names.
+Verification runs comprehensive analysis and transformation rule fixtures plus end-to-end analyzer and transform fixtures through the launcher; it checks exact ordered guidance, cross-file semantic resolution, launcher failure and cancellation behavior, proves the analyzer leaves every target file unchanged, proves the transform is idempotent and changes nothing outside the relocated module strings and the qualifying `classList` attribute names, checks the packed file list, and typechecks both the sandbox-side and workflow-side programs. It needs the sibling codemod checkout and a built bridge, as described above.
 
 See [`codemods/solid-migration-assistant/README.md`](codemods/solid-migration-assistant/README.md) for rule boundaries. Feedback is collected through ordinary [public GitHub issues](https://github.com/devagrawal09/solid-migration-assistant/issues/new).
 

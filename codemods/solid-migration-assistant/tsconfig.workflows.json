@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "erasableSyntaxOnly": false
+  },
+  "include": ["workflows", "shared/workflow.ts"],
+  "exclude": ["tests", "**/*.test.ts", "**/*.fixture.tsx"]
+}
