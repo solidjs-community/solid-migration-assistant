@@ -45,53 +45,14 @@
     "rules/transformations/imports/legacy-subpath-relocation/legacy-subpath-relocation.ts",
     "rules/transformations/imports/web-package-relocation/web-package-relocation.ts",
     "rules/transformations/jsx/class-list-to-class/class-list-to-class.ts",
-    "scripts/analysis/analyzeBatch.ts",
-    "scripts/analysis/analyzeBeta32SubpathImports.ts",
-    "scripts/analysis/analyzeCatchError.ts",
-    "scripts/analysis/analyzeContextProvider.ts",
-    "scripts/analysis/analyzeCreateComputed.ts",
-    "scripts/analysis/analyzeCreateDeferred.ts",
-    "scripts/analysis/analyzeCreateDynamic.ts",
-    "scripts/analysis/analyzeCreateEffect.ts",
-    "scripts/analysis/analyzeCreateMemo.ts",
-    "scripts/analysis/analyzeCreateMutable.ts",
-    "scripts/analysis/analyzeCreateResource.ts",
-    "scripts/analysis/analyzeCreateSelector.ts",
-    "scripts/analysis/analyzeDomAttrNamespaces.ts",
-    "scripts/analysis/analyzeDomEventNamespaces.ts",
-    "scripts/analysis/analyzeDomUseDirective.ts",
-    "scripts/analysis/analyzeEnableScheduling.ts",
-    "scripts/analysis/analyzeEqualFn.ts",
-    "scripts/analysis/analyzeFrom.ts",
-    "scripts/analysis/analyzeGetListener.ts",
-    "scripts/analysis/analyzeIndexArray.ts",
-    "scripts/analysis/analyzeJsxClassListAttributes.ts",
-    "scripts/analysis/analyzeJsxComponentRenames.ts",
-    "scripts/analysis/analyzeMergeProps.ts",
-    "scripts/analysis/analyzeModifyMutable.ts",
-    "scripts/analysis/analyzeObservable.ts",
-    "scripts/analysis/analyzeOnCleanup.ts",
-    "scripts/analysis/analyzeOnError.ts",
-    "scripts/analysis/analyzeOnHelper.ts",
-    "scripts/analysis/analyzeOnMount.ts",
-    "scripts/analysis/analyzeProduce.ts",
-    "scripts/analysis/analyzeResetErrorBoundaries.ts",
-    "scripts/analysis/analyzeSplitProps.ts",
-    "scripts/analysis/analyzeStartTransition.ts",
-    "scripts/analysis/analyzeUnwrap.ts",
-    "scripts/analysis/analyzeUseTransition.ts",
-    "scripts/analysis/analyzeWebImport.ts",
-    "scripts/analysis/analyzeWriteSignal.ts",
-    "scripts/emit-report.ts",
-    "scripts/transformations/relocateLegacySubpaths.ts",
-    "scripts/transformations/relocateWebPackage.ts",
-    "scripts/transformations/rewriteClassListToClass.ts",
     "shared/analysis.ts",
     "shared/entrypoint.ts",
+    "shared/register-ts.mjs",
     "shared/run-workflow.mjs",
     "shared/transform.ts",
-    "transform.yaml",
-    "workflow.yaml"
+    "shared/workflow.ts",
+    "workflows/analyze.ts",
+    "workflows/transform.ts"
   ],
   "repository": {
     "type": "git",
@@ -114,7 +75,7 @@
     "tsx"
   ],
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   },
   "publishConfig": {
     "access": "public"
@@ -122,24 +83,24 @@
   "packageManager": "pnpm@11.20.0",
   "scripts": {
     "analyze": "node ./bin/solid-migration-assistant.mjs",
+    "transform": "node ./bin/solid-migration-assistant.mjs transform",
     "test": "pnpm test:architecture && pnpm test:package && pnpm test:rules && pnpm test:transform-rules && pnpm test:workflow && pnpm test:transform",
     "test:architecture": "node --test ./tests/architecture.test.mjs",
     "test:package": "node --test ./tests/cli.test.mjs ./tests/packaging.test.mjs",
-    "test:workflow": "node ./tests/workflow.test.mjs",
-    "check-types": "tsc --noEmit",
-    "validate": "node ./node_modules/codemod/codemod --disable-analytics workflow validate -w workflow.yaml && node ./node_modules/codemod/codemod --disable-analytics workflow validate -w transform.yaml",
-    "verify": "pnpm test && pnpm check-types && pnpm validate",
     "test:rules": "node ./tests/rules.test.mjs",
     "test:transform-rules": "node ./tests/transform-rules.test.mjs",
-    "transform": "node ./node_modules/codemod/codemod --disable-analytics workflow run -w transform.yaml --allow-dirty --no-interactive",
-    "test:transform": "node ./tests/transform.test.mjs",
+    "test:workflow": "node --disable-warning=ExperimentalWarning --experimental-transform-types --test ./tests/workflow.test.mjs",
+    "test:transform": "node --disable-warning=ExperimentalWarning --experimental-transform-types --test ./tests/transform.test.mjs",
+    "check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.workflows.json",
+    "verify": "pnpm test && pnpm check-types",
     "benchmark:workspace-passes": "node ./benchmarks/workspace-passes.mjs"
   },
   "dependencies": {
-    "codemod": "1.12.13"
+    "@codemod.com/orchestration": "link:../../../codemod/packages/orchestration"
   },
   "devDependencies": {
-    "@codemod.com/jssg-types": "1.6.2",
+    "@codemod.com/jssg-types": "1.6.3",
+    "@types/node": "^24.13.4",
     "typescript": "6.0.3"
   }
 }
